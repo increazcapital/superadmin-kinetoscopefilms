@@ -335,7 +335,8 @@ const infoIcons = {
 export default function AgentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToast } = useToast();
+  const toastCtx = useToast();
+  const addToast = typeof toastCtx === 'function' ? toastCtx : (toastCtx?.addToast || (() => {}));
   const { canEdit, canDelete } = usePermissions();
   const [activeTab, setActiveTab] = useState('profile');
   const [selectedCommission, setSelectedCommission] = useState(null);

@@ -457,14 +457,24 @@ export default function AgentDetail() {
         setDocumentsList(docs);
         
         const verifiedMap = {};
-        let allDocsVerifiedOnLoad = docs.length > 0;
+        const coreDocsList = docs.filter(d => {
+          const k = (d.key || '').toLowerCase();
+          const n = (d.name || d.label || '').toLowerCase();
+          return !k.includes('nominee') && !n.includes('nominee');
+        });
+        let allDocsVerifiedOnLoad = coreDocsList.length > 0;
+        
         docs.forEach(doc => {
           const label = doc.name || doc.label;
+          const k = (doc.key || '').toLowerCase();
+          const n = (doc.name || doc.label || '').toLowerCase();
+          const isNomineeDoc = k.includes('nominee') || n.includes('nominee');
+          
           const s = (doc.status || '').toLowerCase();
           const isDocVerified = s === 'verified' || s === 'approved' || doc.verified === true;
           if (isDocVerified) {
             verifiedMap[label] = true;
-          } else {
+          } else if (!isNomineeDoc) {
             allDocsVerifiedOnLoad = false;
           }
         });
@@ -727,22 +737,31 @@ export default function AgentDetail() {
     
     const updatedDocs = documentsList.map(d => {
       if ((d.name || d.label) === docLabel) {
-        return { ...d, status: 'Verified' };
+        return { ...d, status: 'Verified', verified: true };
       }
       return d;
     });
     setDocumentsList(updatedDocs);
     addToast(`"${docLabel}" verified successfully!`, 'success', 'Document Verified');
 
-    // Auto-verify KYC when ALL documents are verified (case-insensitive check)
-    const allNowVerified = updatedDocs.length > 0 && updatedDocs.every(d => {
+    // Auto-verify KYC when core 3 documents (PAN, ID proof, Bank details) are verified
+    const coreDocs = updatedDocs.filter(d => {
+      const k = (d.key || '').toLowerCase();
+      const n = (d.name || d.label || '').toLowerCase();
+      return !k.includes('nominee') && !n.includes('nominee');
+    });
+
+    const coreAllVerified = coreDocs.length > 0 && coreDocs.every(d => {
       const l = d.name || d.label;
       const s = (d.status || '').toLowerCase();
       return newVerified[l] || s === 'verified' || s === 'approved' || d.verified === true;
     });
-    if (allNowVerified) {
+
+    if (coreAllVerified) {
+      setAgent(prev => prev ? { ...prev, kyc: 'VERIFIED', status: 'active' } : null);
+      setLocalStatus('active');
       await handleKycStatusChange('VERIFIED');
-      addToast('All documents verified — KYC automatically set to Verified!', 'success', 'KYC Auto-Verified');
+      addToast('Core documents verified — KYC automatically set to Verified!', 'success', 'KYC Auto-Verified');
     }
 
     try {

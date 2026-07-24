@@ -588,31 +588,32 @@ export default function ApprovalsQueue() {
             <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '10px' }}>
               <div>
                 {!showRejectForm ? (
-                  <button className="kfpl-btn kfpl-btn--danger" onClick={() => setShowRejectForm(true)} disabled={actionLoading}>
+                  <button type="button" className="kfpl-btn kfpl-btn--danger" onClick={() => setShowRejectForm(true)} disabled={actionLoading}>
                     Reject Request
                   </button>
                 ) : (
-                  <button className="kfpl-btn kfpl-btn--ghost" onClick={() => setShowRejectForm(false)} disabled={actionLoading}>
-                    Back to Approve
+                  <button type="button" className="kfpl-btn kfpl-btn--ghost" onClick={() => setShowRejectForm(false)} disabled={actionLoading}>
+                    ← Back to Approve
                   </button>
                 )}
               </div>
-              <div className="kfpl-modal-footer">
-                <button className="kfpl-btn kfpl-btn--ghost" onClick={() => setModal({ open: false, type: '', item: null })} disabled={actionLoading}>Cancel</button>
+              <div className="kfpl-modal-footer" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button type="button" className="kfpl-btn kfpl-btn--ghost" onClick={() => setModal({ open: false, type: '', item: null })} disabled={actionLoading}>Cancel</button>
                 {canEdit('depositWithdrawal') && (
-                  <>
-                    <button className="kfpl-btn kfpl-btn--danger" onClick={confirmReject} disabled={!rejectReason.trim() || actionLoading}>
+                  showRejectForm ? (
+                    <button type="button" className="kfpl-btn kfpl-btn--danger" onClick={confirmReject} disabled={!rejectReason.trim() || actionLoading}>
                       {actionLoading ? 'Rejecting...' : 'Confirm Rejection'}
                     </button>
-                    <button className="kfpl-btn kfpl-btn--success" onClick={confirmApprove} disabled={actionLoading}>
+                  ) : (
+                    <button type="button" className="kfpl-btn kfpl-btn--success" onClick={confirmApprove} disabled={actionLoading}>
                       {actionLoading ? 'Approving...' : 'Approve Request'}
                     </button>
-                  </>
+                  )
                 )}
               </div>
             </div>
           ) : (
-            <button className="kfpl-btn kfpl-btn--ghost" onClick={() => setModal({ open: false, type: '', item: null })}>Close</button>
+            <button type="button" className="kfpl-btn kfpl-btn--ghost" onClick={() => setModal({ open: false, type: '', item: null })}>Close</button>
           )
         }
       >

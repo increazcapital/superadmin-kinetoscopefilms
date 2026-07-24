@@ -780,31 +780,31 @@ export default function AgentDetail() {
           status: 'Verified'
         })
       });
+
+      if (coreAllVerified) {
+        await apiRequest(`/api/super-admin/agents/${id}/kyc`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kycStatus: 'VERIFIED' })
+        }).catch(() => {});
+      }
+
       await fetchAgentDetails(true); // Silent sync from backend
     } catch (err) {
       console.warn('Dedicated verify-document API failed, falling back to agent profile update...', err);
       try {
-        // Option B: Fallback to main agent patch with the specific document field updated
-        const targetDoc = documentsList.find(d => (d.name || d.label) === docLabel) || {};
-        const currentDocObj = agent[fieldName] || {};
-        const updatedDocObj = {
-          url: targetDoc.url || currentDocObj.url || '',
-          status: 'Verified',
-          verified: true
-        };
-
+        // Option B: Fallback to main agent patch with specific verification flags updated
         await apiRequest(`/api/super-admin/agents/${id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            [fieldName]: updatedDocObj,
-            profile: {
-              ...agent.profile,
-              [fieldName]: updatedDocObj
-            },
-            documents: updatedDocs
+            [`${fieldName}Verified`]: true,
+            panDocumentVerified: fieldName === 'panDocument' ? true : (newVerified['PAN Card Upload'] || newVerified['Tax ID Upload']),
+            idProofDocumentVerified: fieldName === 'idProofDocument' ? true : (newVerified['ID Proof Upload (Aadhaar / Driving License / Passport)'] || newVerified['International Passport / National ID Card Upload']),
+            bankProofDocumentVerified: fieldName === 'bankProofDocument' ? true : newVerified['Bank Details Document'],
+            kycStatus: coreAllVerified ? 'VERIFIED' : 'PENDING'
           })
         });
         await fetchAgentDetails(true); // Silent sync from backend

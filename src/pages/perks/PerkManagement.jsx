@@ -407,9 +407,19 @@ export default function PerkManagement() {
     setIsDeleting(true);
 
     // Optimistically update UI immediately for instant user feedback
-    setPerksList(prev => prev.filter(p => p.id !== targetId));
-    setAssignedPerks(prev => prev.filter(ap => ap.perkId !== targetId));
+    const updatedPerks = perksList.filter(p => p.id !== targetId);
+    const updatedAssignments = assignedPerks.filter(ap => ap.perkId !== targetId);
+    setPerksList(updatedPerks);
+    setAssignedPerks(updatedAssignments);
     setDeletePerkConfirm(null);
+
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        perksList: updatedPerks,
+        assignedPerks: updatedAssignments,
+        clientsList,
+      }));
+    } catch (e) {}
 
     try {
       await apiRequest(`/api/super-admin/perks/${targetId}`, {

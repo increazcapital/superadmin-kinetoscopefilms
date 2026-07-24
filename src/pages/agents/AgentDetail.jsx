@@ -521,7 +521,7 @@ export default function AgentDetail() {
         }
 
         let kycStatus = (ag.header?.kycStatus || ag.summaryCards?.kycStatus || profile.kycStatus || 'PENDING').toUpperCase();
-        if (allDocsVerifiedOnLoad) {
+        if (allDocsVerifiedOnLoad || kycStatus === 'VERIFIED') {
           kycStatus = 'VERIFIED';
         }
 
@@ -959,7 +959,17 @@ export default function AgentDetail() {
 
   const tabs = ['profile', 'clients', 'commission', 'documents'];
 
-  const allDocsVerified = documentsList.length > 0 && documentsList.every(doc => !!verifiedDocs[doc.name || doc.label]);
+  const coreDocsList = documentsList.filter(d => {
+    const k = (d.key || '').toLowerCase();
+    const n = (d.name || d.label || '').toLowerCase();
+    return !k.includes('nominee') && !n.includes('nominee');
+  });
+
+  const allDocsVerified = coreDocsList.length > 0 && coreDocsList.every(doc => {
+    const l = doc.name || doc.label;
+    const s = (doc.status || '').toLowerCase();
+    return !!verifiedDocs[l] || s === 'verified' || s === 'approved' || doc.verified === true;
+  });
 
   const totalCommission = commissionHistory.reduce((sum, com) => sum + (com.amount || 0), 0);
 
@@ -1068,7 +1078,7 @@ export default function AgentDetail() {
             <div className="kfpl-detail-id" style={{ marginTop: '2px' }}>ID: {agent.agentId}</div>
             <div className="kfpl-detail-meta" style={{ marginTop: '8px' }}>
               <Badge status={localStatus}>{localStatus}</Badge>
-              <Badge status={agent.kyc === 'VERIFIED' ? 'active' : 'pending'}>KYC: {agent.kyc}</Badge>
+              <Badge status={(agent.kyc === 'VERIFIED' || allDocsVerified) ? 'active' : 'pending'}>KYC: {(agent.kyc === 'VERIFIED' || allDocsVerified) ? 'VERIFIED' : agent.kyc}</Badge>
             </div>
           </div>
         </div>
@@ -1119,7 +1129,7 @@ export default function AgentDetail() {
         <div className="kfpl-detail-kpi-summary-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <span className="kfpl-detail-kpi-summary-label">KYC Verification</span>
           <div style={{ marginTop: '4px' }}>
-            {agent.kyc === 'VERIFIED' ? (
+            {(agent.kyc === 'VERIFIED' || allDocsVerified) ? (
               <Badge status="active">Verified</Badge>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

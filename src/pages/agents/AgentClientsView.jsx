@@ -19,6 +19,19 @@ export default function AgentClientsView() {
   const [clientsList, setClientsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const formatClientID = (rawId) => {
+    if (!rawId || rawId === '—') return 'KFPL-CL-1001';
+    const str = String(rawId).trim();
+    if (str.toUpperCase().startsWith('KFPL-CL-')) return str.toUpperCase();
+    const digits = str.match(/\d+/);
+    if (digits) {
+      let val = parseInt(digits[0], 10);
+      if (val < 1000) val += 1000;
+      return `KFPL-CL-${val}`;
+    }
+    return 'KFPL-CL-1001';
+  };
+
   useEffect(() => {
     const fetchClients = async () => {
       try {
@@ -57,7 +70,25 @@ export default function AgentClientsView() {
             if (res.clients && Array.isArray(res.clients)) return res.clients;
             return [];
           };
-          setClientsList(extractClients(clientsData));
+          const rawClients = extractClients(clientsData);
+          const normalized = rawClients.map(c => {
+            const user = c.user || {};
+            const profile = c.profile || {};
+            return {
+              ...c,
+              clientId: formatClientID(c.clientId || user.clientCode || profile.clientCode || '—'),
+              id: c.id || c._id || user._id,
+              name: c.name || profile.fullName || user.name || '—',
+              email: c.email || user.email || profile.email || '—',
+              joinDate: c.joinDate || user.createdAt || profile.createdAt || '',
+              totalInvestment: c.totalInvestment || 0,
+              monthlyRoi: c.monthlyRoi ?? c.roi ?? profile.monthlyRoi ?? 0,
+              agentCommission: c.agentCommission || c.agentCommissionMonthly || '',
+              riskProfile: c.riskProfile || profile.riskProfile || 'Conservative',
+              status: c.status || profile.status || 'active'
+            };
+          });
+          setClientsList(normalized);
         }
       } catch (err) {
         console.error('Failed to load agent clients view:', err);
@@ -70,63 +101,64 @@ export default function AgentClientsView() {
 
   const agentName = agent?.name || agent?.fullName || location.state?.agentName || 'Agent';
 
+  const formatDateDMY = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr || '—';
+    const day = String(d.getDate()).padStart(2, '0');
+    const mon = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}/${mon}/${d.getFullYear()}`;
+  };
+
   const getPerkTier = (amount) => {
     return getCategoryFromAmount(amount);
   };
 
-  // Calculate contract end date (joinDate + longest contract period, default 24 months)
-  const getContractEndDate = (row) => {
-    if (row.contractEndDate) return row.contractEndDate;
-    if (row.joinDate) {
-      const d = new Date(row.joinDate);
-      d.setMonth(d.getMonth() + 24);
-      const day = String(d.getDate()).padStart(2, '0');
-      const mon = String(d.getMonth() + 1).padStart(2, '0');
-      return `${day}/${mon}/${d.getFullYear()}`;
-    }
-    return '—';
-  };
-
-  // Same columns as InvestorList (Manage Clients) — minus Agent column
   const columns = [
-    { header: 'Client ID', accessor: 'clientId' },
-    { header: 'Join Date', accessor: 'joinDate' },
+    { header: 'Client ID', render: (row) => <span style={{ fontWeight: 700 }}>{row.clientId}</span> },
+    { header: 'Join Date', render: (row) => <span>{formatDateDMY(row.joinDate)}</span> },
     {
       header: 'Contract End',
-      render: (row) => <span>{getContractEndDate(row)}</span>,
+      render: (row) => <span>{formatDateDMY(row.contractEndDate)}</span>,
     },
     {
       header: 'Client Name',
-      accessor: 'name',
-      render: (row) => <span style={{ fontWeight: 600 }}>{row.name}</span>,
+      render: (row) => <span style={{ fontWeight: 600, color: 'var(--color-navy)' }}>{row.name}</span>,
     },
-    { header: 'Email Address', accessor: 'email' },
+    { header: 'Email Address', render: (row) => <span style={{ fontSize: '0.8125rem', color: '#475569' }}>{row.email}</span> },
     {
       header: 'Total Investment',
-      accessor: 'totalInvestment',
-      render: (row) => <span className="font-semibold">{formatCurrency(row.totalInvestment)}</span>,
+      render: (row) => <span className="font-semibold">{formatCurrency(row.totalInvestment || 0)}</span>,
     },
     {
       header: 'ROI % Allocated',
-      accessor: 'monthlyRoi',
-      render: (row) => `${row.monthlyRoi || row.roiPercentage || 1.2}%`,
+      render: (row) => {
+        const roiPct = row.monthlyRoi || 0;
+        return <span style={{ fontWeight: 700, color: '#10b981' }}>{roiPct}%</span>;
+      },
     },
     {
       header: 'Perks',
-      accessor: 'totalInvestment',
       render: (row) => {
-        const perk = getPerkTier(row.totalInvestment);
-        return <Badge status={perk}>{perk.toUpperCase()}</Badge>;
+        const perk = getPerkTier(row.totalInvestment || 0);
+        return <Badge status={perk}>{perk.toUpperCase()} PERK</Badge>;
       },
     },
     {
       header: 'Agent Commission',
-      render: () => {
-        if (!agent) return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
+      render: (row) => {
+        const comm = row.agentCommission || row.agentCommissionMonthly;
+        if (!comm || comm === '—') return <span style={{ color: '#94a3b8' }}>—</span>;
         return (
-          <span className="font-semibold" style={{ color: 'var(--color-success)' }}>
-            Slab-Based
-          </span>
+          <span style={{
+            display: 'inline-block',
+            padding: '3px 10px',
+            borderRadius: '20px',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            background: '#D1FAE5',
+            color: '#065F46'
+          }}>{comm}</span>
         );
       }
     },

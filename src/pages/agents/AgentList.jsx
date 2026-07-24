@@ -83,10 +83,11 @@ export default function AgentList() {
 
   const formatAgentID = (rawId) => {
     if (!rawId || rawId === '—') return '—';
-    if (rawId.startsWith('KFPL-AG-') || rawId.startsWith('KFPL-AGT-')) {
-      return rawId.replace('KFPL-AGT-', 'KFPL-AG-');
+    const str = String(rawId).trim();
+    if (str.toUpperCase().startsWith('KFPL-AG-') || str.toUpperCase().startsWith('KFPL-AGT-')) {
+      return str.toUpperCase().replace('KFPL-AGT-', 'KFPL-AG-');
     }
-    const digits = rawId.match(/\d+/);
+    const digits = str.match(/\d+/);
     if (digits) {
       let val = parseInt(digits[0], 10);
       if (val < 1000) {
@@ -94,7 +95,16 @@ export default function AgentList() {
       }
       return `KFPL-AG-${val}`;
     }
-    return 'KFPL-AG-1001';
+    return '—';
+  };
+
+  const formatDateDMY = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr || '—';
+    const day = String(d.getDate()).padStart(2, '0');
+    const mon = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}/${mon}/${d.getFullYear()}`;
   };
 
   useEffect(() => {
@@ -131,18 +141,18 @@ export default function AgentList() {
             .map(a => {
               const user = a.user || {};
               const profile = a.profile || {};
+              const resolvedCode = a.agentId || a.clientCode || user.clientCode || profile.clientCode || profile.agentId || '';
               return {
                 ...a,
-                id: user._id || profile.userId || a._id || a.id,
-                name: profile.fullName || user.name || '—',
-                email: profile.email || user.email || '—',
+                id: a._id || a.id || user._id || profile.userId,
+                name: profile.fullName || a.name || user.name || '—',
+                email: profile.email || a.email || user.email || '—',
                 phone: profile.phone || '—',
-                agentId: formatAgentID(user.clientCode || profile.agentId || '—'),
-                joinDate: user.createdAt 
-                  ? new Date(user.createdAt).toLocaleDateString('en-IN') 
-                  : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-IN') : '—'),
+                agentId: formatAgentID(resolvedCode || '—'),
+                joinDateRaw: user.createdAt || profile.createdAt || a.createdAt || '',
                 totalClients: a.clientsCount ?? a.totalClients ?? 0,
                 totalInvestment: a.totalInvestment ?? 0,
+                commissionPaid: a.commissionPaid ?? a.totalCommissionsPaid ?? a.totalCommissions ?? 0,
                 status: profile.status || (user.isActive ? 'active' : 'inactive') || 'active',
               };
             });
@@ -182,38 +192,38 @@ export default function AgentList() {
 
   const columns = [
     {
-      header: 'Agent',
-      accessor: 'name',
+      header: 'Agent ID',
+      accessor: 'agentId',
+      render: (row) => <span style={{ fontWeight: 700 }}>{formatAgentID(row.agentId || row.code || row.clientCode)}</span>
+    },
+    {
+      header: 'Join Date',
+      render: (row) => <span>{formatDateDMY(row.joinDateRaw || row.createdAt)}</span>
+    },
+    {
+      header: 'Agent Name',
       render: (row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: 36, height: 36, borderRadius: '50%', background: 'var(--color-navy-light)',
+            width: 32, height: 32, borderRadius: '50%', background: 'var(--color-navy-light)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--color-gold)', fontWeight: 800, fontSize: 13, flexShrink: 0
+            color: 'var(--color-gold)', fontWeight: 800, fontSize: 12, flexShrink: 0
           }}>
             {(row.name || 'A').charAt(0).toUpperCase()}
           </div>
-          <div>
-            <div style={{ fontWeight: 600, color: 'var(--color-navy)' }}>{row.name}</div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{row.email}</div>
-          </div>
+          <span style={{ fontWeight: 600, color: 'var(--color-navy)' }}>{row.name}</span>
         </div>
       )
     },
     {
-      header: 'Agent ID',
-      accessor: 'agentId'
+      header: 'Email',
+      render: (row) => <span style={{ fontSize: '0.8125rem', color: '#475569' }}>{row.email || '—'}</span>
     },
     {
-      header: 'Phone',
-      accessor: 'phone',
-      render: (row) => row.phone || '—'
-    },
-    {
-      header: 'Total Clients',
-      accessor: 'totalClients',
+      header: 'Client',
       render: (row) => {
-        if (row.totalClients && row.totalClients > 0) {
+        const count = row.totalClients || 0;
+        if (count > 0) {
           return (
             <button
               onClick={(e) => {
@@ -221,26 +231,30 @@ export default function AgentList() {
                 navigate(`/agents/${row._id || row.id}/clients`);
               }}
               style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                padding: '4px 10px',
+                borderRadius: '6px',
                 color: 'var(--color-gold-dark)',
-                textDecoration: 'underline',
-                fontWeight: '600',
+                fontWeight: '700',
+                fontSize: '0.8125rem',
                 cursor: 'pointer'
               }}
             >
-              {row.totalClients}
+              {count} {count === 1 ? 'Client' : 'Clients'}
             </button>
           );
         }
-        return <span>0</span>;
+        return <span style={{ color: '#94a3b8' }}>0</span>;
       }
     },
     {
       header: 'Total Investment',
-      accessor: 'totalInvestment',
-      render: (row) => <span className="font-semibold">{formatCurrency(row.totalInvestment)}</span>,
+      render: (row) => <span className="font-semibold">{formatCurrency(row.totalInvestment || 0)}</span>,
+    },
+    {
+      header: 'Commission Paid',
+      render: (row) => <span style={{ fontWeight: 600, color: '#10b981' }}>{formatCurrency(row.commissionPaid || 0)}</span>,
     },
     {
       header: 'Status',

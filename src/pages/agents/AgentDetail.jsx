@@ -16,10 +16,11 @@ import Modal from '../../components/ui/Modal';
 import { getAuthToken } from '../../utils/authStorage';
 const formatAgentID = (rawId) => {
   if (!rawId || rawId === '—') return '—';
-  if (rawId.startsWith('KFPL-AG-') || rawId.startsWith('KFPL-AGT-')) {
-    return rawId.replace('KFPL-AGT-', 'KFPL-AG-');
+  const str = String(rawId).trim();
+  if (str.toUpperCase().startsWith('KFPL-AG-') || str.toUpperCase().startsWith('KFPL-AGT-')) {
+    return str.toUpperCase().replace('KFPL-AGT-', 'KFPL-AG-');
   }
-  const digits = rawId.match(/\d+/);
+  const digits = str.match(/\d+/);
   if (digits) {
     let val = parseInt(digits[0], 10);
     if (val < 1000) {
@@ -27,7 +28,7 @@ const formatAgentID = (rawId) => {
     }
     return `KFPL-AG-${val}`;
   }
-  return 'KFPL-AG-1001';
+  return '—';
 };
 
 const formatClientID = (rawId) => {
@@ -92,134 +93,9 @@ function getPeriodInvestmentDate(investor, com) {
   return '';
 }
 function getCalculatedCommissions(agt, cls, apiSlabs = []) {
-  const list = [];
-  if (!agt || !cls || cls.length === 0) return [];
-
-  const getSlabRate = (typeNorm, amount) => {
-    const typeSlabs = apiSlabs.filter(s => s.type === typeNorm);
-    const fallbackSlabs = typeNorm === 'one-time' 
-      ? [
-          { minAmount: 500000, maxAmount: 2500000, percentage: 2 },
-          { minAmount: 2500000, maxAmount: 5000000, percentage: 3 },
-          { minAmount: 5000000, maxAmount: 10000000, percentage: 4 },
-          { minAmount: 10000000, maxAmount: 999999999, percentage: 5 }
-        ]
-      : [
-          { minAmount: 0, maxAmount: 1500000, percentage: 0.5 },
-          { minAmount: 1500000, maxAmount: 2500000, percentage: 0.75 },
-          { minAmount: 2500000, maxAmount: 5000000, percentage: 1 },
-          { minAmount: 5000000, maxAmount: 10000000, percentage: 1.5 },
-          { minAmount: 10000000, maxAmount: 999999999, percentage: 2 }
-        ];
-    const activeSlabs = typeSlabs.length > 0 ? typeSlabs : fallbackSlabs;
-    const matched = activeSlabs.find(s => {
-      const max = s.maxAmount === null || s.maxAmount === undefined || s.maxAmount === 999999999 ? 999999999 : s.maxAmount;
-      const min = s.minAmount || 0;
-      return amount >= min && amount < max;
-    });
-    return matched ? (matched.commissionPercentage !== undefined ? matched.commissionPercentage : (matched.percentage || 0)) : 0;
-  };
-
-  cls.forEach((cl, index) => {
-    const totalInv = cl.totalInvestment || cl.investmentAmount || 0;
-    if (totalInv <= 0) return;
-
-    const otRate = getSlabRate('one-time', totalInv);
-    const mRate = getSlabRate('monthly', totalInv);
-    const spRate = parseFloat(agt.commissionSpecial || agt.profile?.specialCommission || 0);
-
-    const joinDateStr = cl.joinDate || '';
-    // Parse joinDate (format: "DD/MM/YYYY" or "YYYY-MM-DD")
-    let dateVal = new Date();
-    if (joinDateStr) {
-      const parts = joinDateStr.split('/');
-      if (parts.length === 3) {
-        dateVal = new Date(parts[2], parts[1] - 1, parts[0]);
-      } else {
-        const d = new Date(joinDateStr);
-        if (!isNaN(d.getTime())) {
-          dateVal = d;
-        }
-      }
-    }
-
-    const monthYearStr = dateVal.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
-
-    // 1. One-Time Onboarding Commission
-    if (otRate > 0) {
-      const otAmt = Math.round((totalInv * otRate) / 100);
-      list.push({
-        id: `calc-ot-${cl.id || cl._id}-${index}`,
-        month: monthYearStr,
-        date: dateVal.toISOString().split('T')[0],
-        type: 'one-time',
-        commissionType: 'One-Time',
-        amount: otAmt,
-        status: 'Paid',
-        clientId: cl.id || cl._id,
-        breakdown: [{
-          clientName: cl.name || cl.fullName || '',
-          clientId: cl.clientId || '',
-          investment: totalInv,
-          rate: otRate,
-          amount: otAmt,
-          investmentDate: joinDateStr || '—'
-        }]
-      });
-    }
-
-    // 2. Monthly Recurring Commission
-    if (mRate > 0) {
-      const mAmt = Math.round((totalInv * mRate) / 100);
-      const nextMonthDate = new Date(dateVal.getFullYear(), dateVal.getMonth() + 1, 1);
-      if (nextMonthDate <= new Date()) {
-        const nextMonthYearStr = nextMonthDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
-        list.push({
-          id: `calc-m-${cl.id || cl._id}-${index}`,
-          month: nextMonthYearStr,
-          date: nextMonthDate.toISOString().split('T')[0],
-          type: 'monthly',
-          commissionType: 'Monthly',
-          amount: mAmt,
-          status: 'Paid',
-          clientId: cl.id || cl._id,
-          breakdown: [{
-            clientName: cl.name || cl.fullName || '',
-            clientId: cl.clientId || '',
-            investment: totalInv,
-            rate: mRate,
-            amount: mAmt,
-            investmentDate: joinDateStr || '—'
-          }]
-        });
-      }
-    }
-
-    // 3. Special Override Commission
-    if (spRate > 0) {
-      const spAmt = Math.round((totalInv * spRate) / 100);
-      list.push({
-        id: `calc-sp-${cl.id || cl._id}-${index}`,
-        month: monthYearStr,
-        date: dateVal.toISOString().split('T')[0],
-        type: 'special',
-        commissionType: 'Special',
-        amount: spAmt,
-        status: 'Paid',
-        clientId: cl.id || cl._id,
-        breakdown: [{
-          clientName: cl.name || cl.fullName || '',
-          clientId: cl.clientId || '',
-          investment: totalInv,
-          rate: spRate,
-          amount: spAmt,
-          investmentDate: joinDateStr || '—'
-        }]
-      });
-    }
-  });
-
-  return list;
+  // Commissions are now auto-created by the backend when deposits are approved.
+  // This function is kept as a stub for backward compatibility with PDF/CSV exports.
+  return [];
 }
 
 function downloadStatementCSV(com, agentName) {
@@ -647,9 +523,7 @@ export default function AgentDetail() {
           phone: profile.phone || '—',
           pan: profile.panNumber || '—',
           agentId: formatAgentID(ag.header?.agentCode || user.clientCode || profile.agentId || '—'),
-          joinDate: profile.joinDate || (user.createdAt 
-            ? new Date(user.createdAt).toLocaleDateString('en-IN') 
-            : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-IN') : '—')),
+          joinDate: formatDateDMY(profile.joinDate || user.createdAt || profile.createdAt || ''),
           totalClients: ag.summaryCards?.clientsCount ?? ag.clientsCount ?? ag.totalClients ?? 0,
           totalInvestment: ag.summaryCards?.totalInvestment ?? ag.totalInvestment ?? 0,
           status: ag.header?.status?.toLowerCase() || profile.status || (user.isActive ? 'active' : 'inactive') || 'active',
@@ -750,23 +624,8 @@ export default function AgentDetail() {
         });
       };
       const dbComms = extractCommissions(commissionsRes);
-      const calculated = getCalculatedCommissions(localAg, normalizedClients, parsedSlabs);
 
-      const merged = [...dbComms];
-      calculated.forEach(calc => {
-        const hasDbEquivalent = dbComms.some(db => {
-          const dbCid = db.clientId?._id || db.clientId?.id || db.clientId;
-          const calcCid = calc.clientId;
-          const dbType = String(db.type || db.commissionType || '').toLowerCase().trim();
-          const calcType = String(calc.type).toLowerCase().trim();
-          return String(dbCid) === String(calcCid) && dbType === calcType;
-        });
-        if (!hasDbEquivalent) {
-          merged.push(calc);
-        }
-      });
-
-      setCommissionHistory(merged);
+      setCommissionHistory(dbComms);
 
     } catch (err) {
       console.error('Failed to fetch agent details:', err);

@@ -138,11 +138,7 @@ export default function AddAgent() {
       addToast('Account Number and Confirm Account Number do not match!', 'danger', 'Validation Error');
       return;
     }
-    if ((form.nomineeRelation || form.nomineeContact) && !form.nomineeName) {
-      alert('Nominee Name is required if Nominee Relation or Nominee Contact is provided.');
-      return;
-    }
-
+    // Nominee fields are completely optional
     setSubmitLoading(true);
     setIsSubmitting(true);
 
@@ -314,13 +310,13 @@ export default function AddAgent() {
             </div>
           </div>
 
-          {/* Nominee Details */}
+          {/* Nominee Details (Optional) */}
           <div className="kfpl-form-section">
-            <div className="kfpl-form-section-title">Nominee Details</div>
+            <div className="kfpl-form-section-title">Nominee Details (Optional)</div>
             <div className="kfpl-form-row">
               <div className="kfpl-input-group">
-                <label className="kfpl-input-label">Nominee Name {(form.nomineeRelation || form.nomineeContact) && <span className="required">*</span>}</label>
-                <input className="kfpl-input" name="nomineeName" value={form.nomineeName} onChange={handleChange} placeholder="Enter your nominee's full name" required={!!(form.nomineeRelation || form.nomineeContact)} />
+                <label className="kfpl-input-label">Nominee Name</label>
+                <input className="kfpl-input" name="nomineeName" value={form.nomineeName} onChange={handleChange} placeholder="Enter your nominee's full name" />
               </div>
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Nominee Relation</label>
@@ -354,7 +350,7 @@ export default function AddAgent() {
           </div>
 
           {/* Nominee ID Proof Upload */}
-          <FileDropzone label={form.nomineeCitizenship === 'International' ? 'Nominee International Passport / National ID Card Upload' : 'Nominee ID Proof (Aadhaar / Driving License / Passport)'} multiple={false} onFilesChange={(files) => setNomineeProofDocFile(files[0] || null)} />
+          <FileDropzone label={form.nomineeCitizenship === 'International' ? 'Nominee Passport / National ID Card Upload (Optional)' : 'Nominee ID Proof (Aadhaar / Driving License / Passport) (Optional)'} multiple={false} onFilesChange={(files) => setNomineeProofDocFile(files[0] || null)} />
 
           {/* Agent Portal Credentials Generation */}
           <div className="kfpl-form-section">

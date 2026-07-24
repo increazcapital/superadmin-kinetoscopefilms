@@ -179,11 +179,6 @@ export default function EditAgent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if ((form.nomineeRelation || form.nomineeContact) && !form.nomineeName) {
-      alert('Nominee Name is required if Nominee Relation or Nominee Contact is provided.');
-      return;
-    }
-
     setSubmitLoading(true);
 
     try {
@@ -337,14 +332,53 @@ export default function EditAgent() {
             </div>
           </div>
 
+          {/* Nominee Details (Optional) */}
+          <div className="kfpl-form-section">
+            <div className="kfpl-form-section-title">Nominee Details (Optional)</div>
+            <div className="kfpl-form-row">
+              <div className="kfpl-input-group">
+                <label className="kfpl-input-label">Nominee Name</label>
+                <input className="kfpl-input" name="nomineeName" value={form.nomineeName} onChange={handleChange} placeholder="Enter nominee's full name" />
+              </div>
+              <div className="kfpl-input-group">
+                <label className="kfpl-input-label">Nominee Relation</label>
+                <select className="kfpl-select" name="nomineeRelation" value={form.nomineeRelation} onChange={handleChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                  <option value="">Select Relation</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Parent">Parent</option>
+                  <option value="Child">Child</option>
+                  <option value="Sibling">Sibling</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div className="kfpl-form-row-3">
+              <div className="kfpl-input-group">
+                <label className="kfpl-input-label">Nominee Contact Number</label>
+                <input className="kfpl-input" name="nomineeContact" value={form.nomineeContact} onChange={handleChange} placeholder="Enter nominee's contact number" />
+              </div>
+              <div className="kfpl-input-group">
+                <label className="kfpl-input-label">Nominee Email Address</label>
+                <input className="kfpl-input" name="nomineeEmail" type="email" value={form.nomineeEmail} onChange={handleChange} placeholder="Enter nominee's email address" />
+              </div>
+              <div className="kfpl-input-group">
+                <label className="kfpl-input-label">Nominee Residency / Citizenship</label>
+                <select className="kfpl-select" name="nomineeCitizenship" value={form.nomineeCitizenship} onChange={handleChange} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                  <option value="National">National (Domestic)</option>
+                  <option value="International">International</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* KYC & Nominee Document Uploads (2x2 Grid Layout) */}
           <div className="kfpl-form-section">
-            <div className="kfpl-form-section-title">KYC Document Uploads (Optional Re-upload)</div>
+            <div className="kfpl-form-section-title">KYC & Document Uploads (Optional Re-upload)</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
               <FileDropzone label={form.citizenship === 'International' ? 'Tax ID Upload' : 'PAN Card Upload'} multiple={false} existingFileUrl={existingDocs.panDocument} onFilesChange={(files) => setPanDocFile(files[0] || null)} />
               <FileDropzone label={form.citizenship === 'International' ? 'Passport / National ID' : 'ID Proof (Aadhaar / DL / Passport)'} multiple={false} existingFileUrl={existingDocs.idProofDocument} onFilesChange={(files) => setIdProofDocFile(files[0] || null)} />
               <FileDropzone label="Bank Details Document" multiple={false} existingFileUrl={existingDocs.bankProofDocument} onFilesChange={(files) => setBankProofDocFile(files[0] || null)} />
-              <FileDropzone label={form.nomineeCitizenship === 'International' ? 'Nominee Passport / ID Upload' : 'Nominee ID Proof Document'} multiple={false} existingFileUrl={existingDocs.nomineeProofDocument} onFilesChange={(files) => setNomineeProofDocFile(files[0] || null)} />
+              <FileDropzone label={form.nomineeCitizenship === 'International' ? 'Nominee Passport / ID Upload (Optional)' : 'Nominee ID Proof Document (Optional)'} multiple={false} existingFileUrl={existingDocs.nomineeProofDocument} onFilesChange={(files) => setNomineeProofDocFile(files[0] || null)} />
             </div>
           </div>
 

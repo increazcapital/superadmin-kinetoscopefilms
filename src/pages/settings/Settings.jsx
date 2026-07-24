@@ -114,6 +114,79 @@ export default function Settings() {
     return authData || { token: 'mock-jwt', admin: { name: 'Super Admin', email: 'admin@kfpl.com' } };
   });
 
+  // Support Desk Contact State
+  const [supportConfig, setSupportConfig] = useState({
+    clientSupportEmail: 'support@kfpl.com',
+    clientSupportPhone: '+91 98765 43210',
+    clientSupportWhatsapp: '919876543210',
+    agentSupportEmail: 'support@kfpl.in',
+    agentSupportPhone: '+91 99999 99999',
+    agentSupportWhatsapp: '919999999999',
+    supportHours: 'Mon - Sat, 10 AM to 6 PM IST',
+  });
+  const [savingSupport, setSavingSupport] = useState(false);
+
+  useEffect(() => {
+    const fetchSupportSettings = async () => {
+      try {
+        const token = getToken();
+        if (!token) return;
+        const res = await fetch(getApiUrl('/api/super-admin/settings/support'), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data) {
+            setSupportConfig({
+              clientSupportEmail: data.data.clientSupportEmail || 'support@kfpl.com',
+              clientSupportPhone: data.data.clientSupportPhone || '+91 98765 43210',
+              clientSupportWhatsapp: data.data.clientSupportWhatsapp || '919876543210',
+              agentSupportEmail: data.data.agentSupportEmail || 'support@kfpl.in',
+              agentSupportPhone: data.data.agentSupportPhone || '+91 99999 99999',
+              agentSupportWhatsapp: data.data.agentSupportWhatsapp || '919999999999',
+              supportHours: data.data.supportHours || 'Mon - Sat, 10 AM to 6 PM IST',
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch support settings:', err);
+      }
+    };
+    fetchSupportSettings();
+  }, []);
+
+  const handleSaveSupportConfig = async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) {
+      addToast('Authentication token not found.', 'error', 'Error');
+      return;
+    }
+
+    setSavingSupport(true);
+    try {
+      const res = await fetch(getApiUrl('/api/super-admin/settings/support'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(supportConfig),
+      });
+
+      if (res.ok) {
+        addToast('Support Desk contact details updated successfully!', 'success', 'Settings Saved');
+      } else {
+        const data = await res.json();
+        addToast(data.message || 'Failed to update support settings.', 'error', 'Error');
+      }
+    } catch (err) {
+      addToast('Unable to connect to server.', 'error', 'Error');
+    } finally {
+      setSavingSupport(false);
+    }
+  };
+
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -904,6 +977,106 @@ export default function Settings() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Support Desk Contact Configuration */}
+      <div className="kfpl-detail-info-card" style={{ marginTop: '24px' }}>
+        <div className="kfpl-detail-info-title">Support Desk Contact Configuration (Client & Agent Portals)</div>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+          Configure the contact email, phone number, WhatsApp link, and working hours displayed across Client & Agent portals.
+        </p>
+
+        <form onSubmit={handleSaveSupportConfig} className="kfpl-form">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+            {/* Client Portal Support */}
+            <div style={{ background: 'var(--color-surface-elevated)', padding: '16px', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
+              <h4 style={{ fontSize: '0.9375rem', fontWeight: '700', marginBottom: '12px', color: 'var(--color-text-primary)' }}>
+                Client Portal Support Contacts
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="kfpl-input-group">
+                  <label className="kfpl-input-label">Email Support Address</label>
+                  <input
+                    className="kfpl-input"
+                    value={supportConfig.clientSupportEmail}
+                    onChange={(e) => setSupportConfig(prev => ({ ...prev, clientSupportEmail: e.target.value }))}
+                    placeholder="e.g. support@kfpl.com"
+                  />
+                </div>
+                <div className="kfpl-input-group">
+                  <label className="kfpl-input-label">Phone Support Number</label>
+                  <input
+                    className="kfpl-input"
+                    value={supportConfig.clientSupportPhone}
+                    onChange={(e) => setSupportConfig(prev => ({ ...prev, clientSupportPhone: e.target.value }))}
+                    placeholder="e.g. +91 98765 43210"
+                  />
+                </div>
+                <div className="kfpl-input-group">
+                  <label className="kfpl-input-label">WhatsApp Number / Link</label>
+                  <input
+                    className="kfpl-input"
+                    value={supportConfig.clientSupportWhatsapp}
+                    onChange={(e) => setSupportConfig(prev => ({ ...prev, clientSupportWhatsapp: e.target.value }))}
+                    placeholder="e.g. 919876543210"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Agent Portal Support */}
+            <div style={{ background: 'var(--color-surface-elevated)', padding: '16px', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
+              <h4 style={{ fontSize: '0.9375rem', fontWeight: '700', marginBottom: '12px', color: 'var(--color-text-primary)' }}>
+                Agent Portal Support Contacts
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="kfpl-input-group">
+                  <label className="kfpl-input-label">Email Support Address</label>
+                  <input
+                    className="kfpl-input"
+                    value={supportConfig.agentSupportEmail}
+                    onChange={(e) => setSupportConfig(prev => ({ ...prev, agentSupportEmail: e.target.value }))}
+                    placeholder="e.g. support@kfpl.in"
+                  />
+                </div>
+                <div className="kfpl-input-group">
+                  <label className="kfpl-input-label">Phone Support Number</label>
+                  <input
+                    className="kfpl-input"
+                    value={supportConfig.agentSupportPhone}
+                    onChange={(e) => setSupportConfig(prev => ({ ...prev, agentSupportPhone: e.target.value }))}
+                    placeholder="e.g. +91 99999 99999"
+                  />
+                </div>
+                <div className="kfpl-input-group">
+                  <label className="kfpl-input-label">WhatsApp Number / Link</label>
+                  <input
+                    className="kfpl-input"
+                    value={supportConfig.agentSupportWhatsapp}
+                    onChange={(e) => setSupportConfig(prev => ({ ...prev, agentSupportWhatsapp: e.target.value }))}
+                    placeholder="e.g. 919999999999"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="kfpl-input-group" style={{ marginTop: '16px' }}>
+            <label className="kfpl-input-label">Advisory Desk Working Hours</label>
+            <input
+              className="kfpl-input"
+              value={supportConfig.supportHours}
+              onChange={(e) => setSupportConfig(prev => ({ ...prev, supportHours: e.target.value }))}
+              placeholder="e.g. Mon - Sat, 10 AM to 6 PM IST"
+            />
+          </div>
+
+          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="submit" className="kfpl-btn kfpl-btn--primary" disabled={savingSupport}>
+              {savingSupport ? 'Saving Settings...' : 'Save Support Desk Configuration'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

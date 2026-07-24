@@ -16,6 +16,7 @@ import { usePermissions } from '../../utils/usePermissions';
 
 export default function InvestorList() {
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [agentFilter, setAgentFilter] = useState('all');
   const [residencyFilter, setResidencyFilter] = useState('all');
   const [tierFilter, setTierFilter] = useState('all');
@@ -274,32 +275,82 @@ export default function InvestorList() {
   const columns = [
     {
       header: 'Client ID',
-      render: (row) => <span>{formatClientID(row.clientCode || row.idCustom || row._id || row.id)}</span>,
+      render: (row) => <span style={{ fontWeight: 700 }}>{formatClientID(row.clientCode || row.idCustom || row._id || row.id)}</span>,
+    },
+    {
+      header: 'Join Date',
+      render: (row) => <span>{formatDateDMY(row.joinDate)}</span>,
+    },
+    {
+      header: 'Contract Start Date',
+      render: (row) => <span>{formatDateDMY(row.contractStartDate)}</span>,
+    },
+    {
+      header: 'Contract End Date',
+      render: (row) => <span>{formatDateDMY(row.contractEndDate)}</span>,
+    },
+    {
+      header: 'Contract Extended Date',
+      render: (row) => <span>{formatDateDMY(row.extendContractDate)}</span>,
     },
     {
       header: 'Client Name',
       render: (row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: 36, height: 36, borderRadius: '50%', background: 'var(--color-navy-light)',
+            width: 32, height: 32, borderRadius: '50%', background: 'var(--color-navy-light)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--color-gold)', fontWeight: 800, fontSize: 13, flexShrink: 0
+            color: 'var(--color-gold)', fontWeight: 800, fontSize: 12, flexShrink: 0
           }}>
             {(row.fullName || row.name || 'C').charAt(0).toUpperCase()}
           </div>
-          <div>
-            <div style={{ fontWeight: 600, color: 'var(--color-navy)' }}>{row.fullName || row.name || 'N/A'}</div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{row.email || 'N/A'}</div>
-          </div>
+          <span style={{ fontWeight: 600, color: 'var(--color-navy)' }}>{row.fullName || row.name || 'N/A'}</span>
         </div>
       )
     },
     {
-      header: 'Phone',
-      render: (row) => row.phone || '—'
+      header: 'Email',
+      render: (row) => <span style={{ fontSize: '0.8125rem', color: '#475569' }}>{row.email || 'N/A'}</span>,
     },
     {
-      header: 'Assigned Agent',
+      header: 'Total Investment',
+      render: (row) => <span className="font-semibold">{formatCurrency(row.totalInvestment || 0)}</span>,
+    },
+    {
+      header: 'Monthly ROI Allocated',
+      render: (row) => {
+        const roiPct = row.monthlyRoi || row.roi || 0;
+        const totalInv = row.totalInvestment || 0;
+        const monthlyAmt = totalInv > 0 ? (totalInv * (roiPct / 100)) : 0;
+        return (
+          <div>
+            <span style={{ fontWeight: 700, color: '#10b981' }}>{roiPct}%</span>
+            {monthlyAmt > 0 && (
+              <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '6px' }}>
+                ({formatCurrency(monthlyAmt)}/mo)
+              </span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Perk',
+      render: (row) => {
+        const amount = row.totalInvestment || 0;
+        const tier = row.category || getCategoryFromAmount(amount);
+        const perkMap = {
+          'Silver': { label: 'Silver Perk', status: 'active' },
+          'Gold': { label: 'Gold Perk', status: 'gold' },
+          'Diamond': { label: 'Diamond Perk', status: 'approved' },
+          'Platinum': { label: 'Platinum Perk', status: 'rejected' }
+        };
+        const perkInfo = perkMap[tier] || { label: `${tier} Perk`, status: 'active' };
+        return <Badge status={perkInfo.status}>{perkInfo.label}</Badge>;
+      }
+    },
+    {
+      header: 'Agent',
       render: (row) => {
         const agentName = row.assignedAgentName || row.assignedAgent?.name || row.agentName || row.agent?.name;
         return agentName ? (
@@ -310,21 +361,21 @@ export default function InvestorList() {
       }
     },
     {
-      header: 'Total Investment',
-      render: (row) => <span className="font-semibold">{formatCurrency(row.totalInvestment || row.investmentAmount || 0)}</span>,
-    },
-    {
-      header: 'Investment Tier',
+      header: 'Agent Commission',
       render: (row) => {
-        const amount = row.totalInvestment || row.investmentAmount || 0;
-        const tier = row.category || getCategoryFromAmount(amount);
-        const tierStatusMap = {
-          'Silver': 'active',
-          'Gold': 'gold',
-          'Diamond': 'approved',
-          'Platinum': 'rejected'
-        };
-        return <Badge status={tierStatusMap[tier] || 'active'}>{tier}</Badge>;
+        const comm = row.agentCommissionMonthly || row.agentCommission;
+        if (!comm || comm === '0' || comm === '—') return <span style={{ color: '#94a3b8' }}>—</span>;
+        return (
+          <span style={{
+            display: 'inline-block',
+            padding: '3px 10px',
+            borderRadius: '20px',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            background: '#D1FAE5',
+            color: '#065F46'
+          }}>{comm}</span>
+        );
       }
     },
     {

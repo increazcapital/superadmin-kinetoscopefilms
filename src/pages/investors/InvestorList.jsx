@@ -43,6 +43,8 @@ export default function InvestorList() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteClientId, setDeleteClientId] = useState(null);
   const [showClearAllModal, setShowClearAllModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const handleDeleteClientClick = (id) => {
     setDeleteClientId(id);
@@ -50,22 +52,25 @@ export default function InvestorList() {
   };
 
   const confirmDeleteClient = async () => {
-    if (!deleteClientId) return;
+    if (!deleteClientId || isDeleting) return;
 
-    // Optimistic UI — remove immediately from local state
-    const previousClients = clients;
-    setClients(prev => prev.filter(c => (c._id || c.id) !== deleteClientId));
-    // Also update localStorage cache immediately
-    try {
-      const updated = previousClients.filter(c => (c._id || c.id) !== deleteClientId);
-      localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(updated));
-    } catch (_) {}
-
+    const targetId = deleteClientId;
+    setIsDeleting(true);
     setShowDeleteModal(false);
     setDeleteClientId(null);
 
+    // Optimistic UI — remove immediately from local state
+    const previousClients = clients;
+    const updated = previousClients.filter(c => (c._id || c.id) !== targetId);
+    setClients(updated);
+
+    // Also update localStorage cache immediately
     try {
-      await apiRequest(`/api/super-admin/clients/${deleteClientId}`, {
+      localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(updated));
+    } catch (_) {}
+
+    try {
+      await apiRequest(`/api/super-admin/clients/${targetId}`, {
         method: 'DELETE'
       });
       addToast('Client deleted successfully.', 'success', 'Deleted');
@@ -77,18 +82,23 @@ export default function InvestorList() {
         localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(previousClients));
       } catch (_) {}
       addToast(err.message || 'Failed to delete client.', 'error', 'Error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleClearAllClients = async () => {
+    if (isClearing) return;
+
+    setIsClearing(true);
+    setShowClearAllModal(false);
+
     // Optimistic UI — clear list instantly
     const previousClients = clients;
     setClients([]);
     try {
       localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify([]));
     } catch (_) {}
-
-    setShowClearAllModal(false);
 
     try {
       await apiRequest('/api/super-admin/clients/clear', {
@@ -103,6 +113,8 @@ export default function InvestorList() {
         localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(previousClients));
       } catch (_) {}
       addToast(err.message || 'Failed to clear clients.', 'error', 'Error');
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -112,8 +124,7 @@ export default function InvestorList() {
       const cacheData = localStorage.getItem('kfpl_super_admin_clients_cache');
       if (cacheData) {
         const parsed = JSON.parse(cacheData);
-        const hasValidData = Array.isArray(parsed) && parsed.some(c => Number(c.totalInvestment) > 0);
-        if (hasValidData) {
+        if (Array.isArray(parsed)) {
           setClients(parsed);
           setLoading(false);
         }
@@ -583,11 +594,13 @@ export default function InvestorList() {
                   setShowDeleteModal(false);
                   setDeleteClientId(null);
                 }}
+                disabled={isDeleting}
               >Cancel</button>
               <button
                 className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
                 onClick={confirmDeleteClient}
-              >Confirm Delete</button>
+                disabled={isDeleting}
+              >{isDeleting ? 'Deleting...' : 'Confirm Delete'}</button>
             </div>
           </div>
         </div>,
@@ -597,7 +610,7 @@ export default function InvestorList() {
       {showClearAllModal && createPortal(
         <div
           className="kfpl-modal-overlay"
-          onClick={() => setShowClearAllModal(false)}
+          onClick={() => !isClearing && setShowClearAllModal(false)}
         >
           <div
             className="kfpl-modal"
@@ -606,7 +619,7 @@ export default function InvestorList() {
           >
             <div className="kfpl-modal-header">
               <h3 className="kfpl-modal-title">Confirm Data Deletion</h3>
-              <button className="kfpl-modal-close" onClick={() => setShowClearAllModal(false)} aria-label="Close modal">
+              <button className="kfpl-modal-close" onClick={() => !isClearing && setShowClearAllModal(false)} aria-label="Close modal" disabled={isClearing}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
@@ -631,11 +644,13 @@ export default function InvestorList() {
               <button
                 className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
                 onClick={() => setShowClearAllModal(false)}
+                disabled={isClearing}
               >Cancel</button>
               <button
                 className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
                 onClick={handleClearAllClients}
-              >Yes, Clear All Data</button>
+                disabled={isClearing}
+              >{isClearing ? 'Clearing...' : 'Yes, Clear All Data'}</button>
             </div>
           </div>
         </div>,

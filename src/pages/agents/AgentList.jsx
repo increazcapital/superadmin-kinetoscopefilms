@@ -23,6 +23,8 @@ export default function AgentList() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteAgentId, setDeleteAgentId] = useState(null);
   const [showClearAllModal, setShowClearAllModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const handleDeleteAgentClick = (id) => {
     setDeleteAgentId(id);
@@ -30,20 +32,22 @@ export default function AgentList() {
   };
 
   const confirmDeleteAgent = async () => {
-    if (!deleteAgentId) return;
+    if (!deleteAgentId || isDeleting) return;
 
-    const previousAgents = agentsList;
-    setAgentsList(prev => prev.filter(a => (a.id || a._id) !== deleteAgentId));
-    try {
-      const updated = previousAgents.filter(a => (a.id || a._id) !== deleteAgentId);
-      localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(updated));
-    } catch (_) {}
-
+    const targetId = deleteAgentId;
+    setIsDeleting(true);
     setShowDeleteModal(false);
     setDeleteAgentId(null);
 
+    const previousAgents = agentsList;
+    const updated = previousAgents.filter(a => (a.id || a._id) !== targetId);
+    setAgentsList(updated);
     try {
-      await apiRequest(`/api/super-admin/agents/${deleteAgentId}`, {
+      localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(updated));
+    } catch (_) {}
+
+    try {
+      await apiRequest(`/api/super-admin/agents/${targetId}`, {
         method: 'DELETE'
       });
       addToast('Agent deleted successfully.', 'success', 'Deleted');
@@ -54,17 +58,22 @@ export default function AgentList() {
         localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(previousAgents));
       } catch (_) {}
       addToast(err.message || 'Failed to delete agent.', 'error', 'Error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleClearAllAgents = async () => {
+    if (isClearing) return;
+
+    setIsClearing(true);
+    setShowClearAllModal(false);
+
     const previousAgents = agentsList;
     setAgentsList([]);
     try {
       localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify([]));
     } catch (_) {}
-
-    setShowClearAllModal(false);
 
     try {
       await apiRequest('/api/super-admin/agents/clear', {
@@ -78,6 +87,8 @@ export default function AgentList() {
         localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(previousAgents));
       } catch (_) {}
       addToast(err.message || 'Failed to clear agents.', 'error', 'Error');
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -112,8 +123,11 @@ export default function AgentList() {
     try {
       const cacheData = localStorage.getItem('kfpl_super_admin_agents_cache');
       if (cacheData) {
-        setAgentsList(JSON.parse(cacheData));
-        setLoading(false);
+        const parsed = JSON.parse(cacheData);
+        if (Array.isArray(parsed)) {
+          setAgentsList(parsed);
+          setLoading(false);
+        }
       }
     } catch (e) {
       console.warn('Failed to parse agents cache:', e);
@@ -414,14 +428,16 @@ export default function AgentList() {
                       setShowDeleteModal(false);
                       setDeleteAgentId(null);
                     }}
+                    disabled={isDeleting}
                   >
                     Cancel
                   </button>
                   <button
                     className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
                     onClick={confirmDeleteAgent}
+                    disabled={isDeleting}
                   >
-                    Yes, Delete
+                    {isDeleting ? 'Deleting...' : 'Yes, Delete'}
                   </button>
                 </div>
               </div>
@@ -432,7 +448,7 @@ export default function AgentList() {
           {showClearAllModal && createPortal(
             <div
               className="kfpl-modal-overlay"
-              onClick={() => setShowClearAllModal(false)}
+              onClick={() => !isClearing && setShowClearAllModal(false)}
             >
               <div
                 className="kfpl-modal"
@@ -441,7 +457,7 @@ export default function AgentList() {
               >
                 <div className="kfpl-modal-header">
                   <h3 className="kfpl-modal-title">Clear All Agents</h3>
-                  <button className="kfpl-modal-close" onClick={() => setShowClearAllModal(false)} aria-label="Close modal">
+                  <button className="kfpl-modal-close" onClick={() => !isClearing && setShowClearAllModal(false)} aria-label="Close modal" disabled={isClearing}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 </div>
@@ -466,14 +482,16 @@ export default function AgentList() {
                   <button
                     className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
                     onClick={() => setShowClearAllModal(false)}
+                    disabled={isClearing}
                   >
                     Cancel
                   </button>
                   <button
                     className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
                     onClick={handleClearAllAgents}
+                    disabled={isClearing}
                   >
-                    Yes, Clear All
+                    {isClearing ? 'Clearing...' : 'Yes, Clear All'}
                   </button>
                 </div>
               </div>

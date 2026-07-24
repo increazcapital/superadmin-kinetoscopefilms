@@ -116,9 +116,11 @@ export default function ApprovalsQueue() {
   const [stats, setStats] = useState({ totalPending: 0, pendingDeposits: 0, pendingDepositsVal: 0, pendingWithdrawals: 0, pendingWithdrawalsVal: 0 });
   const [loading, setLoading] = useState(true);
 
-  const fetchApprovals = async () => {
+  const fetchApprovals = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent && depositsList.length === 0 && withdrawalsList.length === 0) {
+        setLoading(true);
+      }
 
       // Concurrent parallel API calls instead of sequential awaits
       const [resDeposits, resWithdrawals] = await Promise.all([
@@ -259,7 +261,6 @@ export default function ApprovalsQueue() {
         const list = res.data?.clients || res.data || res.clients || [];
         if (Array.isArray(list)) {
           setInvestors(list);
-          localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(list));
         }
       } catch (err) {
         console.error('Failed to fetch investors list for approvals queue:', err);
@@ -299,18 +300,58 @@ export default function ApprovalsQueue() {
     const item = modal.item;
     if (!item || isSubmittingRef.current) return;
     
+    // Close modal immediately for 0ms response latency
+    setModal({ open: false, type: '', item: null });
+    const noteText = adminNote;
+    setAdminNote('');
+
+    // Optimistic UI updates
+    const targetId = item.id || item._id;
+    let updatedDeposits = depositsList;
+    let updatedWithdrawals = withdrawalsList;
+
+    if (item.type === 'deposit') {
+      updatedDeposits = depositsList.filter(d => (d.id || d._id) !== targetId);
+      setDepositsList(updatedDeposits);
+    } else {
+      updatedWithdrawals = withdrawalsList.filter(w => (w.id || w._id) !== targetId);
+      setWithdrawalsList(updatedWithdrawals);
+    }
+
+    const pendingDep = updatedDeposits.filter(i => i.status === 'pending').length;
+    const pendingWith = updatedWithdrawals.filter(i => i.status === 'pending').length;
+    const pendingDepVal = updatedDeposits.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0);
+    const pendingWithVal = updatedWithdrawals.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0);
+
+    const updatedStats = {
+      totalPending: pendingDep + pendingWith,
+      pendingDeposits: pendingDep,
+      pendingDepositsVal: pendingDepVal,
+      pendingWithdrawals: pendingWith,
+      pendingWithdrawalsVal: pendingWithVal
+    };
+    setStats(updatedStats);
+
+    try {
+      localStorage.setItem('kfpl_super_admin_approvals_cache', JSON.stringify({
+        depositsList: updatedDeposits,
+        withdrawalsList: updatedWithdrawals,
+        stats: updatedStats
+      }));
+    } catch (_) {}
+
+    addToast(`${item.type === 'deposit' ? 'Deposit' : 'Withdrawal'} of ${formatCurrency(item.amount)} approved.`, 'success', 'Request Approved');
+
     try {
       isSubmittingRef.current = true;
       setActionLoading(true);
-      await apiRequest(`/api/super-admin/transactions/${item.id || item._id}/action`, {
+      await apiRequest(`/api/super-admin/transactions/${targetId}/action`, {
         method: 'PATCH',
         body: {
           status: 'approved',
-          rejectionReason: adminNote || 'Verified bank ledger statement'
+          rejectionReason: noteText || 'Verified bank ledger statement'
         }
       });
-
-      addToast(`${item.type === 'deposit' ? 'Deposit' : 'Withdrawal'} of ${formatCurrency(item.amount)} approved.`, 'success', 'Request Approved');
       
       // Broadcast approval event for instant cross-tab / cross-portal synchronization
       try {
@@ -318,12 +359,11 @@ export default function ApprovalsQueue() {
         window.dispatchEvent(new Event('kfpl_approval_event'));
       } catch (e) {}
 
-      setModal({ open: false, type: '', item: null });
-      setAdminNote('');
-      fetchApprovals();
+      fetchApprovals(true);
     } catch (err) {
       console.error('Failed to approve transaction request:', err);
       addToast(err.message || 'Failed to approve request.', 'danger', 'Approval Failed');
+      fetchApprovals(true);
     } finally {
       isSubmittingRef.current = false;
       setActionLoading(false);
@@ -334,25 +374,65 @@ export default function ApprovalsQueue() {
     const item = modal.item;
     if (!item || !rejectReason.trim() || isSubmittingRef.current) return;
 
+    // Close modal immediately for 0ms response latency
+    setModal({ open: false, type: '', item: null });
+    const reasonText = rejectReason.trim();
+    setRejectReason('');
+    setShowRejectForm(false);
+
+    // Optimistic UI updates
+    const targetId = item.id || item._id;
+    let updatedDeposits = depositsList;
+    let updatedWithdrawals = withdrawalsList;
+
+    if (item.type === 'deposit') {
+      updatedDeposits = depositsList.filter(d => (d.id || d._id) !== targetId);
+      setDepositsList(updatedDeposits);
+    } else {
+      updatedWithdrawals = withdrawalsList.filter(w => (w.id || w._id) !== targetId);
+      setWithdrawalsList(updatedWithdrawals);
+    }
+
+    const pendingDep = updatedDeposits.filter(i => i.status === 'pending').length;
+    const pendingWith = updatedWithdrawals.filter(i => i.status === 'pending').length;
+    const pendingDepVal = updatedDeposits.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0);
+    const pendingWithVal = updatedWithdrawals.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0);
+
+    const updatedStats = {
+      totalPending: pendingDep + pendingWith,
+      pendingDeposits: pendingDep,
+      pendingDepositsVal: pendingDepVal,
+      pendingWithdrawals: pendingWith,
+      pendingWithdrawalsVal: pendingWithVal
+    };
+    setStats(updatedStats);
+
+    try {
+      localStorage.setItem('kfpl_super_admin_approvals_cache', JSON.stringify({
+        depositsList: updatedDeposits,
+        withdrawalsList: updatedWithdrawals,
+        stats: updatedStats
+      }));
+    } catch (_) {}
+
+    addToast(`${item.type === 'deposit' ? 'Deposit' : 'Withdrawal'} of ${formatCurrency(item.amount)} rejected.`, 'success', 'Request Rejected');
+
     try {
       isSubmittingRef.current = true;
       setActionLoading(true);
-      await apiRequest(`/api/super-admin/transactions/${item.id || item._id}/action`, {
+      await apiRequest(`/api/super-admin/transactions/${targetId}/action`, {
         method: 'PATCH',
         body: {
           status: 'rejected',
-          rejectionReason: rejectReason.trim()
+          rejectionReason: reasonText
         }
       });
 
-      addToast(`${item.type === 'deposit' ? 'Deposit' : 'Withdrawal'} of ${formatCurrency(item.amount)} rejected.`, 'success', 'Request Rejected');
-      setModal({ open: false, type: '', item: null });
-      setRejectReason('');
-      setShowRejectForm(false);
-      fetchApprovals();
+      fetchApprovals(true);
     } catch (err) {
       console.error('Failed to reject transaction request:', err);
       addToast(err.message || 'Failed to reject request.', 'danger', 'Rejection Failed');
+      fetchApprovals(true);
     } finally {
       isSubmittingRef.current = false;
       setActionLoading(false);

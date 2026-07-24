@@ -67,6 +67,7 @@ export default function InvestorList() {
     // Also update localStorage cache immediately
     try {
       localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(updated));
+      localStorage.removeItem('kfpl_super_admin_dashboard_cache');
     } catch (_) {}
 
     try {
@@ -98,6 +99,7 @@ export default function InvestorList() {
     setClients([]);
     try {
       localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify([]));
+      localStorage.removeItem('kfpl_super_admin_dashboard_cache');
     } catch (_) {}
 
     try {

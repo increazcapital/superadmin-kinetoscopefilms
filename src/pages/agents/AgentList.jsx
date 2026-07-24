@@ -44,6 +44,7 @@ export default function AgentList() {
     setAgentsList(updated);
     try {
       localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(updated));
+      localStorage.removeItem('kfpl_super_admin_dashboard_cache');
     } catch (_) {}
 
     try {
@@ -73,6 +74,7 @@ export default function AgentList() {
     setAgentsList([]);
     try {
       localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify([]));
+      localStorage.removeItem('kfpl_super_admin_dashboard_cache');
     } catch (_) {}
 
     try {

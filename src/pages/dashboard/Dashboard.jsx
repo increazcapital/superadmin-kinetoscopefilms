@@ -398,21 +398,11 @@ export default function Dashboard() {
         }
 
         // 4. Update core stats reactively with server data as primary source
-        const finalInvestorsCount = (data.totalInvestors !== undefined && data.totalInvestors !== 0)
-          ? data.totalInvestors
-          : ((data.totalClients) || (data.stats?.totalInvestors) || realTotalInvestorsCount || 0);
-
-        const finalTotalInvestment = (data.totalInvestment !== undefined && data.totalInvestment !== 0)
-          ? data.totalInvestment
-          : ((data.totalInvestmentAmount) || (data.stats?.totalInvestment) || realTotalInvestmentAmt || 0);
-
-        const finalRoiPaid = (data.totalRoiPaid !== undefined && data.totalRoiPaid !== 0)
-          ? data.totalRoiPaid
-          : ((data.roiPaid) || (data.stats?.totalRoiPaid) || realTotalRoiPaid || 0);
-
-        const finalActiveInvestments = (data.activeInvestments !== undefined && data.activeInvestments !== 0)
-          ? data.activeInvestments
-          : ((data.activeInvestmentsCount) || (data.stats?.activeInvestments) || realActiveInvestmentsCount || 0);
+        const finalInvestorsCount = data.totalInvestors !== undefined ? data.totalInvestors : (data.totalClients ?? data.stats?.totalInvestors ?? 0);
+        const finalTotalInvestment = data.totalInvestment !== undefined ? data.totalInvestment : (data.totalInvestmentAmount ?? data.stats?.totalInvestment ?? 0);
+        const finalRoiPaid = data.totalRoiPaid !== undefined ? data.totalRoiPaid : (data.roiPaid ?? data.stats?.totalRoiPaid ?? 0);
+        const finalActiveInvestments = data.activeInvestments !== undefined ? data.activeInvestments : (data.activeInvestmentsCount ?? data.stats?.activeInvestments ?? 0);
+        const finalTotalAgents = data.totalAgents !== undefined ? data.totalAgents : (data.stats?.totalAgents ?? 0);
 
         let freshStats = {
           totalInvestors: finalInvestorsCount,
@@ -421,7 +411,7 @@ export default function Dashboard() {
           investmentChange: data.investmentChange ?? data.stats?.investmentChange ?? 0,
           totalROIPaid: finalRoiPaid,
           roiChange: data.roiChange ?? data.stats?.roiChange ?? 0,
-          totalAgents: data.totalAgents ?? data.stats?.totalAgents ?? data.agentsCount ?? 0,
+          totalAgents: finalTotalAgents,
           agentChange: data.agentChange ?? data.stats?.agentChange ?? 0,
           pendingApprovals: data.pendingApprovals ?? data.stats?.pendingApprovals ?? data.pendingCount ?? 0,
           activeInvestments: finalActiveInvestments,
@@ -812,20 +802,26 @@ export default function Dashboard() {
           </div>
           <div className="kfpl-chart-body">
             <div className="kfpl-widget-list">
-              {(Array.isArray(investorsRanked) ? investorsRanked : []).map((inv, i) => (
-                <div className="kfpl-widget-item" key={inv.id}>
-                  <div className={`kfpl-widget-rank ${i < 3 ? 'gold' : 'silver'}`}>
-                    #{i + 1}
+              {Array.isArray(investorsRanked) && investorsRanked.length > 0 ? (
+                investorsRanked.map((inv, i) => (
+                  <div className="kfpl-widget-item" key={inv.id}>
+                    <div className={`kfpl-widget-rank ${i < 3 ? 'gold' : 'silver'}`}>
+                      #{i + 1}
+                    </div>
+                    <div className="kfpl-widget-item-info">
+                      <div className="kfpl-widget-item-name">{inv.name}</div>
+                      <div className="kfpl-widget-item-sub">{inv.clientId} • <Badge status={inv.category}>{inv.category}</Badge></div>
+                    </div>
+                    <div className="kfpl-widget-item-value">
+                      {formatCurrency(inv.amount)}
+                    </div>
                   </div>
-                  <div className="kfpl-widget-item-info">
-                    <div className="kfpl-widget-item-name">{inv.name}</div>
-                    <div className="kfpl-widget-item-sub">{inv.clientId} • <Badge status={inv.category}>{inv.category}</Badge></div>
-                  </div>
-                  <div className="kfpl-widget-item-value">
-                    {formatCurrency(inv.amount)}
-                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+                  No investors registered yet.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -841,20 +837,26 @@ export default function Dashboard() {
           </div>
           <div className="kfpl-chart-body">
             <div className="kfpl-widget-list">
-              {(Array.isArray(agentsRanked) ? agentsRanked : []).map((agent, i) => (
-                <div className="kfpl-widget-item" key={agent.id}>
-                  <div className={`kfpl-widget-rank ${i < 3 ? 'gold' : 'silver'}`}>
-                    #{i + 1}
+              {Array.isArray(agentsRanked) && agentsRanked.length > 0 ? (
+                agentsRanked.map((agent, i) => (
+                  <div className="kfpl-widget-item" key={agent.id}>
+                    <div className={`kfpl-widget-rank ${i < 3 ? 'gold' : 'silver'}`}>
+                      #{i + 1}
+                    </div>
+                    <div className="kfpl-widget-item-info">
+                      <div className="kfpl-widget-item-name">{agent.name}</div>
+                      <div className="kfpl-widget-item-sub">{agent.agentId} • {agent.clients} clients</div>
+                    </div>
+                    <div className="kfpl-widget-item-value">
+                      {formatCurrency(agent.totalInvestment)}
+                    </div>
                   </div>
-                  <div className="kfpl-widget-item-info">
-                    <div className="kfpl-widget-item-name">{agent.name}</div>
-                    <div className="kfpl-widget-item-sub">{agent.agentId} • {agent.clients} clients</div>
-                  </div>
-                  <div className="kfpl-widget-item-value">
-                    {formatCurrency(agent.totalInvestment)}
-                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+                  No active agents recorded yet.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

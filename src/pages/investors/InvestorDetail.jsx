@@ -1043,22 +1043,9 @@ export default function InvestorDetail() {
   const totalPaidROI = roiHistory.filter(r => (r.status || '').toLowerCase() === 'paid').reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const totalPendingROI = roiHistory.filter(r => (r.status || '').toLowerCase() === 'pending').reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
-  // Investments from API (with fallback if empty but totalInvestment > 0)
+  // Investments from API (only allocated investments)
   const investmentsList = investmentsData?.investments || [];
-  const resolvedInvestments = investmentsList.length > 0
-    ? investmentsList
-    : (investor?.totalInvestment > 0 ? [{
-        _id: 'mock-inv-1',
-        segment: 'Film Making',
-        amount: investor.totalInvestment,
-        investmentAmount: investor.totalInvestment,
-        roi: investor.roiPercentage ?? 0,
-        roiPercentage: investor.roiPercentage ?? 0,
-        riskPercentage: 10,
-        allocationDate: investor.rawContractStartDate || null,
-        investmentDate: investor.rawContractStartDate || null,
-        status: 'Active'
-      }] : []);
+  const resolvedInvestments = investmentsList.filter(inv => inv.segment && inv.segment !== 'Unallocated');
 
   // Perks from API
   const perksList = perksData?.perks || [];
@@ -1652,7 +1639,14 @@ export default function InvestorDetail() {
                 {tabLoading ? (
                   <tr><td colSpan={6} style={{ textAlign: 'center', padding: '48px', color: 'var(--color-text-muted)' }}>Loading investments...</td></tr>
                 ) : resolvedInvestments.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '48px', color: 'var(--color-text-muted)' }}>No investments found.</td></tr>
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '48px', color: 'var(--color-text-muted)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-secondary, #475569)' }}>No Project Allocated Yet</span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted, #94a3b8)' }}>Super Admin has not assigned any active project/segment allocation to this client.</span>
+                      </div>
+                    </td>
+                  </tr>
                 ) : resolvedInvestments.map(inv => (
                   <tr key={inv._id || inv.id}>
                     <td className="kfpl-table-cell-primary">{inv.segment}</td>

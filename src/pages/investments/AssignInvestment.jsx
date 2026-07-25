@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
 import { INVESTMENT_SEGMENTS as MOCK_INVESTMENT_SEGMENTS } from '../../data/mockData';
 import { apiRequest } from '../../config/apiHelper';
+import { formatClientID } from '../../utils/formatters';
 
 export default function AssignInvestment() {
   const navigate = useNavigate();
@@ -199,7 +200,8 @@ export default function AssignInvestment() {
   };
 
   const getClientCode = (client) => {
-    return client.clientCode || client.clientId || client.profile?.clientCode || client.user?.clientCode || '';
+    const raw = client.clientCode || client.profile?.clientCode || client.user?.clientCode || client.clientId || client.profile?.clientId || client._id || client.id || '';
+    return formatClientID(raw);
   };
 
   const handleProjectChange = (e) => {

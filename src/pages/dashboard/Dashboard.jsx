@@ -115,11 +115,12 @@ export default function Dashboard() {
 
     const fetchDashboard = async () => {
       try {
-        const [res, clientsRes, investmentsRes, payoutsRes] = await Promise.all([
+        const [res, clientsRes, investmentsRes, payoutsRes, agentsRes] = await Promise.all([
           apiRequest('/api/super-admin/dashboard').catch(() => null),
           apiRequest('/api/super-admin/clients').catch(() => null),
           apiRequest('/api/super-admin/investments').catch(() => null),
-          apiRequest('/api/super-admin/roi/payouts?status=All&recipientType=All').catch(() => null)
+          apiRequest('/api/super-admin/roi/payouts?status=All&recipientType=All').catch(() => null),
+          apiRequest('/api/super-admin/agents').catch(() => null)
         ]);
 
         const data = res?.data || res || {};
@@ -263,31 +264,139 @@ export default function Dashboard() {
               withdrawals: monthlyOutflow[m] || 0
             }));
 
-            // Agent Contribution
-            const agentSums = {};
+            // Agent Contribution & Performance Calculation
+            const rawAgents = Array.isArray(agentsRes)
+              ? agentsRes
+              : (agentsRes?.agents || agentsRes?.data?.agents || (agentsRes?.data && Array.isArray(agentsRes.data) ? agentsRes.data : []));
+
+            const rawClientsList = Array.isArray(clientsRes)
+              ? clientsRes
+              : (clientsRes?.clients || clientsRes?.data?.clients || (clientsRes?.data && Array.isArray(clientsRes.data) ? clientsRes.data : []));
+
+            const agentPerfMap = {};
+
+            // Helper to get or create agent entry in map
+            const getOrCreateAgentEntry = (agId, agName, agCode) => {
+              if (!agentPerfMap[agId]) {
+                agentPerfMap[agId] = {
+                  id: agId,
+                  name: agName,
+                  agentId: agCode || 'AGT-001',
+                  clientsSet: new Set(),
+                  amount: 0
+                };
+              }
+              return agentPerfMap[agId];
+            };
+
+            // Pre-seed registered agents
+            if (Array.isArray(rawAgents)) {
+              rawAgents.forEach(ag => {
+                const agId = String(ag._id || ag.id);
+                getOrCreateAgentEntry(agId, ag.name || ag.fullName || 'Agent', ag.clientCode || ag.agentCode || 'AGT-001');
+              });
+            }
+
+            // Always ensure Direct / Admin exists
+            getOrCreateAgentEntry('direct', 'Direct / Admin', 'AGT-001');
+
+            // Map each client to their assigned agent
+            const clientToAgentMap = {};
+            if (Array.isArray(rawClientsList)) {
+              rawClientsList.forEach(cl => {
+                const possibleClientIds = [
+                  String(cl._id || ''),
+                  String(cl.id || ''),
+                  String(cl.userId?._id || cl.userId || ''),
+                  String(cl.user?._id || cl.user || ''),
+                  String(cl.profile?.userId || ''),
+                  String(cl.clientCode || ''),
+                  String(cl.user?.clientCode || '')
+                ].filter(Boolean);
+
+                const assignedAg = cl.assignedAgent || cl.user?.assignedAgent || cl.profile?.assignedAgent;
+                
+                let targetAgent = null;
+                if (assignedAg) {
+                  const agIdStr = typeof assignedAg === 'object' ? String(assignedAg._id || assignedAg.id || '') : String(assignedAg);
+                  if (agIdStr && agentPerfMap[agIdStr]) {
+                    targetAgent = agentPerfMap[agIdStr];
+                  } else if (typeof assignedAg === 'object' && (assignedAg.name || assignedAg.fullName)) {
+                    const agName = assignedAg.name || assignedAg.fullName;
+                    targetAgent = getOrCreateAgentEntry(agIdStr || agName, agName, assignedAg.clientCode || 'AGT-001');
+                  }
+                }
+
+                if (!targetAgent) {
+                  targetAgent = agentPerfMap['direct'];
+                }
+
+                // Register client ID in agent's clientsSet
+                possibleClientIds.forEach(idKey => {
+                  clientToAgentMap[idKey] = targetAgent;
+                });
+                
+                // Track client in agent's clients set
+                targetAgent.clientsSet.add(String(cl._id || cl.id || cl.name || cl.fullName));
+              });
+            }
+
+            // Now attribute cleanInvests to agents
             cleanInvests.forEach(inv => {
-              const amount = inv.investmentAmount || inv.amount || 0;
-              const clientObj = inv.clientId && typeof inv.clientId === 'object' ? inv.clientId : null;
-              const agentName = inv.assignedAgentName || 
-                                (clientObj && clientObj.assignedAgentName) || 
-                                (inv.assignedAgent && typeof inv.assignedAgent === 'object' ? inv.assignedAgent.name : '') || 
-                                'Direct / Admin';
-              if (agentName) {
-                agentSums[agentName] = (agentSums[agentName] || 0) + amount;
+              const amount = Number(inv.investmentAmount || inv.amount || 0);
+              const invClientKeys = [
+                String(inv.clientId?._id || inv.clientId?.id || inv.clientId || ''),
+                String(inv.clientCode || ''),
+                String(inv.clientName || inv.investorName || '')
+              ].filter(Boolean);
+
+              let assignedTarget = null;
+              for (const key of invClientKeys) {
+                if (clientToAgentMap[key]) {
+                  assignedTarget = clientToAgentMap[key];
+                  break;
+                }
+              }
+
+              if (!assignedTarget) {
+                // Check direct agent name on investment
+                const invAgName = inv.assignedAgentName || (inv.assignedAgent && typeof inv.assignedAgent === 'object' ? inv.assignedAgent.name : null);
+                if (invAgName) {
+                  assignedTarget = getOrCreateAgentEntry(invAgName, invAgName, 'AGT-001');
+                } else {
+                  assignedTarget = agentPerfMap['direct'];
+                }
+              }
+
+              assignedTarget.amount += amount;
+              if (inv.clientId || inv.clientName) {
+                assignedTarget.clientsSet.add(String(inv.clientId?._id || inv.clientId || inv.clientName));
               }
             });
-            computedContribution = Object.keys(agentSums).map(name => ({
-              name,
-              amount: agentSums[name],
-              clients: 0
-            })).sort((a, b) => b.amount - a.amount);
 
-            computedAgentsRanked = computedContribution.map((a, i) => ({
-              id: i,
-              name: a.name,
-              agentId: `AGT-${String(i+1).padStart(3, '0')}`,
-              clients: a.clients || 1,
-              totalInvestment: a.amount
+            const sortedPerf = Object.values(agentPerfMap)
+              .map(item => ({
+                id: item.id,
+                name: item.name,
+                agentId: item.agentId,
+                clients: item.clientsSet.size,
+                amount: item.amount
+              }))
+              .filter(item => item.clients > 0 || item.amount > 0)
+              .sort((a, b) => b.amount - a.amount || b.clients - a.clients);
+
+            computedContribution = sortedPerf.map(item => ({
+              name: item.name,
+              amount: item.amount,
+              clients: item.clients
+            }));
+
+            computedAgentsRanked = sortedPerf.map((item, i) => ({
+              id: item.id || i,
+              name: item.name,
+              agentId: item.agentId || `AGT-${String(i+1).padStart(3, '0')}`,
+              clients: item.clients,
+              totalInvestment: item.amount
             }));
           }
         }

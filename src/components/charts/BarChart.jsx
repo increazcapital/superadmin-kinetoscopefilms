@@ -19,9 +19,9 @@ export default function BarChart({ data, height = 280 }) {
 
   const barHeight = 24;
   const gap = 8;
-  const labelWidth = 70;
-  const valueWidth = 80;
-  const chartWidth = 500;
+  const labelWidth = 125;
+  const valueWidth = 85;
+  const chartWidth = 540;
   const plotWidth = chartWidth - labelWidth - valueWidth - 20;
   const totalHeight = Math.max(data.length * (barHeight + gap) - gap, 10);
 
@@ -57,7 +57,7 @@ export default function BarChart({ data, height = 280 }) {
             >
               {/* Agent name label */}
               <text
-                x={labelWidth - 8}
+                x={labelWidth - 10}
                 y={y + barHeight / 2 + 1}
                 textAnchor="end"
                 dominantBaseline="central"

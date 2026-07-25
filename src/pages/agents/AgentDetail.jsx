@@ -128,25 +128,12 @@ function downloadStatementCSV(com, agentName) {
 
 function downloadStatementPDF(com, agentName, agentClients = []) {
   const dateStr = formatDateDMY(com.date || com.paidAt || com.payoutDate);
-  const filteredBreakdown = com.breakdown
-    ? com.breakdown.filter(b => {
-        const inv = agentClients.find(invObj => invObj.clientId === b.clientId || invObj.id === b.clientId)
-          || investors.find(invObj => invObj.clientId === b.clientId || invObj.id === b.clientId);
-        if (!inv) return false;
-        const isMockInv = investors.some(invObj => invObj.clientId === b.clientId);
-        if (isMockInv) {
-          return getPeriodInvestmentDate(inv, com) !== '';
-        }
-        return true;
-      })
-    : [];
-
-  const filteredTotal = filteredBreakdown.reduce((sum, b) => sum + b.amount, 0);
+  const filteredBreakdown = com.breakdown || [];
+  const filteredTotal = filteredBreakdown.reduce((sum, b) => sum + (b.amount || 0), 0);
 
   const rowsHtml = filteredBreakdown.map(b => {
-    const inv = agentClients.find(invObj => invObj.clientId === b.clientId || invObj.id === b.clientId)
-      || investors.find(invObj => invObj.clientId === b.clientId || invObj.id === b.clientId);
-    const invDateStr = inv ? (inv.joinDate || getPeriodInvestmentDate(inv, com)) : (b.investmentDate || '');
+    const inv = agentClients.find(invObj => invObj.clientId === b.clientId || invObj.id === b.clientId || invObj._id === b.clientId);
+    const invDateStr = b.investmentDate || (inv ? (inv.joinDate || inv.dateOfJoining || formatDateSafe(inv.createdAt)) : '');
     const comType = String(com.type || com.commissionType || '').toLowerCase().trim();
     const isOneTime = comType === 'one-time' || comType === 'onetime' || comType === 'one time' || comType === 'one-time onboarding';
     const isSpecial = comType === 'special' || comType === 'override' || comType === 'special override';
@@ -891,16 +878,7 @@ export default function AgentDetail() {
   const getCommissionBreakdown = (com) => {
     if (!com) return [];
     if (com.breakdown && com.breakdown.length > 0) {
-      return com.breakdown.filter(b => {
-        const inv = agentClients.find(cl => cl.clientId === b.clientId || cl.id === b.clientId)
-          || investors.find(invObj => invObj.clientId === b.clientId);
-        if (!inv) return false;
-        const isMockInv = investors.some(invObj => invObj.clientId === b.clientId);
-        if (isMockInv) {
-          return getPeriodInvestmentDate(inv, com) !== '';
-        }
-        return true;
-      });
+      return com.breakdown;
     }
 
     // Construct fallback breakdown from single database payout record
@@ -1629,8 +1607,8 @@ export default function AgentDetail() {
                         </thead>
                         <tbody>
                           {filteredBreakdown.map((b, i) => {
-                            const inv = investors.find(invObj => invObj.clientId === b.clientId);
-                            const invDateStr = inv ? getPeriodInvestmentDate(inv, selectedCommission) : (b.investmentDate || '');
+                            const inv = agentClients.find(invObj => invObj.clientId === b.clientId || invObj.id === b.clientId || invObj._id === b.clientId);
+                            const invDateStr = b.investmentDate || (inv ? (inv.joinDate || inv.dateOfJoining || formatDateSafe(inv.createdAt)) : '—');
                             const comType = String(selectedCommission.type || selectedCommission.commissionType || '').toLowerCase().trim();
                             const isOneTime = comType === 'one-time' || comType === 'onetime' || comType === 'one time' || comType === 'one-time onboarding';
                             const isSpecial = comType === 'special' || comType === 'override' || comType === 'special override';

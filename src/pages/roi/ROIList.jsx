@@ -328,7 +328,7 @@ export default function ROIList() {
   // Form fields
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedAgentId, setSelectedAgentId] = useState('');
-  const [commissionType, setCommissionType] = useState('Monthly');
+  const [commissionType, setCommissionType] = useState('One-Time');
   const [relatedClientId, setRelatedClientId] = useState('');
   const [amountPaid, setAmountPaid] = useState('');
   const [paymentMode, setPaymentMode] = useState('Bank Transfer');
@@ -1041,9 +1041,9 @@ export default function ROIList() {
                         value={commissionType}
                         onChange={(e) => setCommissionType(e.target.value)}
                       >
-                        <option value="Monthly">Monthly Recurring</option>
-                        <option value="One-Time">One-Time Onboarding</option>
-                        <option value="Special">Special Override</option>
+                        <option value="One-Time">One-Time Slab</option>
+                        <option value="Monthly">Monthly Slab</option>
+                        <option value="Special">Special Incentive</option>
                       </select>
                     </div>
                     {selectedAgentClients.length > 0 && (
@@ -1058,8 +1058,9 @@ export default function ROIList() {
                           {selectedAgentClients.map(inv => {
                             const name = inv.fullName || (inv.profile && inv.profile.fullName) || (inv.user && inv.user.name) || inv.name || 'Unknown Client';
                             const id = inv.user?._id || inv.profile?.userId || inv._id || inv.id;
+                            const code = formatClientID(inv.clientCode || inv.clientId || (inv.profile && inv.profile.clientCode) || (inv.user && inv.user.clientCode) || '');
                             return (
-                              <option key={id} value={id}>{name}</option>
+                              <option key={id} value={id}>{name} {code ? `(${code})` : ''}</option>
                             );
                           })}
                         </select>

@@ -744,9 +744,9 @@ export default function Dashboard() {
           <div className="kfpl-chart-header">
             <div>
               <div className="kfpl-chart-title">Monthly ROI Trend</div>
-              <div className="kfpl-chart-subtitle">Total ROI paid per month — FY 2025</div>
+              <div className="kfpl-chart-subtitle">Total ROI paid per month</div>
             </div>
-            <Badge status="gold">FY 2025</Badge>
+            <Badge status="gold">Active</Badge>
           </div>
           <div className="kfpl-chart-body" style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
             <LineChart data={roiTrend} height={220} color="#10B981" />
@@ -762,8 +762,8 @@ export default function Dashboard() {
             </div>
             <Badge status="active">Ranked</Badge>
           </div>
-          <div className="kfpl-chart-body" style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-            <BarChart data={agentContribution} height={260} />
+          <div className="kfpl-chart-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', paddingTop: '8px' }}>
+            <BarChart data={agentContribution} height={280} />
           </div>
         </div>
 
@@ -798,7 +798,7 @@ export default function Dashboard() {
           <div className="kfpl-chart-header">
             <div>
               <div className="kfpl-chart-title">Monthly Investment Inflow</div>
-              <div className="kfpl-chart-subtitle">Total investments received per month — FY 2025</div>
+              <div className="kfpl-chart-subtitle">Total investments received per month</div>
             </div>
             <Badge status="gold">₹ Crores</Badge>
           </div>
@@ -826,7 +826,7 @@ export default function Dashboard() {
           <div className="kfpl-chart-header">
             <div>
               <div className="kfpl-chart-title">Investment vs Withdrawal Flow</div>
-              <div className="kfpl-chart-subtitle">Monthly inflows and outflows — FY 2025</div>
+              <div className="kfpl-chart-subtitle">Monthly inflows and outflows</div>
             </div>
             <Badge status="active">Cash Flow</Badge>
           </div>

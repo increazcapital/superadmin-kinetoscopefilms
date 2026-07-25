@@ -401,16 +401,10 @@ export default function Dashboard() {
           }
         }
 
-        // Apply segments with fallbacks
-        if (computedSegments.length > 0) {
-          setSegments(computedSegments);
-        } else if (data.segments && Array.isArray(data.segments)) {
-          setSegments(data.segments.map(s => ({
-            segment: s.segment || s.name || 'Segment',
-            value: s.percentage !== undefined ? s.percentage : (s.value || 0),
-            amount: s.amount || 0
-          })));
-        }
+        // Apply segments without zero fallbacks
+        const activeSegmentsList = (computedSegments.length > 0 ? computedSegments : (data.segments || []))
+          .filter(s => (s.amount || s.value || 0) > 0);
+        setSegments(activeSegmentsList);
 
         // Apply investment status with fallbacks
         if (computedInvestmentStatus.length > 0) {
@@ -496,20 +490,28 @@ export default function Dashboard() {
           }
         }
 
+        const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const hasPayouts = computedRoiTrend.some(v => v.amount > 0);
         if (hasPayouts) {
           setRoiTrend(computedRoiTrend);
-        } else if (data.monthlyCharts && Array.isArray(data.monthlyCharts)) {
+        } else if (data.monthlyCharts && Array.isArray(data.monthlyCharts) && data.monthlyCharts.some(m => (m.roiPaid || m.roi || 0) > 0)) {
           setRoiTrend(data.monthlyCharts.map(m => ({
             month: m.month,
             amount: m.roiPaid || m.roi || m.roiAmount || 0
           })));
+        } else {
+          setRoiTrend(monthOrder.map(m => ({ month: m, amount: 0 })));
         }
 
         // 4. Update core stats reactively with server data as primary source
         const finalInvestorsCount = data.totalInvestors !== undefined ? data.totalInvestors : (data.totalClients ?? data.stats?.totalInvestors ?? 0);
         const finalTotalInvestment = data.totalInvestment !== undefined ? data.totalInvestment : (data.totalInvestmentAmount ?? data.stats?.totalInvestment ?? 0);
-        const finalRoiPaid = data.totalRoiPaid !== undefined ? data.totalRoiPaid : (data.roiPaid ?? data.stats?.totalRoiPaid ?? 0);
+        
+        let finalRoiPaid = data.totalRoiPaid !== undefined ? data.totalRoiPaid : (data.roiPaid ?? data.stats?.totalRoiPaid ?? 0);
+        if (finalInvestorsCount === 0 || realTotalRoiPaid === 0) {
+          finalRoiPaid = 0;
+        }
+
         const finalActiveInvestments = data.activeInvestments !== undefined ? data.activeInvestments : (data.activeInvestmentsCount ?? data.stats?.activeInvestments ?? 0);
         const finalTotalAgents = data.totalAgents !== undefined ? data.totalAgents : (data.stats?.totalAgents ?? 0);
 
@@ -535,12 +537,17 @@ export default function Dashboard() {
           data?.recentActivity || data?.data?.recentActivity || 
           data?.activities || data?.data?.activities
         );
-        mappedActivities = rawActivity.map((item, idx) => ({
-          id: item.id || item._id || idx,
-          text: item.text || item.message || 'Platform activity recorded',
-          type: (item.type || 'info').toLowerCase(),
-          time: item.timestamp || item.time || item.createdAt || 'Just now'
-        }));
+        mappedActivities = rawActivity
+          .filter(item => {
+            if (finalInvestorsCount === 0 && (item.type === 'onboarding' || item.type === 'roi_payment')) return false;
+            return true;
+          })
+          .map((item, idx) => ({
+            id: item.id || item._id || idx,
+            text: item.text || item.message || 'Platform activity recorded',
+            type: (item.type || 'info').toLowerCase(),
+            time: item.timestamp || item.time || item.createdAt || 'Just now'
+          }));
         setActivities(mappedActivities);
 
         // Save fresh calculations to SWR Cache
@@ -690,52 +697,64 @@ export default function Dashboard() {
             <Badge status="active">Live</Badge>
           </div>
           <div className="kfpl-chart-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', width: '100%', padding: '10px 15px', flex: 1, overflow: 'hidden' }}>
-            <div style={{ flex: 1.2, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <PieChart 
-                data={(Array.isArray(segments) ? segments : []).map((seg, idx) => ({
-                  status: seg.segment,
-                  count: seg.amount || 0,
-                  percentage: seg.value,
-                  color: SEGMENT_COLORS[idx % SEGMENT_COLORS.length]
-                }))} 
-                size={210} 
-                strokeWidth={24} 
-                isCurrency={true}
-              />
-            </div>
-            <div className="kfpl-chart-legend-side" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px', flex: 1 }}>
-              {(Array.isArray(segments) ? segments : []).map((seg, i) => (
-                <div 
-                  key={seg.segment} 
-                  style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    gap: '4px',
-                    padding: '8px 12px',
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
-                    transition: 'all 0.25s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: SEGMENT_COLORS[i % SEGMENT_COLORS.length], flexShrink: 0 }} />
-                      <span style={{ fontWeight: 600, fontSize: '11px', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{seg.segment}</span>
-                    </div>
-                    <span style={{ fontWeight: 700, fontSize: '11px', color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }}>{seg.value}%</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
-                    <span>Allocation</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>{formatCurrency(seg.amount)}</span>
-                  </div>
-                  <div style={{ width: '100%', height: '3px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '1.5px', overflow: 'hidden', marginTop: '2px' }}>
-                    <div style={{ width: `${seg.value}%`, height: '100%', background: SEGMENT_COLORS[i % SEGMENT_COLORS.length], borderRadius: '1.5px' }} />
-                  </div>
+            {(!Array.isArray(segments) || segments.length === 0 || segments.every(s => !s.amount && !s.value)) ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem', gap: '8px', padding: '40px 0' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                  <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                </svg>
+                <span>No active segment allocations available</span>
+              </div>
+            ) : (
+              <>
+                <div style={{ flex: 1.2, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <PieChart 
+                    data={(Array.isArray(segments) ? segments : []).map((seg, idx) => ({
+                      status: seg.segment,
+                      count: seg.amount || 0,
+                      percentage: seg.value,
+                      color: SEGMENT_COLORS[idx % SEGMENT_COLORS.length]
+                    }))} 
+                    size={210} 
+                    strokeWidth={24} 
+                    isCurrency={true}
+                  />
                 </div>
-              ))}
-            </div>
+                <div className="kfpl-chart-legend-side" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px', flex: 1 }}>
+                  {(Array.isArray(segments) ? segments : []).map((seg, i) => (
+                    <div 
+                      key={seg.segment} 
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '4px',
+                        padding: '8px 12px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
+                        transition: 'all 0.25s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: SEGMENT_COLORS[i % SEGMENT_COLORS.length], flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600, fontSize: '11px', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{seg.segment}</span>
+                        </div>
+                        <span style={{ fontWeight: 700, fontSize: '11px', color: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }}>{seg.value}%</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
+                        <span>Allocation</span>
+                        <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>{formatCurrency(seg.amount)}</span>
+                      </div>
+                      <div style={{ width: '100%', height: '3px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '1.5px', overflow: 'hidden', marginTop: '2px' }}>
+                        <div style={{ width: `${seg.value}%`, height: '100%', background: SEGMENT_COLORS[i % SEGMENT_COLORS.length], borderRadius: '1.5px' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 

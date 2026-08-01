@@ -158,6 +158,9 @@ export default function AgentList() {
               const user = a.user || {};
               const profile = a.profile || {};
               const resolvedCode = a.agentId || a.clientCode || user.clientCode || profile.clientCode || profile.agentId || '';
+              const statusVal = (profile.status || (user.isActive ? 'active' : 'inactive') || 'active').toLowerCase();
+              const residencyVal = profile.residencyStatus || a.residencyStatus || a.citizenship || 'National (Domestic)';
+
               return {
                 ...a,
                 id: a._id || a.id || user._id || profile.userId,
@@ -169,7 +172,9 @@ export default function AgentList() {
                 totalClients: a.clientsCount ?? a.totalClients ?? 0,
                 totalInvestment: a.totalInvestment ?? 0,
                 commissionPaid: a.commissionPaid ?? a.totalCommissionsPaid ?? a.totalCommissions ?? 0,
-                status: profile.status || (user.isActive ? 'active' : 'inactive') || 'active',
+                status: statusVal,
+                residencyStatus: residencyVal,
+                citizenship: residencyVal.toLowerCase().includes('international') ? 'International' : 'National',
               };
             });
           
@@ -184,7 +189,6 @@ export default function AgentList() {
         }
       } catch (err) {
         console.error('Failed to fetch agents:', err);
-        setAgentsList([]);
       } finally {
         setLoading(false);
       }
@@ -195,11 +199,11 @@ export default function AgentList() {
   const filteredAgents = agentsList.filter(agt => {
     if (residencyFilter !== 'all') {
       const isInt = residencyFilter === 'international';
-      const actualInt = (agt.citizenship || agt.residencyStatus) === 'International';
+      const actualInt = (agt.residencyStatus || '').toLowerCase().includes('international');
       if (isInt !== actualInt) return false;
     }
     if (statusFilter !== 'all') {
-      if (agt.status !== statusFilter) return false;
+      if ((agt.status || '').toLowerCase() !== statusFilter.toLowerCase()) return false;
     }
     return true;
   });

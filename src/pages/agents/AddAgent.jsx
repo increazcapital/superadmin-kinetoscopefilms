@@ -187,6 +187,11 @@ export default function AddAgent() {
         body: formData,
       });
 
+      try {
+        localStorage.removeItem('kfpl_super_admin_agents_cache');
+        localStorage.removeItem('kfpl_super_admin_dashboard_cache');
+      } catch (_) {}
+
       addToast(`Agent "${form.name}" registered successfully!`, 'success', 'Agent Added');
       setTimeout(() => navigate('/agents'), 500);
     } catch (err) {

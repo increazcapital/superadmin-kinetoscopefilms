@@ -223,6 +223,10 @@ export default function AddInvestor() {
       const resData = await response.json();
 
       if (response.ok) {
+        try {
+          localStorage.removeItem('kfpl_super_admin_clients_cache');
+          localStorage.removeItem('kfpl_super_admin_dashboard_cache');
+        } catch (_) {}
         addToast(`Client "${form.fullName}" registered successfully!`, 'success', 'Client Added');
         
         setTimeout(() => navigate('/investors'), 500);

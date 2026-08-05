@@ -26,7 +26,7 @@ export default function AssignInvestment() {
 
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [segments, setSegments] = useState(MOCK_INVESTMENT_SEGMENTS);
+  const [segments, setSegments] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedSegments, setSelectedSegments] = useState([]);
   const [allocations, setAllocations] = useState({});

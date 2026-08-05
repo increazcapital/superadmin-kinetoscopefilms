@@ -195,13 +195,8 @@ export default function PortfolioManagement() {
       }));
       setProjects(mapped);
     } catch (err) {
-      console.error('Failed to fetch projects, using defaults:', err);
-      const stored = localStorage.getItem(LS_KEY);
-      if (stored) {
-        setProjects(JSON.parse(stored));
-      } else {
-        setProjects(DEFAULT_PROJECTS);
-      }
+      console.error('Failed to fetch projects from API:', err);
+      setProjects([]);
     }
 
     // 2. Fetch segments
@@ -215,21 +210,8 @@ export default function PortfolioManagement() {
       }));
       setSegmentsConfig(mappedSeg);
     } catch (err) {
-      console.error('Failed to fetch segments, using defaults:', err);
-      const storedConfig = localStorage.getItem('kfpl_portfolio_segments_config');
-      if (storedConfig) {
-        setSegmentsConfig(JSON.parse(storedConfig));
-      } else {
-        const defaultConfig = [
-          { name: 'Film Making', statuses: ['Planning', 'In Production', 'Active', 'Ongoing', 'Completed'] },
-          { name: 'Distribution', statuses: ['Planning', 'Active', 'Ongoing', 'Negotiation', 'Completed'] },
-          { name: 'Music', statuses: ['Planning', 'Recording', 'Active', 'Ongoing', 'Completed', 'Released'] },
-          { name: 'Trading & Syndication', statuses: ['Planning', 'Negotiation', 'Active', 'Ongoing', 'Completed'] },
-          { name: 'Content IP Bank', statuses: ['Planning', 'Ongoing', 'Active', 'Completed'] },
-          { name: 'Film Exhibition', statuses: ['Planning', 'Ongoing', 'Active', 'Completed'] },
-        ];
-        setSegmentsConfig(defaultConfig);
-      }
+      console.error('Failed to fetch segments from API:', err);
+      setSegmentsConfig([]);
     }
 
     // 3. Load Dividend stats, allotments and investors from APIs

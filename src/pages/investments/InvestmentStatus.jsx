@@ -72,13 +72,15 @@ export default function InvestmentStatus() {
 
   // ── State ──────────────────────────────
   const [statusUpdates, setStatusUpdates] = useState([]);
-  const [segmentsConfig, setSegmentsConfig] = useState(DEFAULT_SEGMENTS_CONFIG);
+  const [segmentsConfig, setSegmentsConfig] = useState([]);
   const [historyLogs, setHistoryLogs] = useState([]);
   const [allHistoryLogs, setAllHistoryLogs] = useState([]);
   const [expandedCards, setExpandedCards] = useState({});
   const [expandedMediaCards, setExpandedMediaCards] = useState({});
   const [editId, setEditId] = useState(null);
   const [updateNote, setUpdateNote] = useState('');
+  const [inlineStatus, setInlineStatus] = useState('');
+  const [inlineProgress, setInlineProgress] = useState(0);
   const [isSegmentWidePost, setIsSegmentWidePost] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -100,6 +102,11 @@ export default function InvestmentStatus() {
     segment: '',
     status: 'Planning',
     progress: 0,
+    minInvestment: 200000,
+    targetFunding: 25000000,
+    fundedAmount: 0,
+    totalSlots: 20,
+    slotsAvailable: 20,
     note: '',
   });
   const [newSegmentName, setNewSegmentName] = useState('');
@@ -127,6 +134,11 @@ export default function InvestmentStatus() {
           segment: p.segment || '',
           status: p.status || 'Planning',
           progress: p.milestoneProgress !== undefined ? p.milestoneProgress : (p.progress !== undefined ? p.progress : 0),
+          minInvestment: p.minInvestment !== undefined ? p.minInvestment : 200000,
+          targetFunding: p.targetFunding !== undefined ? p.targetFunding : 25000000,
+          fundedAmount: p.fundedAmount !== undefined ? p.fundedAmount : 0,
+          totalSlots: p.totalSlots !== undefined ? p.totalSlots : 20,
+          slotsAvailable: p.slotsAvailable !== undefined ? p.slotsAvailable : 20,
           lastUpdate: p.updatedAt ? new Date(p.updatedAt).toISOString().split('T')[0] : '—',
           note: p.currentUpdate || p.update || p.summary || '',
           bannerImg: p.bannerImage || p.bannerImg || '',
@@ -159,31 +171,17 @@ export default function InvestmentStatus() {
         list = data.data.segments;
       }
 
-      if (list && list.length > 0) {
-        const mapped = list.map(s => ({
-          id: s._id || s.id,
-          name: s.name || '',
-          statuses: s.statuses && s.statuses.length > 0 ? s.statuses : ['Planning', 'Active', 'Ongoing', 'Completed'],
-          isDefault: s.isDefault !== undefined ? s.isDefault : true
-        }));
+      const mapped = (list || []).map(s => ({
+        id: s._id || s.id,
+        name: s.name || '',
+        statuses: s.statuses && s.statuses.length > 0 ? s.statuses : ['Planning', 'Active', 'Ongoing', 'Completed'],
+        isDefault: !!s.isDefault
+      }));
 
-        // Merge with default segments, ensuring backend custom ones are appended
-        const merged = [...DEFAULT_SEGMENTS_CONFIG];
-        mapped.forEach(m => {
-          const idx = merged.findIndex(d => d.name.toLowerCase() === m.name.toLowerCase());
-          if (idx > -1) {
-            merged[idx] = m;
-          } else {
-            merged.push(m);
-          }
-        });
-        setSegmentsConfig(merged);
-      } else {
-        setSegmentsConfig(DEFAULT_SEGMENTS_CONFIG);
-      }
+      setSegmentsConfig(mapped);
     } catch (err) {
-      console.error('Failed to load segments from API, using defaults:', err);
-      setSegmentsConfig(DEFAULT_SEGMENTS_CONFIG);
+      console.error('Failed to load segments from API:', err);
+      setSegmentsConfig([]);
     }
   };
 
@@ -281,7 +279,19 @@ export default function InvestmentStatus() {
 
   // ── CRUD Handlers ─────────────────────────
   const resetForm = () => {
-    setFormData({ isSegmentWide: false, project: '', segment: '', status: 'Planning', progress: 0, note: '' });
+    setFormData({
+      isSegmentWide: false,
+      project: '',
+      segment: '',
+      status: 'Planning',
+      progress: 0,
+      minInvestment: 200000,
+      targetFunding: 25000000,
+      fundedAmount: 0,
+      totalSlots: 20,
+      slotsAvailable: 20,
+      note: ''
+    });
   };
 
   const openAddModal = () => {
@@ -298,9 +308,14 @@ export default function InvestmentStatus() {
     setFormData({
       isSegmentWide: !!item.isSegmentWide,
       project: item.project || '',
-      segment: item.segment,
-      status: item.status,
-      progress: item.progress,
+      segment: item.segment || '',
+      status: item.status || 'Planning',
+      progress: item.progress || 0,
+      minInvestment: item.minInvestment !== undefined ? item.minInvestment : 200000,
+      targetFunding: item.targetFunding !== undefined ? item.targetFunding : 25000000,
+      fundedAmount: item.fundedAmount !== undefined ? item.fundedAmount : 0,
+      totalSlots: item.totalSlots !== undefined ? item.totalSlots : 20,
+      slotsAvailable: item.slotsAvailable !== undefined ? item.slotsAvailable : 20,
       note: item.note || '',
     });
 
@@ -316,6 +331,11 @@ export default function InvestmentStatus() {
             segment: p.segment || item.segment || '',
             status: p.status || item.status || 'Planning',
             progress: p.milestoneProgress !== undefined ? p.milestoneProgress : (p.progress || item.progress || 0),
+            minInvestment: p.minInvestment !== undefined ? p.minInvestment : (item.minInvestment || 200000),
+            targetFunding: p.targetFunding !== undefined ? p.targetFunding : (item.targetFunding || 25000000),
+            fundedAmount: p.fundedAmount !== undefined ? p.fundedAmount : (item.fundedAmount || 0),
+            totalSlots: p.totalSlots !== undefined ? p.totalSlots : (item.totalSlots || 20),
+            slotsAvailable: p.slotsAvailable !== undefined ? p.slotsAvailable : (item.slotsAvailable || 20),
             note: p.summary || p.notes || p.currentUpdate || item.note || ''
           });
         }
@@ -326,8 +346,12 @@ export default function InvestmentStatus() {
   };
 
   const handleSaveProject = async () => {
-    if (!formData.project.trim() || !formData.segment) {
-      addToast('Please fill in project name and segment', 'error', 'Validation Error');
+    if (!formData.isSegmentWide && !formData.project.trim()) {
+      addToast('Please fill in project name', 'error', 'Validation Error');
+      return;
+    }
+    if (!formData.segment) {
+      addToast('Please select segment', 'error', 'Validation Error');
       return;
     }
 
@@ -336,31 +360,44 @@ export default function InvestmentStatus() {
         name: formData.project,
         segment: formData.segment,
         status: formData.status,
-        portfolioValue: '₹0 Cr',
-        monthlyRoi: '1%',
+        milestoneProgress: Number(formData.progress) || 0,
+        minInvestment: Number(formData.minInvestment) || 200000,
+        targetFunding: Number(formData.targetFunding) || 25000000,
+        fundedAmount: Number(formData.fundedAmount) || 0,
+        totalSlots: Number(formData.totalSlots) || 20,
+        slotsAvailable: Number(formData.slotsAvailable) || 20,
+        portfolioValue: `₹${((Number(formData.targetFunding) || 25000000) / 10000000).toFixed(1)} Cr`,
+        monthlyRoi: '1.0%',
         riskLevel: 'Medium',
         health: 'On Track',
-        summary: formData.note || ''
+        summary: formData.note || '',
+        currentUpdate: formData.note || '',
+        scope: formData.isSegmentWide ? 'segment' : 'project',
+        applySegmentWide: formData.isSegmentWide
       };
 
       if (editingItem) {
+        if (formData.isSegmentWide) {
+          delete payload.name;
+        }
         await apiRequest(`/api/super-admin/projects/${editingItem.id}`, {
           method: 'PATCH',
           body: JSON.stringify(payload)
         });
-        addToast(`${formData.project} updated successfully`, 'success', 'Updated');
+        addToast(`${editingItem.project || formData.segment} updated successfully`, 'success', 'Updated');
       } else {
         await apiRequest('/api/super-admin/projects', {
           method: 'POST',
           body: JSON.stringify(payload)
         });
-        addToast(`${formData.project} added successfully`, 'success', 'Added');
+        addToast(`${formData.project || formData.segment} added successfully`, 'success', 'Added');
       }
 
       setShowAddModal(false);
       setEditingItem(null);
       resetForm();
-      loadDashboardData();
+      await loadDashboardData();
+      await fetchAllHistory();
     } catch (err) {
       console.error('Failed to save project:', err);
       addToast(err.message || 'Failed to save project.', 'error', 'Error');
@@ -383,15 +420,15 @@ export default function InvestmentStatus() {
   };
 
   const handlePostUpdate = async (item) => {
-    const noteToPost = updateNote.trim() || item.note;
+    const noteToPost = updateNote.trim() || item.note || 'Status updated';
     const attachmentsList = (item.media || []).map(m => m.dataUrl || m.url || m.id).filter(Boolean);
 
     try {
       await apiRequest(`/api/super-admin/projects/${item.id}/updates`, {
         method: 'POST',
         body: JSON.stringify({
-          status: item.status,
-          progress: parseInt(item.progress) || 0,
+          status: inlineStatus || item.status,
+          progress: parseInt(inlineProgress) !== undefined && !isNaN(parseInt(inlineProgress)) ? parseInt(inlineProgress) : (parseInt(item.progress) || 0),
           notes: noteToPost,
           attachments: attachmentsList,
           applySegmentWide: isSegmentWidePost
@@ -402,8 +439,8 @@ export default function InvestmentStatus() {
       setEditId(null);
       setUpdateNote('');
       setIsSegmentWidePost(false);
-      loadDashboardData();
-      fetchAllHistory();
+      await loadDashboardData();
+      await fetchAllHistory();
     } catch (err) {
       console.error('Failed to post status update:', err);
       addToast(err.message || 'Failed to post status update.', 'error', 'Error');
@@ -955,7 +992,17 @@ export default function InvestmentStatus() {
               {/* ── Beautiful individual pill-buttons action row ── */}
               <div style={{ display: 'flex', gap: '8px', padding: '12px 20px', borderTop: '1px solid #f1f5f9', background: '#fafbfc', justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
                 <button
-                  onClick={() => { setEditId(editId === item.id ? null : item.id); setUpdateNote(''); setIsSegmentWidePost(false); }}
+                  onClick={() => {
+                    if (editId === item.id) {
+                      setEditId(null);
+                    } else {
+                      setEditId(item.id);
+                      setUpdateNote(item.note || '');
+                      setInlineStatus(item.status || 'Planning');
+                      setInlineProgress(item.progress || 0);
+                      setIsSegmentWidePost(false);
+                    }
+                  }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '5px',
                     padding: '6px 12px', borderRadius: '8px', border: `1px solid ${editId === item.id ? accent : '#e2e8f0'}`,
@@ -1026,6 +1073,34 @@ export default function InvestmentStatus() {
               {/* Inline edit note panel */}
               {editId === item.id && (
                 <div style={{ padding: '14px 18px 16px', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '140px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>Status</label>
+                      <select
+                        className="kfpl-select"
+                        value={inlineStatus}
+                        onChange={e => setInlineStatus(e.target.value)}
+                        style={{ fontSize: '0.78rem', padding: '4px 8px', height: '32px' }}
+                      >
+                        {((segmentsConfig.find(s => s.name === item.segment)?.statuses) || ['Planning', 'Active', 'In Production', 'Ongoing', 'Completed']).map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ width: '100px' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>Progress (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        className="kfpl-input"
+                        value={inlineProgress}
+                        onChange={e => setInlineProgress(e.target.value)}
+                        style={{ fontSize: '0.78rem', padding: '4px 8px', height: '32px' }}
+                      />
+                    </div>
+                  </div>
+
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', marginBottom: '10px', fontSize: '0.75rem', color: '#64748b' }}>
                     <input type="checkbox" checked={isSegmentWidePost} onChange={(e) => setIsSegmentWidePost(e.target.checked)} style={{ cursor: 'pointer' }} />
                     Segment-wide update for <strong>{item.segment}</strong>
@@ -1034,7 +1109,7 @@ export default function InvestmentStatus() {
                     placeholder="Write status note update..."
                     rows="2" style={{ fontSize: '0.82rem', width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: '#fff', resize: 'vertical' }} />
                   <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                    <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" onClick={() => handlePostUpdate(item)} disabled={!updateNote.trim()} style={{ fontWeight: 700, fontSize: '0.78rem' }}>Publish</button>
+                    <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" onClick={() => handlePostUpdate(item)} style={{ fontWeight: 700, fontSize: '0.78rem' }}>Publish</button>
                     <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" onClick={() => setEditId(null)} style={{ fontSize: '0.78rem' }}>Cancel</button>
                   </div>
                 </div>
@@ -1123,12 +1198,41 @@ export default function InvestmentStatus() {
               </select>
             </div>
           </div>
-          <div className="kfpl-input-group">
-            <label className="kfpl-input-label">Progress (%)</label>
-            <input type="number" className="kfpl-input" min="0" max="100" value={formData.progress} onChange={e => setFormData({ ...formData, progress: e.target.value })} />
+          <div className="kfpl-form-row">
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Min. Investment (₹)</label>
+              <input type="number" className="kfpl-input" min="0" value={formData.minInvestment} onChange={e => setFormData({ ...formData, minInvestment: e.target.value })} placeholder="e.g. 500000" />
+            </div>
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Target Funding (₹)</label>
+              <input type="number" className="kfpl-input" min="0" value={formData.targetFunding} onChange={e => setFormData({ ...formData, targetFunding: e.target.value })} placeholder="e.g. 25000000" />
+            </div>
           </div>
+
+          <div className="kfpl-form-row">
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Funded Amount (₹)</label>
+              <input type="number" className="kfpl-input" min="0" value={formData.fundedAmount} onChange={e => setFormData({ ...formData, fundedAmount: e.target.value })} placeholder="e.g. 15000000" />
+            </div>
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Milestone Progress (%)</label>
+              <input type="number" className="kfpl-input" min="0" max="100" value={formData.progress} onChange={e => setFormData({ ...formData, progress: e.target.value })} />
+            </div>
+          </div>
+
+          <div className="kfpl-form-row">
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Total Slots</label>
+              <input type="number" className="kfpl-input" min="1" value={formData.totalSlots} onChange={e => setFormData({ ...formData, totalSlots: e.target.value })} placeholder="20" />
+            </div>
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Slots Available</label>
+              <input type="number" className="kfpl-input" min="0" value={formData.slotsAvailable} onChange={e => setFormData({ ...formData, slotsAvailable: e.target.value })} placeholder="20" />
+            </div>
+          </div>
+
           <div className="kfpl-input-group">
-            <label className="kfpl-input-label">Notes</label>
+            <label className="kfpl-input-label">Notes / Description</label>
             <textarea className="kfpl-textarea" value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })} placeholder="Brief description or status note..." rows="3" />
           </div>
         </div>
@@ -1155,43 +1259,34 @@ export default function InvestmentStatus() {
 
           {/* Existing segments */}
           <div>
-            <label className="kfpl-input-label" style={{ marginBottom: '8px', display: 'block' }}>Default Segments</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-              {INVESTMENT_SEGMENTS.map(s => (
-                <span key={s.name} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
-                  {s.name}
-                </span>
-              ))}
-            </div>
-
-            {customSegments.length > 0 && (
-              <>
-                <label className="kfpl-input-label" style={{ marginBottom: '8px', display: 'block' }}>Custom Segments</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {customSegments.map(seg => (
-                    <span key={seg} style={{
-                      padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600,
-                      background: 'var(--color-gold-surface)', border: '1px solid var(--color-gold)',
-                      color: 'var(--color-gold-dark)', display: 'flex', alignItems: 'center', gap: '6px',
-                    }}>
-                      {seg}
-                      <button
-                        style={{
-                          background: 'none', border: 'none', color: 'var(--color-danger)',
-                          cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
-                          justifyContent: 'center', padding: 0, marginLeft: '2px'
-                        }}
-                        onClick={() => handleRemoveSegment(seg)}
-                        aria-label={`Remove segment ${seg}`}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ width: 10, height: 10 }}>
-                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </>
+            <label className="kfpl-input-label" style={{ marginBottom: '8px', display: 'block' }}>Active Segments ({segmentsConfig.length})</label>
+            {segmentsConfig.length === 0 ? (
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: 0 }}>No segments configured yet. Add a segment above.</p>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {segmentsConfig.map(seg => (
+                  <span key={seg.id || seg.name} style={{
+                    padding: '5px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600,
+                    background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                    color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  }}>
+                    {seg.name}
+                    <button
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--color-danger)',
+                        cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
+                        justifyContent: 'center', padding: 0, marginLeft: '2px'
+                      }}
+                      onClick={() => handleRemoveSegment(seg.name)}
+                      title={`Remove segment ${seg.name}`}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ width: 12, height: 12 }}>
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
             )}
           </div>
         </div>

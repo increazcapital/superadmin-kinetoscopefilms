@@ -98,10 +98,19 @@ export default function PortfolioManagement() {
   const [deleteSegConfirmIdx, setDeleteSegConfirmIdx] = useState(null);
   const [customSegmentText, setCustomSegmentText] = useState('');
 
+  // Inline quick update state
+  const [editId, setEditId] = useState(null);
+  const [updateNote, setUpdateNote] = useState('');
+  const [inlineStatus, setInlineStatus] = useState('');
+  const [inlineProgress, setInlineProgress] = useState(0);
+  const [isSegmentWidePost, setIsSegmentWidePost] = useState(false);
+
   // Form state
   const [formData, setFormData] = useState({
-    name: '', segment: '', status: '', value: '', milestone: 0,
-    summary: '', risk: 'Medium', horizon: '', roi: '', health: 'On Track', bannerImg: '',
+    isSegmentWide: false,
+    name: '', segment: '', status: 'Planning', value: '', milestone: 0,
+    minInvestment: 200000, targetFunding: 25000000, fundedAmount: 0, totalSlots: 20, slotsAvailable: 20,
+    summary: '', risk: 'Medium', horizon: '', roi: '1.0%', health: 'On Track', bannerImg: '',
     update: '', allocation: '',
   });
 
@@ -179,8 +188,15 @@ export default function PortfolioManagement() {
         name: p.name || '',
         segment: p.segment || '',
         status: p.status || 'Planning',
-        value: p.portfolioValue || p.value || '₹0 Cr',
+        value: (p.portfolioValue && p.portfolioValue !== '₹0.0 Cr' && p.portfolioValue !== '₹0 Cr')
+          ? p.portfolioValue
+          : formatCurrency(p.targetFunding || p.minInvestment || 0),
         milestone: p.milestoneProgress !== undefined ? p.milestoneProgress : (p.milestone !== undefined ? p.milestone : 0),
+        minInvestment: p.minInvestment !== undefined ? p.minInvestment : 200000,
+        targetFunding: p.targetFunding !== undefined ? p.targetFunding : 25000000,
+        fundedAmount: p.fundedAmount !== undefined ? p.fundedAmount : 0,
+        totalSlots: p.totalSlots !== undefined ? p.totalSlots : 20,
+        slotsAvailable: p.slotsAvailable !== undefined ? p.slotsAvailable : 20,
         summary: p.summary || '',
         risk: p.riskLevel || p.risk || 'Medium',
         horizon: p.horizon || '',
@@ -411,8 +427,10 @@ export default function PortfolioManagement() {
   // ── CRUD handlers ─────────────────────────
   const resetForm = () => {
     setFormData({
-      name: '', segment: '', status: '', value: '', milestone: 0,
-      summary: '', risk: 'Medium', horizon: '', roi: '', health: 'On Track', bannerImg: '',
+      isSegmentWide: false,
+      name: '', segment: '', status: 'Planning', value: '', milestone: 0,
+      minInvestment: 200000, targetFunding: 25000000, fundedAmount: 0, totalSlots: 20, slotsAvailable: 20,
+      summary: '', risk: 'Medium', horizon: '', roi: '1.0%', health: 'On Track', bannerImg: '',
       update: '', allocation: '',
     });
     setCustomSegmentText('');
@@ -427,15 +445,21 @@ export default function PortfolioManagement() {
 
   const openEditModal = (project) => {
     setFormData({
-      name: project.name,
-      segment: project.segment,
-      status: project.status,
-      value: project.value,
-      milestone: project.milestone,
-      summary: project.summary,
+      isSegmentWide: !!project.isSegmentWide,
+      name: project.name || '',
+      segment: project.segment || '',
+      status: project.status || 'Planning',
+      value: project.value || `₹${((Number(project.targetFunding || 25000000)) / 10000000).toFixed(1)} Cr`,
+      milestone: project.milestone !== undefined ? project.milestone : 0,
+      minInvestment: project.minInvestment !== undefined ? project.minInvestment : 200000,
+      targetFunding: project.targetFunding !== undefined ? project.targetFunding : 25000000,
+      fundedAmount: project.fundedAmount !== undefined ? project.fundedAmount : 0,
+      totalSlots: project.totalSlots !== undefined ? project.totalSlots : 20,
+      slotsAvailable: project.slotsAvailable !== undefined ? project.slotsAvailable : 20,
+      summary: project.summary || '',
       risk: project.risk || 'Medium',
       horizon: project.horizon || '',
-      roi: project.roi || '',
+      roi: project.roi || '1.0%',
       health: project.health || 'On Track',
       bannerImg: project.bannerImg || '',
       update: project.update || '',
@@ -443,6 +467,41 @@ export default function PortfolioManagement() {
     });
     setEditingProject(project);
     setShowAddModal(true);
+  };
+
+  const handlePostUpdate = async (item) => {
+    if (!updateNote.trim() && !inlineStatus) {
+      addToast('Please provide an update note or status', 'error', 'Error');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const isSeg = isSegmentWidePost || (item && item.isSegmentWide);
+
+      const payload = {
+        status: inlineStatus || item.status,
+        progress: Number(inlineProgress) !== undefined ? Number(inlineProgress) : (item.milestone || 0),
+        notes: updateNote.trim(),
+        applySegmentWide: isSeg
+      };
+
+      await apiRequest(`/api/super-admin/projects/${item.id}/updates`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      addToast(`Status update published for ${isSeg ? item.segment : item.name}`, 'success', 'Published');
+      setEditId(null);
+      setUpdateNote('');
+      setIsSegmentWidePost(false);
+      await loadDashboardData();
+    } catch (err) {
+      console.error('Failed to post update:', err);
+      addToast(err.message || 'Failed to post update', 'error', 'Error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSaveProject = async () => {
@@ -476,6 +535,11 @@ export default function PortfolioManagement() {
     }
 
     setSubmitting(true);
+    const targetFundingNum = Number(formData.targetFunding) || 0;
+    const calculatedPortfolioValue = (formData.value && formData.value !== '₹0.0 Cr' && formData.value !== '₹0 Cr')
+      ? formData.value
+      : (targetFundingNum > 0 ? formatCurrency(targetFundingNum) : '₹0');
+
     try {
       if (editingProject) {
         const id = editingProject.id;
@@ -484,14 +548,20 @@ export default function PortfolioManagement() {
           formDataToSend.append('name', formData.name.trim());
           formDataToSend.append('segment', finalSegment);
           formDataToSend.append('status', formData.status || 'Planning');
-          formDataToSend.append('portfolioValue', formData.value || '₹0 Cr');
-          formDataToSend.append('monthlyRoi', formData.roi || '0%');
+          formDataToSend.append('portfolioValue', calculatedPortfolioValue);
+          formDataToSend.append('monthlyRoi', formData.roi || '1.0%');
           formDataToSend.append('riskLevel', formData.risk || 'Medium');
           formDataToSend.append('milestoneProgress', String(parseInt(formData.milestone) || 0));
+          formDataToSend.append('minInvestment', String(Number(formData.minInvestment) || 200000));
+          formDataToSend.append('targetFunding', String(Number(formData.targetFunding) || 25000000));
+          formDataToSend.append('fundedAmount', String(Number(formData.fundedAmount) || 0));
+          formDataToSend.append('totalSlots', String(Number(formData.totalSlots) || 20));
+          formDataToSend.append('slotsAvailable', String(Number(formData.slotsAvailable) || 20));
           formDataToSend.append('health', formData.health || 'On Track');
           formDataToSend.append('summary', formData.summary || '');
           formDataToSend.append('currentUpdate', formData.update || '');
           formDataToSend.append('allocationFocus', formData.allocation || '');
+          formDataToSend.append('horizon', formData.horizon || '12 Months');
           formDataToSend.append('bannerImage', selectedFile);
 
           const res = await apiRequest(`/api/super-admin/projects/${id}`, {
@@ -504,14 +574,22 @@ export default function PortfolioManagement() {
             name: formData.name.trim(),
             segment: finalSegment,
             status: formData.status || 'Planning',
-            portfolioValue: formData.value || '₹0 Cr',
-            monthlyRoi: formData.roi || '0%',
+            portfolioValue: calculatedPortfolioValue,
+            monthlyRoi: formData.roi || '1.0%',
             riskLevel: formData.risk || 'Medium',
             milestoneProgress: parseInt(formData.milestone) || 0,
+            minInvestment: Number(formData.minInvestment) || 200000,
+            targetFunding: Number(formData.targetFunding) || 25000000,
+            fundedAmount: Number(formData.fundedAmount) || 0,
+            totalSlots: Number(formData.totalSlots) || 20,
+            slotsAvailable: Number(formData.slotsAvailable) || 20,
             health: formData.health || 'On Track',
             summary: formData.summary || '',
             currentUpdate: formData.update || '',
             allocationFocus: formData.allocation || '',
+            horizon: formData.horizon || '12 Months',
+            scope: formData.isSegmentWide ? 'segment' : 'project',
+            applySegmentWide: formData.isSegmentWide
           };
           if (!formData.bannerImg) {
             payload.bannerImage = '';
@@ -530,14 +608,20 @@ export default function PortfolioManagement() {
           formDataToSend.append('name', formData.name.trim());
           formDataToSend.append('segment', finalSegment);
           formDataToSend.append('status', formData.status || 'Planning');
-          formDataToSend.append('portfolioValue', formData.value || '₹0 Cr');
-          formDataToSend.append('monthlyRoi', formData.roi || '0%');
+          formDataToSend.append('portfolioValue', calculatedPortfolioValue);
+          formDataToSend.append('monthlyRoi', formData.roi || '1.0%');
           formDataToSend.append('riskLevel', formData.risk || 'Medium');
           formDataToSend.append('milestoneProgress', String(parseInt(formData.milestone) || 0));
+          formDataToSend.append('minInvestment', String(Number(formData.minInvestment) || 200000));
+          formDataToSend.append('targetFunding', String(Number(formData.targetFunding) || 25000000));
+          formDataToSend.append('fundedAmount', String(Number(formData.fundedAmount) || 0));
+          formDataToSend.append('totalSlots', String(Number(formData.totalSlots) || 20));
+          formDataToSend.append('slotsAvailable', String(Number(formData.slotsAvailable) || 20));
           formDataToSend.append('health', formData.health || 'On Track');
           formDataToSend.append('summary', formData.summary || '');
           formDataToSend.append('currentUpdate', formData.update || '');
           formDataToSend.append('allocationFocus', formData.allocation || '');
+          formDataToSend.append('horizon', formData.horizon || '12 Months');
           formDataToSend.append('bannerImage', selectedFile);
 
           const res = await apiRequest('/api/super-admin/projects', {
@@ -550,14 +634,22 @@ export default function PortfolioManagement() {
             name: formData.name.trim(),
             segment: finalSegment,
             status: formData.status || 'Planning',
-            portfolioValue: formData.value || '₹0 Cr',
-            monthlyRoi: formData.roi || '0%',
+            portfolioValue: calculatedPortfolioValue,
+            monthlyRoi: formData.roi || '1.0%',
             riskLevel: formData.risk || 'Medium',
             milestoneProgress: parseInt(formData.milestone) || 0,
+            minInvestment: Number(formData.minInvestment) || 200000,
+            targetFunding: Number(formData.targetFunding) || 25000000,
+            fundedAmount: Number(formData.fundedAmount) || 0,
+            totalSlots: Number(formData.totalSlots) || 20,
+            slotsAvailable: Number(formData.slotsAvailable) || 20,
             health: formData.health || 'On Track',
             summary: formData.summary || '',
             currentUpdate: formData.update || '',
             allocationFocus: formData.allocation || '',
+            horizon: formData.horizon || '12 Months',
+            scope: formData.isSegmentWide ? 'segment' : 'project',
+            applySegmentWide: formData.isSegmentWide
           };
 
           const res = await apiRequest('/api/super-admin/projects', {
@@ -996,8 +1088,10 @@ export default function PortfolioManagement() {
           }}>
             <span>{SEGMENT_ABBR[drawerProject.segment] || drawerProject.name.slice(0, 2).toUpperCase()}</span>
             <div>
-              <strong>{drawerProject.value || '—'}</strong>
-              <small>Portfolio value</small>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--color-gold)' }}>
+                Max Target: {drawerProject.targetFunding ? formatCurrency(drawerProject.targetFunding) : (drawerProject.value || '₹0')}
+              </strong>
+              <small style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>Min Investment: {formatCurrency(drawerProject.minInvestment || 0)}</small>
             </div>
 
           </div>
@@ -1006,6 +1100,18 @@ export default function PortfolioManagement() {
 
           {/* KPIs */}
           <div className="kfpl-portfolio-drawer-kpis">
+            <div>
+              <span>Min. Investment</span>
+              <strong>{formatCurrency(drawerProject.minInvestment || 0)}</strong>
+            </div>
+            <div>
+              <span>Max Target Funding</span>
+              <strong style={{ color: 'var(--color-gold)' }}>{drawerProject.targetFunding ? formatCurrency(drawerProject.targetFunding) : (drawerProject.value || '₹0')}</strong>
+            </div>
+            <div>
+              <span>Funded Amount</span>
+              <strong style={{ color: 'var(--color-success)' }}>{formatCurrency(drawerProject.fundedAmount || 0)}</strong>
+            </div>
             <div>
               <span>Status</span>
               <strong>{drawerProject.status}</strong>
@@ -1030,6 +1136,28 @@ export default function PortfolioManagement() {
               <span>Health</span>
               <strong>{drawerProject.health || '—'}</strong>
             </div>
+          </div>
+
+          {/* Latest Status Update Section */}
+          <div className="kfpl-portfolio-drawer-section">
+            <h3>Latest Operational Update</h3>
+            {drawerProject.update ? (
+              <div style={{ padding: '12px 14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-success)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  </svg>
+                  CURRENT STATUS NOTE
+                </div>
+                <p style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.5, color: 'var(--color-text-primary)' }}>{drawerProject.update}</p>
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontStyle: 'italic', padding: '12px', border: '1px dashed var(--color-border)', borderRadius: '8px' }}>
+                No status updates posted yet.
+              </div>
+            )}
           </div>
 
           {/* Progress */}
@@ -1530,9 +1658,16 @@ export default function PortfolioManagement() {
                   </div>
 
                   <div className="kfpl-portfolio-card-body">
-                    <div className="kfpl-portfolio-card-topline">
+                    <div className="kfpl-portfolio-card-topline" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span className="kfpl-portfolio-segment">{project.segment}</span>
-                      <strong>{project.value || '—'}</strong>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ color: 'var(--color-text-muted)', display: 'block', fontSize: '0.6875rem' }}>
+                          Min: <strong style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(project.minInvestment || 0)}</strong>
+                        </span>
+                        <span style={{ color: 'var(--color-gold)', fontWeight: 800, fontSize: '0.8125rem' }}>
+                          Max: {project.targetFunding ? formatCurrency(project.targetFunding) : (project.value || '₹0')}
+                        </span>
+                      </div>
                     </div>
 
                     <h2>{project.name}</h2>
@@ -1561,26 +1696,143 @@ export default function PortfolioManagement() {
                       <div className="kfpl-progress-fill" style={{ width: `${project.milestone}%` }} />
                     </div>
 
-                    {/* Actions */}
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px', justifyContent: 'flex-end', position: 'relative', zIndex: 10 }} onClick={e => e.stopPropagation()}>
+                    {/* Latest Status Update Note */}
+                    {project.update && (
+                      <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                          </svg>
+                          LATEST UPDATE
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>{project.update}</div>
+                      </div>
+                    )}
+
+                    {/* Four Action Buttons: Update, Edit, Attach, Delete */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--color-border)', position: 'relative', zIndex: 10 }} onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
+                        style={{ fontSize: '0.75rem', padding: '4px 10px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                        onClick={() => {
+                          if (editId === project.id) {
+                            setEditId(null);
+                          } else {
+                            setEditId(project.id);
+                            setInlineStatus(project.status || '');
+                            setInlineProgress(project.milestone || 0);
+                            setUpdateNote('');
+                          }
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}>
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                        Update
+                      </button>
+
                       {canEdit('portfolio') && (
-                        <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" onClick={() => openEditModal(project)}>Edit</button>
+                        <button
+                          type="button"
+                          className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
+                          style={{ fontSize: '0.75rem', padding: '4px 10px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                          onClick={() => openEditModal(project)}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}>
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                          Edit
+                        </button>
                       )}
-                      {canDelete('portfolio') && (
-                        <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" style={{ color: 'var(--color-danger)' }} onClick={() => setDeleteConfirm(project)}>Delete</button>
-                      )}
+
                       {canCreate('portfolio') && (
-                        <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => {
-                          setUploadTarget(project.id);
-                          setTimeout(() => fileInputRef.current?.click(), 50);
-                        }}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}>
+                        <button
+                          type="button"
+                          className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
+                          style={{ fontSize: '0.75rem', padding: '4px 10px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                          onClick={() => {
+                            setUploadTarget(project.id);
+                            setTimeout(() => fileInputRef.current?.click(), 50);
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}>
                             <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                           </svg>
-                          Upload
+                          Attach
+                        </button>
+                      )}
+
+                      {canDelete('portfolio') && (
+                        <button
+                          type="button"
+                          className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
+                          style={{ fontSize: '0.75rem', padding: '4px 10px', fontWeight: 700, color: 'var(--color-danger)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                          onClick={() => setDeleteConfirm(project)}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}>
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                          Delete
                         </button>
                       )}
                     </div>
+
+                    {/* Inline Quick Update Drawer Panel */}
+                    {editId === project.id && (
+                      <div style={{ marginTop: '12px', padding: '14px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', borderRadius: '8px' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1, minWidth: '120px' }}>
+                            <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Status</label>
+                            <select
+                              className="kfpl-select"
+                              value={inlineStatus}
+                              onChange={e => setInlineStatus(e.target.value)}
+                              style={{ fontSize: '0.78rem', padding: '4px 8px', height: '32px' }}
+                            >
+                              {((segmentsConfig.find(s => s.name === project.segment)?.statuses) || ['Planning', 'In Production', 'Active', 'Ongoing', 'Completed']).map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div style={{ width: '90px' }}>
+                            <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>Progress (%)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="kfpl-input"
+                              value={inlineProgress}
+                              onChange={e => setInlineProgress(e.target.value)}
+                              style={{ fontSize: '0.78rem', padding: '4px 8px', height: '32px' }}
+                            />
+                          </div>
+                        </div>
+
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', marginBottom: '10px', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                          <input type="checkbox" checked={isSegmentWidePost} onChange={(e) => setIsSegmentWidePost(e.target.checked)} style={{ cursor: 'pointer' }} />
+                          Segment-wide update for <strong>{project.segment}</strong>
+                        </label>
+                        <textarea
+                          className="kfpl-textarea"
+                          value={updateNote}
+                          onChange={(e) => setUpdateNote(e.target.value)}
+                          placeholder="Write status note update..."
+                          rows="2"
+                          style={{ fontSize: '0.82rem', width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--color-border)', outline: 'none', background: 'var(--color-background)', resize: 'vertical' }}
+                        />
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                          <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" onClick={() => handlePostUpdate(project)} disabled={submitting} style={{ fontWeight: 700, fontSize: '0.78rem' }}>
+                            {submitting ? 'Publishing...' : 'Publish Update'}
+                          </button>
+                          <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" onClick={() => setEditId(null)} style={{ fontSize: '0.78rem' }}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -1734,11 +1986,38 @@ export default function PortfolioManagement() {
         }
       >
         <div className="kfpl-form" style={{ gap: '16px' }}>
-          <div className="kfpl-form-row">
-            <div className="kfpl-input-group">
+          <div className="kfpl-input-group">
+            <label className="kfpl-input-label">Update Scope</label>
+            <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
+                <input
+                  type="radio"
+                  name="updateScope"
+                  checked={!formData.isSegmentWide}
+                  onChange={() => setFormData({ ...formData, isSegmentWide: false })}
+                />
+                Specific Project
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
+                <input
+                  type="radio"
+                  name="updateScope"
+                  checked={formData.isSegmentWide}
+                  onChange={() => setFormData({ ...formData, isSegmentWide: true })}
+                />
+                Segment-Wide Update
+              </label>
+            </div>
+          </div>
+
+          {!formData.isSegmentWide && (
+            <div className="kfpl-input-group animate-fade-slide-up">
               <label className="kfpl-input-label">Project Name <span className="required">*</span></label>
               <input type="text" className="kfpl-input" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Enter project name" />
             </div>
+          )}
+
+          <div className="kfpl-form-row">
             <div className="kfpl-input-group">
               <label className="kfpl-input-label">Segment <span className="required">*</span></label>
               <select
@@ -1767,9 +2046,6 @@ export default function PortfolioManagement() {
                 </div>
               )}
             </div>
-          </div>
-
-          <div className="kfpl-form-row">
             <div className="kfpl-input-group">
               <label className="kfpl-input-label">Status</label>
               <select
@@ -1787,29 +2063,70 @@ export default function PortfolioManagement() {
                 )}
               </select>
             </div>
+          </div>
+
+          <div className="kfpl-form-row">
             <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Portfolio Value</label>
-              <input type="text" className="kfpl-input" value={formData.value} onChange={e => setFormData({ ...formData, value: e.target.value })} placeholder="e.g. ₹2.5 Cr" />
+              <label className="kfpl-input-label">Min. Investment (₹)</label>
+              <input type="number" className="kfpl-input" min="0" value={formData.minInvestment} onChange={e => setFormData({ ...formData, minInvestment: e.target.value })} placeholder="e.g. 200000" />
+            </div>
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Target Funding (₹)</label>
+              <input type="number" className="kfpl-input" min="0" value={formData.targetFunding} onChange={e => setFormData({ ...formData, targetFunding: e.target.value })} placeholder="e.g. 25000000" />
             </div>
           </div>
 
           <div className="kfpl-form-row">
             <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Monthly ROI</label>
-              <input type="text" className="kfpl-input" value={formData.roi} onChange={e => setFormData({ ...formData, roi: e.target.value })} placeholder="e.g. 1.25%" />
+              <label className="kfpl-input-label">Funded Amount (₹)</label>
+              <input type="number" className="kfpl-input" min="0" value={formData.fundedAmount} onChange={e => setFormData({ ...formData, fundedAmount: e.target.value })} placeholder="e.g. 15000000" />
             </div>
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Milestone Progress (%)</label>
+              <input type="number" className="kfpl-input" min="0" max="100" value={formData.milestone} onChange={e => setFormData({ ...formData, milestone: e.target.value })} />
+            </div>
+          </div>
+
+          <div className="kfpl-form-row">
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Total Slots</label>
+              <input type="number" className="kfpl-input" min="1" value={formData.totalSlots} onChange={e => setFormData({ ...formData, totalSlots: e.target.value })} placeholder="20" />
+            </div>
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Slots Available</label>
+              <input type="number" className="kfpl-input" min="0" value={formData.slotsAvailable} onChange={e => setFormData({ ...formData, slotsAvailable: e.target.value })} placeholder="20" />
+            </div>
+          </div>
+
+          <div className="kfpl-form-row">
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Investment Horizon (Duration)</label>
+              <input
+                type="text"
+                className="kfpl-input"
+                value={formData.horizon}
+                onChange={e => setFormData({ ...formData, horizon: e.target.value })}
+                placeholder="e.g. 12 Months, Q4 2025"
+              />
+            </div>
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Monthly ROI</label>
+              <input
+                type="text"
+                className="kfpl-input"
+                value={formData.roi}
+                onChange={e => setFormData({ ...formData, roi: e.target.value })}
+                placeholder="e.g. 1.25%"
+              />
+            </div>
+          </div>
+
+          <div className="kfpl-form-row">
             <div className="kfpl-input-group">
               <label className="kfpl-input-label">Risk Level</label>
               <select className="kfpl-select" value={formData.risk} onChange={e => setFormData({ ...formData, risk: e.target.value })}>
                 {['Low', 'Medium', 'Medium High', 'High'].map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-            </div>
-          </div>
-
-          <div className="kfpl-form-row">
-            <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Milestone Progress (%)</label>
-              <input type="number" className="kfpl-input" min="0" max="100" value={formData.milestone} onChange={e => setFormData({ ...formData, milestone: e.target.value })} />
             </div>
             <div className="kfpl-input-group">
               <label className="kfpl-input-label">Health</label>

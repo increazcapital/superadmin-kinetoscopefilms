@@ -1226,15 +1226,15 @@ export default function InvestorDetail() {
   const getFileType = (url, filename) => {
     if (!url) return 'none';
     const targetUrl = normalizeUrl(url);
-    const ext = (filename || targetUrl).split('.').pop().toLowerCase();
+    const labelLower = (filename || targetUrl || '').toLowerCase();
     
-    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext) || /\.(jpg|jpeg|png|gif|webp|bmp|svg)/i.test(targetUrl);
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].some(ext => labelLower.includes('.' + ext)) || /\.(jpg|jpeg|png|gif|webp|bmp|svg)/i.test(targetUrl);
     if (isImage) return 'image';
-    const isPdf = ext === 'pdf' || /\.pdf/i.test(targetUrl);
+    const isPdf = labelLower.includes('.pdf') || /\.pdf/i.test(targetUrl);
     if (isPdf) return 'pdf';
-    const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext) || /\.(doc|docx|xls|xlsx|ppt|pptx)/i.test(targetUrl);
+    const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].some(ext => labelLower.includes('.' + ext)) || /\.(doc|docx|xls|xlsx|ppt|pptx)/i.test(targetUrl) || labelLower.includes('agreement') || targetUrl.includes('/agreements/');
     if (isOffice) return 'office';
-    return 'other';
+    return 'office';
   };
 
   const downloadFile = async (url, filename) => {
@@ -1996,7 +1996,7 @@ export default function InvestorDetail() {
                     );
                   } else if (fileType === 'pdf') {
                     return <iframe src={fileUrl} title={viewingDoc.label} style={{ width: '100%', height: '450px', border: 'none', background: '#ffffff' }} />;
-                  } else if (fileType === 'office') {
+                  } else if (fileType === 'office' || fileType === 'other') {
                     const isBlob = fileUrl.startsWith('blob:') || fileUrl.startsWith('data:');
                     if (isBlob) {
                       return (
@@ -2006,12 +2006,10 @@ export default function InvestorDetail() {
                         </div>
                       );
                     }
-                    return <iframe src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`} title={viewingDoc.label} style={{ width: '100%', height: '450px', border: 'none' }} />;
-                  } else {
+                    const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
                     return (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', background: '#f8fafc', minHeight: '260px', color: '#64748b' }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48" style={{ marginBottom: '12px', opacity: 0.6 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                        <p style={{ margin: 0, fontSize: '0.8rem' }}>Preview not available for this file type</p>
+                      <div style={{ width: '100%', height: '450px', position: 'relative' }}>
+                        <iframe src={viewerUrl} title={viewingDoc.label} style={{ width: '100%', height: '100%', border: 'none', background: '#ffffff' }} />
                       </div>
                     );
                   }

@@ -1,1475 +1,1067 @@
 /* ============================================================
    Page: InvestmentStatus.jsx
-   Description: Project-wise segment-wise status updates with full CRUD,
-                segment management, and media upload capabilities.
+   Description: Dynamic Investment Status Dashboard for Super Admin.
+                Uses standard portal design system, KpiCard components in 2x2 grid,
+                dedicated Segment Filter Bar, delete functionality, DataTable styling,
+                and comprehensive detail modals with media & update history.
    ============================================================ */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
-import { INVESTMENT_SEGMENTS } from '../../data/mockData';
+import KpiCard from '../../components/ui/KpiCard';
 import { formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../components/ui/Toast';
 import { apiRequest } from '../../config/apiHelper';
 
-// ── Default status updates ──────────────────
-const DEFAULT_STATUS_UPDATES = [
-  {
-    id: 1,
-    segment: 'Film Making',
-    project: 'Project Astra',
-    status: 'In Production',
-    progress: 65,
-    lastUpdate: '2025-04-10',
-    note: 'Post-production phase begins next week',
-    media: [
-      {
-        id: 'mock-1',
-        name: 'astra_poster.png',
-        type: 'image/png',
-        size: 154200,
-        dataUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="100%" height="100%" fill="%230b3020"/><circle cx="150" cy="150" r="80" fill="%2310b981"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23061d13" font-family="sans-serif" font-weight="bold" font-size="24">PROJECT ASTRA</text></svg>',
-        uploadedAt: '2025-04-10T12:00:00.000Z'
-      },
-      {
-        id: 'mock-2',
-        name: 'distribution_agreement.pdf',
-        type: 'application/pdf',
-        size: 2458000,
-        dataUrl: 'data:application/pdf;base64,JVBERi0xLjQKJdPr6gogMSAwIG9iagogIDw8IC9UeXBlIC9DYXRhbG9nIC9QYWdlcyAyIDAgUiA+PiBlbmRvYmoKMiAwIG9iagogIDw8IC9UeXBlIC9QYWdlcyAvS2lkcyBbIDMgMCBSIF0gL0NvdW50IDEgPj4gZW5kb2JqCjMgMCBvYmoKICA8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbIDAgMCA1OTUgODQyIF0gL1Jlc291cmNlcyA8PCA+PiA+PiBlbmRvYmoKeHJlZgowIDQKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNzAgMDAwMDAgbiAKMDAwMDAwMDEzNCAwMDAwMCBuIAp0cmFpbGVyCiAgPDwgL1NpemUgNCAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKMjI4CiUlRU9GCg==',
-        uploadedAt: '2025-04-10T12:05:00.000Z'
-      }
-    ]
-  },
-  { id: 2, segment: 'Distribution', project: 'Meridian Release', status: 'Active', progress: 80, lastUpdate: '2025-04-08', note: 'Distribution across 3 states confirmed', media: [] },
-  { id: 3, segment: 'Music', project: 'Rhythm Series', status: 'Recording', progress: 40, lastUpdate: '2025-04-05', note: '4 tracks completed, 6 remaining', media: [] },
-  { id: 4, segment: 'Trading & Syndication', project: 'Content Deal Q2', status: 'Negotiation', progress: 30, lastUpdate: '2025-04-12', note: 'Final terms under discussion', media: [] },
-  { id: 5, segment: 'Content IP Bank', project: 'Archive Digitization', status: 'Ongoing', progress: 55, lastUpdate: '2025-04-09', note: '550 titles digitized so far', media: [] },
-  { id: 6, segment: 'Film Exhibition', project: 'Screen Network', status: 'Planning', progress: 15, lastUpdate: '2025-04-11', note: '3 new screen locations identified', media: [] },
-];
-
-const SEGMENT_COLORS = {
-  'Film Making': '#10B981', Distribution: '#1565C0', Music: '#7C3AED',
-  'Trading & Syndication': '#F59E0B', 'Content IP Bank': '#0F766E', 'Film Exhibition': '#0891B2',
+// KPI Icons
+const kpiIcons = {
+  investment: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  ),
+  investors: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  commission: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+      <line x1="12" y1="6" x2="12" y2="18" />
+    </svg>
+  ),
+  roi: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+      <polyline points="17 6 23 6 23 12" />
+    </svg>
+  ),
 };
 
-const LS_KEY = 'kfpl_investment_status';
-const LS_CUSTOM_SEGMENTS_KEY = 'kfpl_custom_segments';
-const LS_HISTORY_KEY = 'kfpl_investment_status_history';
+/* Dynamic HSL color for any segment string */
+function getSegmentStyle(seg) {
+  if (!seg) return { color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' };
+  let h = 0;
+  for (let i = 0; i < seg.length; i++) h = seg.charCodeAt(i) + ((h << 5) - h);
+  h = Math.abs(h) % 360;
+  return { color: `hsl(${h}, 70%, 35%)`, bg: `hsla(${h}, 70%, 45%, 0.1)` };
+}
 
-const DEFAULT_SEGMENTS_CONFIG = [
-  { name: 'Film Making', statuses: ['Planning', 'In Production', 'Active', 'Ongoing', 'Completed'], isDefault: true },
-  { name: 'Distribution', statuses: ['Planning', 'Active', 'Ongoing', 'Negotiation', 'Completed'], isDefault: true },
-  { name: 'Music', statuses: ['Planning', 'Recording', 'Active', 'Ongoing', 'Completed', 'Released'], isDefault: true },
-  { name: 'Trading & Syndication', statuses: ['Planning', 'Negotiation', 'Active', 'Ongoing', 'Completed'], isDefault: true },
-  { name: 'Content IP Bank', statuses: ['Planning', 'Ongoing', 'Active', 'Completed'], isDefault: true },
-  { name: 'Film Exhibition', statuses: ['Planning', 'Ongoing', 'Active', 'Completed'], isDefault: true },
-];
+/* Fallback gradient backgrounds for project cards */
+function getSegmentGradient(seg) {
+  let h = 0;
+  for (let i = 0; i < (seg || '').length; i++) h = (seg || '').charCodeAt(i) + ((h << 5) - h);
+  h = Math.abs(h) % 360;
+  return `linear-gradient(135deg, hsl(${h}, 50%, 15%) 0%, hsl(${(h + 40) % 360}, 60%, 28%) 100%)`;
+}
+
+/* Slab-based commission calculation */
+function computeSlabCommission(amount, slabs) {
+  const num = Number(amount) || 0;
+  if (!slabs || slabs.length === 0) {
+    if (num < 2500000) return 1.0;
+    if (num < 10000000) return 1.5;
+    if (num < 30000000) return 2.0;
+    return 2.5;
+  }
+  for (const slab of slabs) {
+    const min = Number(slab.minAmount) || 0;
+    const max = Number(slab.maxAmount) || Infinity;
+    if (num >= min && num <= max) return Number(slab.percentage) || 1.5;
+  }
+  return 1.5;
+}
 
 export default function InvestmentStatus() {
-  const addToast = useToast();
-  const fileInputRef = useRef(null);
+  const { addToast } = useToast();
 
-  // ── State ──────────────────────────────
-  const [statusUpdates, setStatusUpdates] = useState([]);
-  const [segmentsConfig, setSegmentsConfig] = useState([]);
-  const [historyLogs, setHistoryLogs] = useState([]);
-  const [allHistoryLogs, setAllHistoryLogs] = useState([]);
-  const [expandedCards, setExpandedCards] = useState({});
-  const [expandedMediaCards, setExpandedMediaCards] = useState({});
-  const [editId, setEditId] = useState(null);
-  const [updateNote, setUpdateNote] = useState('');
-  const [inlineStatus, setInlineStatus] = useState('');
-  const [inlineProgress, setInlineProgress] = useState(0);
-  const [isSegmentWidePost, setIsSegmentWidePost] = useState(false);
+  /* ── Data States ──────────────────────────── */
+  const [investments, setInvestments] = useState([]);
+  const [clientsList, setClientsList] = useState([]);
+  const [projectsList, setProjectsList] = useState([]);
+  const [dbSegments, setDbSegments] = useState([]);
+  const [commissionSlabs, setCommissionSlabs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  /* ── Filter States ────────────────────────── */
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSegment, setSelectedSegment] = useState('All');
+  const [viewMode, setViewMode] = useState('table'); // 'table' | 'grouped'
 
-  // Modal state
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showSegmentModal, setShowSegmentModal] = useState(false);
-  const [showHistoryLogModal, setShowHistoryLogModal] = useState(false);
-  const [historySearch, setHistorySearch] = useState('');
-  const [historySegmentFilter, setHistorySegmentFilter] = useState('all');
-  const [editingItem, setEditingItem] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [uploadTarget, setUploadTarget] = useState(null);
-  const [previewMedia, setPreviewMedia] = useState(null);
-
-  // Form state
-  const [formData, setFormData] = useState({
-    isSegmentWide: false,
-    project: '',
-    segment: '',
-    status: 'Planning',
-    progress: 0,
-    minInvestment: 200000,
-    targetFunding: 25000000,
-    fundedAmount: 0,
-    totalSlots: 20,
-    slotsAvailable: 20,
-    note: '',
+  /* ── Modal States & Deep Project Details ─── */
+  const [detailItem, setDetailItem] = useState(null);
+  const [projectUpdates, setProjectUpdates] = useState([]);
+  const [loadingUpdates, setLoadingUpdates] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignForm, setAssignForm] = useState({
+    clientId: '', projectId: '', investmentAmount: '',
+    roiPercentage: '', agentCommission: '', durationMonths: '24',
   });
-  const [newSegmentName, setNewSegmentName] = useState('');
+  const [selectedClientInfo, setSelectedClientInfo] = useState(null);
+  const [selectedProjectInfo, setSelectedProjectInfo] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // ── Fetch from APIs ────────────────────────
-  const loadDashboardData = async () => {
-    try {
-      const data = await apiRequest('/api/super-admin/projects');
-      let list = [];
-      if (Array.isArray(data)) {
-        list = data;
-      } else if (data.projects && Array.isArray(data.projects)) {
-        list = data.projects;
-      } else if (data.data && Array.isArray(data.data)) {
-        list = data.data;
-      } else if (data.data?.projects && Array.isArray(data.data.projects)) {
-        list = data.data.projects;
-      }
-
-      const mapped = list
-        .filter(p => p.name !== '__KFPL_DUMMY__')
-        .map(p => ({
-          id: p._id || p.id,
-          project: p.name || '',
-          segment: p.segment || '',
-          status: p.status || 'Planning',
-          progress: p.milestoneProgress !== undefined ? p.milestoneProgress : (p.progress !== undefined ? p.progress : 0),
-          minInvestment: p.minInvestment !== undefined ? p.minInvestment : 200000,
-          targetFunding: p.targetFunding !== undefined ? p.targetFunding : 25000000,
-          fundedAmount: p.fundedAmount !== undefined ? p.fundedAmount : 0,
-          totalSlots: p.totalSlots !== undefined ? p.totalSlots : 20,
-          slotsAvailable: p.slotsAvailable !== undefined ? p.slotsAvailable : 20,
-          lastUpdate: p.updatedAt ? new Date(p.updatedAt).toISOString().split('T')[0] : '—',
-          note: p.currentUpdate || p.update || p.summary || '',
-          bannerImg: p.bannerImage || p.bannerImg || '',
-          media: (p.mediaFiles || []).map((url, idx) => ({
-            id: url,
-            name: url.split('/').pop() || `File ${idx + 1}`,
-            type: url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? 'image/png' : 'application/pdf',
-            size: 0,
-            dataUrl: url,
-            uploadedAt: new Date().toISOString()
-          }))
-        }));
-      setStatusUpdates(mapped);
-    } catch (err) {
-      console.error('Failed to load investment status from API', err);
-    }
-  };
-
-  const loadSegments = async () => {
-    try {
-      const data = await apiRequest('/api/super-admin/segments');
-      let list = [];
-      if (Array.isArray(data)) {
-        list = data;
-      } else if (data.segments && Array.isArray(data.segments)) {
-        list = data.segments;
-      } else if (data.data && Array.isArray(data.data)) {
-        list = data.data;
-      } else if (data.data?.segments && Array.isArray(data.data.segments)) {
-        list = data.data.segments;
-      }
-
-      const mapped = (list || []).map(s => ({
-        id: s._id || s.id,
-        name: s.name || '',
-        statuses: s.statuses && s.statuses.length > 0 ? s.statuses : ['Planning', 'Active', 'Ongoing', 'Completed'],
-        isDefault: !!s.isDefault
-      }));
-
-      setSegmentsConfig(mapped);
-    } catch (err) {
-      console.error('Failed to load segments from API:', err);
-      setSegmentsConfig([]);
-    }
-  };
-
-  const fetchAllHistory = async () => {
-    try {
-      const data = await apiRequest('/api/super-admin/projects/updates/history?segment=All Segments');
-      let list = [];
-      if (Array.isArray(data)) {
-        list = data;
-      } else if (data.history && Array.isArray(data.history)) {
-        list = data.history;
-      } else if (data.data && Array.isArray(data.data)) {
-        list = data.data;
-      } else if (data.data?.history && Array.isArray(data.data.history)) {
-        list = data.data.history;
-      }
-
-      const mapped = list.map(h => ({
-        id: h._id || h.id,
-        type: h.type || 'project',
-        segment: h.segment || '',
-        project: h.project || h.projectName || '',
-        status: h.status || '',
-        progress: h.progress || 0,
-        note: h.notes || h.note || '',
-        date: h.date || (h.createdAt ? new Date(h.createdAt).toISOString().split('T')[0] : '—'),
-      }));
-      setAllHistoryLogs(mapped);
-    } catch (err) {
-      console.error('Failed to fetch all history logs:', err);
-    }
-  };
-
-  const loadHistory = async () => {
-    try {
-      const segFilter = historySegmentFilter === 'all' ? 'All Segments' : historySegmentFilter;
-      const searchFilter = historySearch.trim();
-      const query = `segment=${encodeURIComponent(segFilter)}&search=${encodeURIComponent(searchFilter)}`;
-      const data = await apiRequest(`/api/super-admin/projects/updates/history?${query}`);
-
-      let list = [];
-      if (Array.isArray(data)) {
-        list = data;
-      } else if (data.history && Array.isArray(data.history)) {
-        list = data.history;
-      } else if (data.data && Array.isArray(data.data)) {
-        list = data.data;
-      } else if (data.data?.history && Array.isArray(data.data.history)) {
-        list = data.data.history;
-      }
-
-      const mapped = list.map(h => ({
-        id: h._id || h.id,
-        type: h.type || 'project',
-        segment: h.segment || '',
-        project: h.project || h.projectName || '',
-        status: h.status || '',
-        progress: h.progress || 0,
-        note: h.notes || h.note || '',
-        date: h.date || (h.createdAt ? new Date(h.createdAt).toISOString().split('T')[0] : '—'),
-        media: (h.attachments || h.media || []).map((url, idx) => ({
-          id: url,
-          name: url.split('/').pop() || `File ${idx + 1}`,
-          url: url,
-          dataUrl: url
-        }))
-      }));
-      setHistoryLogs(mapped);
-    } catch (err) {
-      console.error('Failed to load history logs:', err);
-    }
-  };
-
-  // Initial load
+  /* ── Fetch Project Status Updates for Modal ─ */
   useEffect(() => {
-    loadDashboardData();
-    loadSegments();
-    fetchAllHistory();
-  }, []);
-
-  // Update history load on filter changes
-  useEffect(() => {
-    if (showHistoryLogModal) {
-      loadHistory();
-    }
-  }, [historySegmentFilter, historySearch, showHistoryLogModal]);
-
-  // ── All available segments ─────────────────
-  const allSegments = segmentsConfig.map(s => s.name);
-
-  // Derive customSegments list from segmentsConfig
-  const customSegments = segmentsConfig
-    .filter(c => !c.isDefault)
-    .map(c => c.name);
-
-  // ── CRUD Handlers ─────────────────────────
-  const resetForm = () => {
-    setFormData({
-      isSegmentWide: false,
-      project: '',
-      segment: '',
-      status: 'Planning',
-      progress: 0,
-      minInvestment: 200000,
-      targetFunding: 25000000,
-      fundedAmount: 0,
-      totalSlots: 20,
-      slotsAvailable: 20,
-      note: ''
-    });
-  };
-
-  const openAddModal = () => {
-    resetForm();
-    setEditingItem(null);
-    setShowAddModal(true);
-  };
-
-  const openEditModal = async (item) => {
-    setEditingItem(item);
-    setShowAddModal(true);
-    
-    // Set initial values from the list first
-    setFormData({
-      isSegmentWide: !!item.isSegmentWide,
-      project: item.project || '',
-      segment: item.segment || '',
-      status: item.status || 'Planning',
-      progress: item.progress || 0,
-      minInvestment: item.minInvestment !== undefined ? item.minInvestment : 200000,
-      targetFunding: item.targetFunding !== undefined ? item.targetFunding : 25000000,
-      fundedAmount: item.fundedAmount !== undefined ? item.fundedAmount : 0,
-      totalSlots: item.totalSlots !== undefined ? item.totalSlots : 20,
-      slotsAvailable: item.slotsAvailable !== undefined ? item.slotsAvailable : 20,
-      note: item.note || '',
-    });
-
-    // If it's a specific project, fetch fresh full details from GET /api/super-admin/projects/:id
-    if (item.id && !item.isSegmentWide) {
-      try {
-        const details = await apiRequest(`/api/super-admin/projects/${item.id}`);
-        const p = details?.project || details?.data?.project || details?.data || details;
-        if (p) {
-          setFormData({
-            isSegmentWide: false,
-            project: p.name || item.project || '',
-            segment: p.segment || item.segment || '',
-            status: p.status || item.status || 'Planning',
-            progress: p.milestoneProgress !== undefined ? p.milestoneProgress : (p.progress || item.progress || 0),
-            minInvestment: p.minInvestment !== undefined ? p.minInvestment : (item.minInvestment || 200000),
-            targetFunding: p.targetFunding !== undefined ? p.targetFunding : (item.targetFunding || 25000000),
-            fundedAmount: p.fundedAmount !== undefined ? p.fundedAmount : (item.fundedAmount || 0),
-            totalSlots: p.totalSlots !== undefined ? p.totalSlots : (item.totalSlots || 20),
-            slotsAvailable: p.slotsAvailable !== undefined ? p.slotsAvailable : (item.slotsAvailable || 20),
-            note: p.summary || p.notes || p.currentUpdate || item.note || ''
-          });
-        }
-      } catch (err) {
-        console.error('Failed to fetch project details from API:', err);
-      }
-    }
-  };
-
-  const handleSaveProject = async () => {
-    if (!formData.isSegmentWide && !formData.project.trim()) {
-      addToast('Please fill in project name', 'error', 'Validation Error');
-      return;
-    }
-    if (!formData.segment) {
-      addToast('Please select segment', 'error', 'Validation Error');
-      return;
-    }
-
-    try {
-      const payload = {
-        name: formData.project,
-        segment: formData.segment,
-        status: formData.status,
-        milestoneProgress: Number(formData.progress) || 0,
-        minInvestment: Number(formData.minInvestment) || 200000,
-        targetFunding: Number(formData.targetFunding) || 25000000,
-        fundedAmount: Number(formData.fundedAmount) || 0,
-        totalSlots: Number(formData.totalSlots) || 20,
-        slotsAvailable: Number(formData.slotsAvailable) || 20,
-        portfolioValue: `₹${((Number(formData.targetFunding) || 25000000) / 10000000).toFixed(1)} Cr`,
-        monthlyRoi: '1.0%',
-        riskLevel: 'Medium',
-        health: 'On Track',
-        summary: formData.note || '',
-        currentUpdate: formData.note || '',
-        scope: formData.isSegmentWide ? 'segment' : 'project',
-        applySegmentWide: formData.isSegmentWide
-      };
-
-      if (editingItem) {
-        if (formData.isSegmentWide) {
-          delete payload.name;
-        }
-        await apiRequest(`/api/super-admin/projects/${editingItem.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(payload)
-        });
-        addToast(`${editingItem.project || formData.segment} updated successfully`, 'success', 'Updated');
-      } else {
-        await apiRequest('/api/super-admin/projects', {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        addToast(`${formData.project || formData.segment} added successfully`, 'success', 'Added');
-      }
-
-      setShowAddModal(false);
-      setEditingItem(null);
-      resetForm();
-      await loadDashboardData();
-      await fetchAllHistory();
-    } catch (err) {
-      console.error('Failed to save project:', err);
-      addToast(err.message || 'Failed to save project.', 'error', 'Error');
-    }
-  };
-
-  const handleDeleteProject = async (id) => {
-    try {
-      await apiRequest(`/api/super-admin/projects/${id}`, {
-        method: 'DELETE'
-      });
-      addToast('Project deleted', 'success', 'Deleted');
-      setDeleteConfirm(null);
-      loadDashboardData();
-    } catch (err) {
-      console.error('Failed to delete project:', err);
-      addToast(err.message || 'Failed to delete project.', 'error', 'Error');
-      setDeleteConfirm(null);
-    }
-  };
-
-  const handlePostUpdate = async (item) => {
-    const noteToPost = updateNote.trim() || item.note || 'Status updated';
-    const attachmentsList = (item.media || []).map(m => m.dataUrl || m.url || m.id).filter(Boolean);
-
-    try {
-      await apiRequest(`/api/super-admin/projects/${item.id}/updates`, {
-        method: 'POST',
-        body: JSON.stringify({
-          status: inlineStatus || item.status,
-          progress: parseInt(inlineProgress) !== undefined && !isNaN(parseInt(inlineProgress)) ? parseInt(inlineProgress) : (parseInt(item.progress) || 0),
-          notes: noteToPost,
-          attachments: attachmentsList,
-          applySegmentWide: isSegmentWidePost
+    if (detailItem?.projectName) {
+      setLoadingUpdates(true);
+      const searchName = detailItem.projectName;
+      apiRequest(`/api/super-admin/projects/updates/history?search=${encodeURIComponent(searchName)}`)
+        .then(res => {
+          const list = res?.data?.history || res?.history || [];
+          setProjectUpdates(list);
         })
-      });
-
-      addToast(`Status update posted for ${isSegmentWidePost ? item.segment : item.project}`, 'success', 'Update Posted');
-      setEditId(null);
-      setUpdateNote('');
-      setIsSegmentWidePost(false);
-      await loadDashboardData();
-      await fetchAllHistory();
-    } catch (err) {
-      console.error('Failed to post status update:', err);
-      addToast(err.message || 'Failed to post status update.', 'error', 'Error');
+        .catch(() => setProjectUpdates([]))
+        .finally(() => setLoadingUpdates(false));
+    } else {
+      setProjectUpdates([]);
     }
-  };
+  }, [detailItem]);
 
-  // ── Segment Management ─────────────────────
-  const handleAddSegment = async () => {
-    if (!newSegmentName.trim()) {
-      addToast('Please enter a segment name', 'error', 'Validation Error');
-      return;
-    }
-    if (allSegments.some(s => s.toLowerCase() === newSegmentName.trim().toLowerCase())) {
-      addToast('Segment already exists', 'error', 'Duplicate');
-      return;
-    }
-
+  /* ── Load All Data (Parallel) ─────────────── */
+  const loadData = async () => {
+    setLoading(true);
     try {
-      await apiRequest('/api/super-admin/segments', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: newSegmentName.trim(),
-          statuses: ['Planning', 'Active', 'Ongoing', 'Completed']
-        })
-      });
-      addToast(`Segment "${newSegmentName.trim()}" added`, 'success', 'Segment Added');
-      setNewSegmentName('');
-      loadSegments();
-    } catch (err) {
-      console.error('Failed to add segment:', err);
-      addToast(err.message || 'Failed to add segment.', 'error', 'Error');
-    }
-  };
+      const [invRes, clientsRes, projectsRes, segRes, slabRes] = await Promise.all([
+        apiRequest('/api/super-admin/investments?limit=500').catch(() => ({})),
+        apiRequest('/api/super-admin/clients').catch(() => ({})),
+        apiRequest('/api/super-admin/projects?limit=500').catch(() => ({})),
+        apiRequest('/api/super-admin/segments').catch(() => ({})),
+        apiRequest('/api/super-admin/commission-slabs').catch(() => ({})),
+      ]);
 
-  const handleRemoveSegment = async (seg) => {
-    const target = segmentsConfig.find(s => s.name === seg);
-    if (!target) return;
+      let rawInv = Array.isArray(invRes) ? invRes : (invRes?.data?.investments || invRes?.investments || []);
+      let rawClients = Array.isArray(clientsRes) ? clientsRes : (clientsRes?.data?.clients || clientsRes?.clients || []);
+      setClientsList(rawClients);
 
-    try {
-      await apiRequest(`/api/super-admin/segments/${target.id}`, {
-        method: 'DELETE'
-      });
-      addToast(`Segment "${seg}" removed`, 'success', 'Segment Removed');
-      loadSegments();
-    } catch (err) {
-      console.error('Failed to remove segment:', err);
-      addToast(err.message || 'Failed to remove segment.', 'error', 'Error');
-    }
-  };
+      let rawProjects = Array.isArray(projectsRes) ? projectsRes : (projectsRes?.data?.projects || projectsRes?.projects || []);
+      setProjectsList(rawProjects.filter(p => p.name !== '__KFPL_DUMMY__'));
 
-  // ── Media Upload ──────────────────────────
-  const handleMediaUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!uploadTarget || files.length === 0) return;
+      let rawSeg = Array.isArray(segRes) ? segRes : (segRes?.data?.segments || segRes?.segments || []);
+      setDbSegments(rawSeg.map(s => s.name || s).filter(Boolean));
 
-    const file = files[0];
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-
-    const extractUrl = (res) => {
-      if (typeof res === 'string') return res;
-      if (!res) return '';
-      const url = res.url || 
-                  res.secure_url || 
-                  res.fileUrl || 
-                  res.dataUrl || 
-                  res.data?.url || 
-                  res.data?.secure_url || 
-                  res.data?.fileUrl ||
-                  '';
-      if (url) return url;
-      
-      const proj = res.project || res.data?.project || res.data || res;
-      if (proj && Array.isArray(proj.mediaFiles) && proj.mediaFiles.length > 0) {
-        return proj.mediaFiles[proj.mediaFiles.length - 1];
+      let rawSlabs = Array.isArray(slabRes) ? slabRes : (slabRes?.data || []);
+      if (!Array.isArray(rawSlabs)) {
+        for (const k in slabRes) { if (Array.isArray(slabRes[k])) { rawSlabs = slabRes[k]; break; } }
       }
-      if (Array.isArray(res.mediaFiles) && res.mediaFiles.length > 0) {
-        return res.mediaFiles[res.mediaFiles.length - 1];
-      }
-      return '';
-    };
+      setCommissionSlabs(Array.isArray(rawSlabs) ? rawSlabs : []);
 
-    try {
-      addToast('Uploading attachment...', 'info', 'Uploading');
-      
-      let uploadResult = null;
-      let fileUrl = '';
-      
-      try {
-        // Try the working media route first to ensure it updates project.mediaFiles (visible to clients)
-        uploadResult = await apiRequest(`/api/super-admin/projects/${uploadTarget}/media`, {
-          method: 'POST',
-          body: uploadFormData
-        });
-        fileUrl = extractUrl(uploadResult);
-      } catch (primaryErr) {
-        console.warn('Primary media route upload failed, trying updates attachment route fallback:', primaryErr);
-        
-        // Fallback to the updates attachment route
-        uploadResult = await apiRequest(`/api/super-admin/projects/${uploadTarget}/updates/attachments`, {
-          method: 'POST',
-          body: uploadFormData
-        });
-        fileUrl = extractUrl(uploadResult);
-      }
-
-      if (fileUrl) {
-        const mediaItem = {
-          id: fileUrl,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          dataUrl: fileUrl,
-          uploadedAt: new Date().toISOString()
+      const clientMap = {};
+      rawClients.forEach(c => {
+        const id = String(c._id || c.id);
+        const ag = c.assignedAgent;
+        clientMap[id] = {
+          name: c.name, code: c.clientId || c.clientCode || '—',
+          email: c.email || c.user?.email || '—',
+          agentName: ag?.name || c.assignedAgentName || 'Direct / No Agent',
+          agentCode: ag?.clientCode || ag?.agentCode || '—',
+          totalInvestment: c.totalInvestment || 0,
+          monthlyRoi: c.monthlyRoi || c.roiPercentage || 0,
         };
-
-        setStatusUpdates(prev => prev.map(item => {
-          if (item.id === uploadTarget) {
-            return { ...item, media: [...(item.media || []), mediaItem] };
-          }
-          return item;
-        }));
-        addToast('File uploaded successfully!', 'success', 'Upload Complete');
-      } else {
-        throw new Error('No URL returned from backend upload');
-      }
-    } catch (err) {
-      console.error('Failed to upload media:', err);
-      addToast(err.message || 'Failed to upload attachment.', 'error', 'Error');
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      setUploadTarget(null);
-    }
-  };
-
-  const handleRemoveMedia = async (itemId, mediaId) => {
-    // Optimistically update the UI state immediately
-    setStatusUpdates(prev => prev.map(item => {
-      if (item.id === itemId) {
-        return { ...item, media: (item.media || []).filter(m => m.id !== mediaId) };
-      }
-      return item;
-    }));
-    addToast('Media removed successfully', 'success', 'Success');
-
-    try {
-      await apiRequest(`/api/super-admin/projects/${itemId}/media`, {
-        method: 'DELETE',
-        body: JSON.stringify({
-          url: mediaId
-        })
       });
-      loadDashboardData(); // Sync in background
+
+      const mapped = rawInv.map((inv) => {
+        const cid = String(inv.clientId?._id || inv.clientId || '');
+        const ci = clientMap[cid] || {};
+        const agentObj = inv.clientId?.assignedAgent || inv.assignedAgent;
+        const projObj = typeof inv.projectId === 'object' ? inv.projectId : null;
+        const amount = Number(inv.investmentAmount || inv.amount || 0);
+        const roiNum = inv.roiPercentage !== undefined ? Number(inv.roiPercentage) : (projObj?.monthlyRoi ? parseFloat(projObj.monthlyRoi) : (ci.monthlyRoi || 1.5));
+        const commStr = inv.agentCommission || '1.5%';
+        const commNum = parseFloat(commStr) || 1.5;
+
+        return {
+          id: inv._id || inv.id,
+          clientName: inv.clientName || inv.clientId?.name || ci.name || 'Client',
+          clientCode: inv.clientCode || inv.clientId?.clientCode || ci.code || '—',
+          clientEmail: inv.clientId?.email || ci.email || '—',
+          agentName: agentObj?.name || ci.agentName || 'Direct / No Agent',
+          agentCode: agentObj?.clientCode || agentObj?.agentCode || ci.agentCode || '—',
+          projectName: projObj?.name || inv.projectName || 'Media Fund',
+          segment: projObj?.segment || inv.segment || 'General',
+          amount,
+          roiRate: `${roiNum}%`,
+          monthlyReturn: (amount * roiNum) / 100,
+          commRate: `${commNum}%`,
+          commPayout: (amount * commNum) / 100,
+          status: inv.status || 'active',
+          date: (inv.investmentDate || inv.createdAt) ? new Date(inv.investmentDate || inv.createdAt).toLocaleDateString('en-IN') : '—',
+          durationMonths: inv.durationMonths || 24,
+          remarks: inv.remarks || 'Standard Portfolio Contract',
+          projectDetails: projObj ? {
+            id: projObj._id || projObj.id,
+            name: projObj.name,
+            segment: projObj.segment,
+            bannerImage: projObj.bannerImage || (Array.isArray(projObj.mediaFiles) && projObj.mediaFiles[0]) || '',
+            mediaFiles: Array.isArray(projObj.mediaFiles) ? projObj.mediaFiles : [],
+            summary: projObj.summary || '',
+            currentUpdate: projObj.currentUpdate || '',
+            allocationFocus: projObj.allocationFocus || '',
+            minInvestment: projObj.minInvestment || 0,
+            targetFunding: projObj.targetFunding || 0,
+            fundedAmount: projObj.fundedAmount || 0,
+            slotsAvailable: projObj.slotsAvailable || 0,
+            totalSlots: projObj.totalSlots || 0,
+            milestoneProgress: projObj.milestoneProgress || 0,
+            riskLevel: projObj.riskLevel || 'Medium',
+            health: projObj.health || 'On Track',
+            horizon: projObj.horizon || '12 Months',
+          } : null,
+        };
+      });
+
+      setInvestments(mapped);
     } catch (err) {
-      console.error('Failed to remove media:', err);
-      addToast(err.message || 'Failed to remove media', 'error', 'Error');
-      loadDashboardData(); // Revert/sync on error
+      addToast('Failed to load investment data', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredUpdates = statusUpdates.filter(item => {
-    const proj = item.isSegmentWide ? `${item.segment} Segment Update` : (item.project || '');
-    const seg = item.segment || '';
-    return proj.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           seg.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  useEffect(() => { loadData(); }, []);
+
+  /* ── Delete Investment Record ───────────── */
+  const handleDeleteInvestment = async (id, projectName) => {
+    if (!window.confirm(`Are you sure you want to delete investment record for "${projectName}"?`)) return;
+    try {
+      await apiRequest(`/api/super-admin/investments/${id}`, { method: 'DELETE' });
+      addToast('Investment record deleted successfully', 'success');
+      if (detailItem && detailItem.id === id) setDetailItem(null);
+      loadData();
+    } catch (err) {
+      addToast(err.message || 'Failed to delete investment record', 'error');
+    }
+  };
+
+  /* ── Client Select → Auto-fill deposit data ─ */
+  const handleClientSelect = async (clientId) => {
+    setAssignForm(prev => ({ ...prev, clientId, investmentAmount: '', roiPercentage: '', agentCommission: '' }));
+    setSelectedClientInfo(null);
+    if (!clientId) return;
+
+    const client = clientsList.find(c => String(c._id || c.id) === clientId);
+    if (!client) return;
+
+    const ag = client.assignedAgent;
+    const info = {
+      name: client.name,
+      code: client.clientId || client.clientCode || '—',
+      email: client.email || client.user?.email || '—',
+      agentName: ag?.name || client.assignedAgentName || 'Direct / No Agent',
+      agentCode: ag?.clientCode || ag?.agentCode || '—',
+      totalInvestment: client.totalInvestment || 0,
+      monthlyRoi: client.monthlyRoi || client.roiPercentage || 0,
+    };
+    setSelectedClientInfo(info);
+
+    if (info.totalInvestment > 0) {
+      const autoComm = computeSlabCommission(info.totalInvestment, commissionSlabs);
+      setAssignForm(prev => ({
+        ...prev,
+        investmentAmount: String(info.totalInvestment),
+        roiPercentage: String(info.monthlyRoi || '1.5'),
+        agentCommission: `${autoComm}%`,
+      }));
+    }
+  };
+
+  /* ── Project Select → Auto-fill ROI ────────── */
+  const handleProjectSelect = (projectId) => {
+    setSelectedProjectInfo(null);
+    const proj = projectsList.find(p => String(p._id || p.id) === projectId);
+    if (proj) {
+      setSelectedProjectInfo(proj);
+      const roiVal = proj.monthlyRoi ? String(proj.monthlyRoi).replace('%', '').trim() : '';
+      setAssignForm(prev => ({ ...prev, projectId, roiPercentage: roiVal || prev.roiPercentage }));
+    } else {
+      setAssignForm(prev => ({ ...prev, projectId }));
+    }
+  };
+
+  /* ── Amount Change → Auto-slab commission ──── */
+  const handleAmountChange = (val) => {
+    const autoComm = computeSlabCommission(val, commissionSlabs);
+    setAssignForm(prev => ({ ...prev, investmentAmount: val, agentCommission: `${autoComm}%` }));
+  };
+
+  /* ── Submit ────────────────────────────────── */
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!assignForm.clientId || !assignForm.investmentAmount) {
+      addToast('Select a client and enter investment amount', 'error'); return;
+    }
+    setSubmitting(true);
+    try {
+      const proj = projectsList.find(p => String(p._id || p.id) === assignForm.projectId);
+      await apiRequest('/api/super-admin/investments', {
+        method: 'POST',
+        body: JSON.stringify({
+          clientId: assignForm.clientId,
+          projectId: assignForm.projectId || undefined,
+          segment: proj?.segment || dbSegments[0] || 'Film Making',
+          investmentAmount: Number(assignForm.investmentAmount),
+          roiPercentage: Number(assignForm.roiPercentage || 1.5),
+          agentCommission: assignForm.agentCommission || '1.5%',
+          durationMonths: Number(assignForm.durationMonths || 24),
+        }),
+      });
+      addToast('Investment assigned successfully', 'success');
+      setShowAssignModal(false);
+      setAssignForm({ clientId: '', projectId: '', investmentAmount: '', roiPercentage: '', agentCommission: '', durationMonths: '24' });
+      setSelectedClientInfo(null);
+      setSelectedProjectInfo(null);
+      loadData();
+    } catch (err) {
+      addToast(err.message || 'Failed to assign investment', 'error');
+    } finally { setSubmitting(false); }
+  };
+
+  /* ── Computed Filters ─────────────────────── */
+  const segmentFilters = useMemo(() => {
+    const s = new Set(['All', ...dbSegments, ...investments.map(i => i.segment)]);
+    return Array.from(s).filter(Boolean);
+  }, [dbSegments, investments]);
+
+  const filtered = useMemo(() => {
+    return investments.filter(inv => {
+      const q = searchTerm.toLowerCase().trim();
+      const matchSearch = !q || [inv.clientName, inv.clientCode, inv.agentName, inv.projectName, inv.segment]
+        .some(f => (f || '').toLowerCase().includes(q));
+      const matchSeg = selectedSegment === 'All' || inv.segment === selectedSegment;
+      return matchSearch && matchSeg;
+    });
+  }, [investments, searchTerm, selectedSegment]);
+
+  const grouped = useMemo(() => {
+    const m = {};
+    filtered.forEach(inv => {
+      const key = inv.clientCode !== '—' ? inv.clientCode : inv.clientName;
+      if (!m[key]) m[key] = { clientName: inv.clientName, clientCode: inv.clientCode, agentName: inv.agentName, agentCode: inv.agentCode, total: 0, totalComm: 0, totalRoi: 0, projects: [] };
+      m[key].total += inv.amount;
+      m[key].totalComm += inv.commPayout;
+      m[key].totalRoi += inv.monthlyReturn;
+      m[key].projects.push(inv);
+    });
+    return Object.values(m);
+  }, [filtered]);
+
+  const totalVol = useMemo(() => filtered.reduce((s, i) => s + i.amount, 0), [filtered]);
+  const totalComm = useMemo(() => filtered.reduce((s, i) => s + i.commPayout, 0), [filtered]);
+  const totalRoi = useMemo(() => filtered.reduce((s, i) => s + i.monthlyReturn, 0), [filtered]);
+  const uniqueClients = useMemo(() => new Set(filtered.map(i => i.clientCode !== '—' ? i.clientCode : i.clientName)).size, [filtered]);
+
+  /* Computed preview in assign modal */
+  const previewAmount = Number(assignForm.investmentAmount) || 0;
+  const previewRoi = Number(assignForm.roiPercentage) || 0;
+  const previewCommPct = parseFloat(assignForm.agentCommission) || 0;
+  const previewMonthlyReturn = (previewAmount * previewRoi) / 100;
+  const previewCommAmt = (previewAmount * previewCommPct) / 100;
 
   return (
-    <div className="kfpl-page animate-fade-slide-up">
-      {/* Hidden file input */}
-      <input ref={fileInputRef} type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" style={{ display: 'none' }} onChange={handleMediaUpload} />
-
-      <div className="kfpl-page-header">
-        <div className="kfpl-page-header-left">
-          <h2 className="kfpl-page-title">Investment Status</h2>
-          <p className="kfpl-page-subtitle">Project-wise segment-wise investment status updates</p>
+    <div className="kfpl-page-container" style={{ padding: '24px 32px', maxWidth: '1600px', margin: '0 auto' }}>
+      {/* ═══ PAGE HEADER ═══ */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+            Investment Status
+          </h1>
+          <p style={{ color: 'var(--color-text-muted)', margin: '4px 0 0', fontSize: '0.875rem' }}>
+            Live tracking of client investments, assigned agents, ROI yields, and commissions
+          </p>
         </div>
-        <div className="kfpl-page-header-actions" style={{ display: 'flex', gap: '8px' }}>
-          <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" onClick={() => setShowHistoryLogModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button type="button" className="kfpl-btn kfpl-btn--secondary" onClick={loadData} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 4v6h-6" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
             </svg>
-            View Update History
+            Refresh Data
           </button>
-          <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" onClick={() => setShowSegmentModal(true)}>
-            + Add Segment
-          </button>
-          <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" onClick={openAddModal}>
-            + Add Project
+          <button
+            type="button"
+            className="kfpl-btn kfpl-btn--primary"
+            onClick={() => {
+              setShowAssignModal(true);
+              setSelectedClientInfo(null);
+              setSelectedProjectInfo(null);
+              setAssignForm({ clientId: '', projectId: '', investmentAmount: '', roiPercentage: '', agentCommission: '', durationMonths: '24' });
+            }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Assign Investment
           </button>
         </div>
       </div>
 
-      {/* Search Filter Row */}
-      <div className="kfpl-search-filter-row" style={{ marginBottom: '20px', display: 'flex', gap: '12px' }}>
-        <div style={{ position: 'relative', flex: 1 }}>
-          <input
-            type="text"
-            className="kfpl-input"
-            placeholder="Search updates by project or segment name..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{ paddingLeft: '36px' }}
-          />
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--color-text-muted)' }}>
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-        </div>
+      {/* ═══ 4 KPI CARDS (2x2 GRID FOR EXTRA WIDE VIEW) ═══ */}
+      <div className="kfpl-dashboard-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '24px' }}>
+        <KpiCard
+          title="Total Investment Volume"
+          value={formatCurrency(totalVol)}
+          trend="Total Investment Contracts"
+          trendDirection="up"
+          icon={kpiIcons.investment}
+          iconColor="gold"
+          variant="gold"
+        />
+        <KpiCard
+          title="Active Investors"
+          value={`${uniqueClients}`}
+          trend="Active Portfolio Investors"
+          trendDirection="up"
+          icon={kpiIcons.investors}
+          iconColor="navy"
+        />
+        <KpiCard
+          title="Agent Commission Volume"
+          value={formatCurrency(totalComm)}
+          trend="Total Commission Allocated"
+          trendDirection="up"
+          icon={kpiIcons.commission}
+          iconColor="amber"
+        />
+        <KpiCard
+          title="Monthly ROI Payout"
+          value={`${formatCurrency(totalRoi)} /mo`}
+          trend="Distributed Monthly Yield"
+          trendDirection="up"
+          icon={kpiIcons.roi}
+          iconColor="purple"
+        />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
-        {filteredUpdates.length === 0 ? (
-          <div className="kfpl-card" style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)', gridColumn: '1 / -1' }}>
-            No updates found.
-          </div>
-        ) : filteredUpdates.map(item => {
-          const accent = SEGMENT_COLORS[item.segment] || '#10B981';
-          const cardUpdates = allHistoryLogs.filter(h => {
-            if (item.isSegmentWide) {
-              return h.segment === item.segment && h.type === 'segment';
-            } else {
-              return h.project === item.project;
-            }
-          });
-          const sortedUpdates = [...cardUpdates].sort((a, b) => new Date(b.date) - new Date(a.date));
-          const displayUpdates = sortedUpdates.length > 0
-            ? sortedUpdates
-            : [{ id: 'current', note: item.note || 'No activity update has been posted yet.', date: item.lastUpdate || '—', status: item.status, progress: item.progress }];
-
-          const isExpanded = !!expandedCards[item.id];
-          const firstTwo = displayUpdates.slice(0, 2);
-          const remaining = displayUpdates.slice(2);
-
-          // Extract project banner or first uploaded image attachment as fallback
-          const projectImageItem = (item.media || []).find(m =>
-            m.type?.startsWith('image/') ||
-            m.dataUrl?.match(/\.(jpeg|jpg|gif|png|webp)$/i)
-          );
-          const historyImageItem = cardUpdates
-            .flatMap(h => h.media || [])
-            .find(m => m.type?.startsWith('image/') || m.dataUrl?.match(/\.(jpeg|jpg|gif|png|webp)$/i));
-
-          const imageSrc = item.bannerImg || projectImageItem?.dataUrl || historyImageItem?.dataUrl || '';
-
-          return (
-            <div
-              className="kfpl-status-card animate-fade-slide-up"
-              key={item.id}
-              style={{
-                borderRadius: '16px',
-                overflow: 'hidden',
-                border: '1px solid #e2e8f0',
-                background: '#ffffff',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
-              }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-            >
-              {/* ── IMAGE SECTION WITH ROUNDED EDGES ── */}
-              {imageSrc ? (
-                <div style={{ margin: '14px 14px 0', borderRadius: '12px', height: '230px', overflow: 'hidden', position: 'relative' }}>
-                  <img
-                    src={imageSrc}
-                    alt={item.project}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%)'
-                  }} />
-                  <div style={{ position: 'absolute', bottom: '12px', left: '12px', zIndex: 2 }}>
-                    <span style={{
-                      fontSize: '0.68rem', fontWeight: 700, color: '#fff',
-                      letterSpacing: '0.05em',
-                      padding: '4px 12px', borderRadius: '20px',
-                      background: accent, boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                      display: 'inline-block',
-                      backdropFilter: 'blur(4px)'
-                    }}>{item.segment}</span>
-                  </div>
-                </div>
-              ) : (
-                <div style={{
-                  margin: '14px 14px 0',
-                  borderRadius: '12px',
-                  height: '190px',
-                  background: `linear-gradient(135deg, ${accent}0d 0%, ${accent}03 100%)`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid #f1f5f9',
-                  position: 'relative'
-                }}>
-                  <span style={{ fontSize: '2.5rem', fontWeight: 900, color: accent, opacity: 0.18, letterSpacing: '-1px' }}>
-                    {item.project ? item.project.substring(0, 2).toUpperCase() : item.segment.substring(0, 2).toUpperCase()}
-                  </span>
-                  <div style={{ position: 'absolute', bottom: '12px', left: '12px' }}>
-                    <span style={{
-                      fontSize: '0.68rem', fontWeight: 700, color: '#fff',
-                      letterSpacing: '0.05em',
-                      padding: '4px 12px', borderRadius: '20px',
-                      background: accent, boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                      display: 'inline-block',
-                      backdropFilter: 'blur(4px)'
-                    }}>{item.segment}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* ── CARD BODY ── */}
-              <div style={{ padding: '16px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                
-                {/* Title + Badges */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <h3 style={{
-                      fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', margin: 0,
-                      letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                    }}>
-                      {item.isSegmentWide ? `${item.segment} Segment Update` : item.project}
-                    </h3>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500, marginTop: '2px', display: 'block' }}>
-                      Last Active: {item.lastUpdate}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flexShrink: 0 }}>
-                    <Badge status={['Active', 'Ongoing', 'In Production'].includes(item.status) ? 'active' : 'pending'}>{item.status}</Badge>
-                    {item.isSegmentWide && <Badge status="info">Segment Wide</Badge>}
-                  </div>
-                </div>
-
-                {/* Progress bar container */}
-                <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569' }}>Milestone Progress</span>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: accent }}>{item.progress}%</span>
-                  </div>
-                  <div style={{ height: '5px', background: '#e2e8f0', borderRadius: '3.5px', overflow: 'hidden' }}>
-                    <div style={{ width: `${item.progress}%`, height: '100%', background: accent, borderRadius: '3.5px', transition: 'width 0.4s ease' }} />
-                  </div>
-                </div>
-
-                {/* Updates Accordion Section */}
-                {/* ── HIGHLIGHTED TIMELINE LOGS & UPDATES CONTAINER ── */}
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  padding: '14px',
-                  borderRadius: '12px',
-                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.01)'
-                }}>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>
-                    Timeline Logs & Updates
-                  </span>
-                  
-                  {/* First 2 updates */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {firstTwo.map((up, idx) => (
-                      <div key={up.id || idx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                        <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: accent, marginTop: '6px', flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{up.date}</span>
-                            {up.status && <span style={{ fontSize: '0.58rem', color: accent, background: `${accent}10`, padding: '1px 4px', borderRadius: '3px', fontWeight: 700 }}>{up.status}</span>}
-                          </div>
-                          <p style={{ fontSize: '0.8rem', color: '#334155', lineHeight: 1.5, margin: '2px 0 0' }}>
-                            {up.note}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Accordion panel for remaining updates */}
-                  {remaining.length > 0 && (
-                    <div>
-                      <div
-                        style={{
-                          maxHeight: isExpanded ? '1000px' : '0px',
-                          overflow: 'hidden',
-                          transition: 'max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '8px',
-                          marginTop: isExpanded ? '8px' : '0'
-                        }}
-                      >
-                        {remaining.map((up, idx) => (
-                          <div key={up.id || idx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#cbd5e1', marginTop: '6px', flexShrink: 0 }} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>{up.date}</span>
-                                {up.status && <span style={{ fontSize: '0.58rem', color: '#64748b', background: '#f1f5f9', padding: '1px 4px', borderRadius: '3px', fontWeight: 700 }}>{up.status}</span>}
-                              </div>
-                              <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.5, margin: '2px 0 0' }}>
-                                {up.note}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Accordion Toggle Trigger Button */}
-                      <button
-                        onClick={() => setExpandedCards(prev => ({ ...prev, [item.id]: !isExpanded }))}
-                        style={{
-                          background: 'none', border: 'none', color: accent, fontSize: '0.72rem',
-                          fontWeight: 700, cursor: 'pointer', padding: '4px 0 0', display: 'flex',
-                          alignItems: 'center', gap: '3px', outline: 'none'
-                        }}
-                      >
-                        {isExpanded ? 'Show Less' : `View More Updates (+${remaining.length})`}
-                        <svg
-                          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                          style={{ width: 10, height: 10, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-                        >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* ── HIGHLIGHTED FILES & ATTACHMENTS GRID & ACCORDION ── */}
-                {(item.media || []).length > 0 && (() => {
-                  const mediaList = item.media || [];
-                  const firstEight = mediaList.slice(0, 8);
-                  const remainingMedia = mediaList.slice(8);
-                  const isMediaExpanded = !!expandedMediaCards[item.id];
-
-                  return (
-                    <div style={{
-                      marginTop: '12px',
-                      padding: '14px',
-                      borderRadius: '12px',
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px',
-                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.01)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Files & Attachments
-                        </span>
-                        <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>
-                          {mediaList.length} File(s)
-                        </span>
-                      </div>
-
-                      {/* Main 4x2 Grid (up to 8 items) */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                        {firstEight.map(m => (
-                          <div key={m.id} style={{
-                            position: 'relative', width: '100%', aspectRatio: '1/1', borderRadius: '10px',
-                            overflow: 'hidden', cursor: 'pointer', background: '#ffffff',
-                            border: '1px solid #e2e8f0',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-                          }} onClick={() => setPreviewMedia(m)}>
-                            <button onClick={(e) => { e.stopPropagation(); handleRemoveMedia(item.id, m.id); }}
-                              style={{
-                                position: 'absolute', top: '4px', right: '4px', zIndex: 10,
-                                background: 'rgba(239,68,68,0.95)', color: '#fff', border: 'none',
-                                borderRadius: '50%', width: '18px', height: '18px', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                              }} aria-label="Remove">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ width: 8, height: 8 }}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                            </button>
-                            {m.type?.startsWith('image/') || m.dataUrl?.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                              <img src={m.dataUrl} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8' }}>{m.name?.split('.').pop()?.toUpperCase() || 'FILE'}</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Accordion list for elements past the 4x2 grid (> 8 items) */}
-                      {remainingMedia.length > 0 && (
-                        <div>
-                          <div style={{
-                            maxHeight: isMediaExpanded ? '2000px' : '0px',
-                            overflow: 'hidden',
-                            transition: 'max-height 0.3s ease-in-out',
-                            marginTop: isMediaExpanded ? '8px' : '0'
-                          }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                              {remainingMedia.map(m => (
-                                <div key={m.id} style={{
-                                  position: 'relative', width: '100%', aspectRatio: '1/1', borderRadius: '10px',
-                                  overflow: 'hidden', cursor: 'pointer', background: '#ffffff',
-                                  border: '1px solid #e2e8f0',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-                                }} onClick={() => setPreviewMedia(m)}>
-                                  <button onClick={(e) => { e.stopPropagation(); handleRemoveMedia(item.id, m.id); }}
-                                    style={{
-                                      position: 'absolute', top: '4px', right: '4px', zIndex: 10,
-                                      background: 'rgba(239,68,68,0.95)', color: '#fff', border: 'none',
-                                      borderRadius: '50%', width: '18px', height: '18px', display: 'flex',
-                                      alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-                                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                                    }} aria-label="Remove">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ width: 8, height: 8 }}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                                  </button>
-                                  {m.type?.startsWith('image/') || m.dataUrl?.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                                    <img src={m.dataUrl} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                  ) : (
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8' }}>{m.name?.split('.').pop()?.toUpperCase() || 'FILE'}</span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => setExpandedMediaCards(prev => ({ ...prev, [item.id]: !isMediaExpanded }))}
-                            style={{
-                              background: 'none', border: 'none', color: accent, fontSize: '0.72rem',
-                              fontWeight: 700, cursor: 'pointer', padding: '8px 0 0', display: 'flex',
-                              alignItems: 'center', gap: '3px', outline: 'none'
-                            }}
-                          >
-                            {isMediaExpanded ? 'Show Less Files' : `View More Files (+${remainingMedia.length})`}
-                            <svg
-                              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                              style={{ width: 10, height: 10, transform: isMediaExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-                            >
-                              <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* ── Beautiful individual pill-buttons action row ── */}
-              <div style={{ display: 'flex', gap: '8px', padding: '12px 20px', borderTop: '1px solid #f1f5f9', background: '#fafbfc', justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
-                <button
-                  onClick={() => {
-                    if (editId === item.id) {
-                      setEditId(null);
-                    } else {
-                      setEditId(item.id);
-                      setUpdateNote(item.note || '');
-                      setInlineStatus(item.status || 'Planning');
-                      setInlineProgress(item.progress || 0);
-                      setIsSegmentWidePost(false);
-                    }
-                  }}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '5px',
-                    padding: '6px 12px', borderRadius: '8px', border: `1px solid ${editId === item.id ? accent : '#e2e8f0'}`,
-                    background: editId === item.id ? `${accent}10` : '#fff', color: editId === item.id ? accent : '#475569',
-                    fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.color = accent; }}
-                  onMouseLeave={e => { if (editId !== item.id) { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#475569'; } }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  {editId === item.id ? 'Cancel' : 'Update'}
-                </button>
-
-                <button
-                  onClick={() => openEditModal(item)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '5px',
-                    padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0',
-                    background: '#fff', color: '#475569', fontSize: '0.72rem', fontWeight: 600,
-                    cursor: 'pointer', transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.color = 'var(--color-primary)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#475569'; }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
-                    <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                  </svg>
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => { setUploadTarget(item.id); setTimeout(() => fileInputRef.current?.click(), 50); }}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '5px',
-                    padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0',
-                    background: '#fff', color: '#475569', fontSize: '0.72rem', fontWeight: 600,
-                    cursor: 'pointer', transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.color = 'var(--color-primary)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#475569'; }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
-                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                  </svg>
-                  Attach
-                </button>
-
-                <button
-                  onClick={() => setDeleteConfirm(item)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '5px',
-                    padding: '6px 12px', borderRadius: '8px', border: '1px solid #fecaca',
-                    background: '#fff5f5', color: '#ef4444', fontSize: '0.72rem', fontWeight: 600,
-                    cursor: 'pointer', transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#ef4444'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#fff5f5'; e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#fecaca'; }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                  Delete
-                </button>
-              </div>
-
-              {/* Inline edit note panel */}
-              {editId === item.id && (
-                <div style={{ padding: '14px 18px 16px', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
-                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: '140px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>Status</label>
-                      <select
-                        className="kfpl-select"
-                        value={inlineStatus}
-                        onChange={e => setInlineStatus(e.target.value)}
-                        style={{ fontSize: '0.78rem', padding: '4px 8px', height: '32px' }}
-                      >
-                        {((segmentsConfig.find(s => s.name === item.segment)?.statuses) || ['Planning', 'Active', 'In Production', 'Ongoing', 'Completed']).map(s => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div style={{ width: '100px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>Progress (%)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        className="kfpl-input"
-                        value={inlineProgress}
-                        onChange={e => setInlineProgress(e.target.value)}
-                        style={{ fontSize: '0.78rem', padding: '4px 8px', height: '32px' }}
-                      />
-                    </div>
-                  </div>
-
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', marginBottom: '10px', fontSize: '0.75rem', color: '#64748b' }}>
-                    <input type="checkbox" checked={isSegmentWidePost} onChange={(e) => setIsSegmentWidePost(e.target.checked)} style={{ cursor: 'pointer' }} />
-                    Segment-wide update for <strong>{item.segment}</strong>
-                  </label>
-                  <textarea className="kfpl-textarea" value={updateNote} onChange={(e) => setUpdateNote(e.target.value)}
-                    placeholder="Write status note update..."
-                    rows="2" style={{ fontSize: '0.82rem', width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: '#fff', resize: 'vertical' }} />
-                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                    <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" onClick={() => handlePostUpdate(item)} style={{ fontWeight: 700, fontSize: '0.78rem' }}>Publish</button>
-                    <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" onClick={() => setEditId(null)} style={{ fontSize: '0.78rem' }}>Cancel</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ═══════ Add / Edit Project Modal ═══════ */}
-      <Modal
-        isOpen={showAddModal}
-        onClose={() => { setShowAddModal(false); setEditingItem(null); resetForm(); }}
-        title={editingItem ? (formData.isSegmentWide ? 'Edit Segment Update' : 'Edit Project') : (formData.isSegmentWide ? 'Add Segment Update' : 'Add New Project')}
-        footer={
-          <>
-            <button className="kfpl-btn kfpl-btn--ghost" onClick={() => { setShowAddModal(false); setEditingItem(null); resetForm(); }}>Cancel</button>
-            <button className="kfpl-btn kfpl-btn--primary" onClick={handleSaveProject}>{editingItem ? 'Update' : (formData.isSegmentWide ? 'Add Update' : 'Add Project')}</button>
-          </>
-        }
-      >
-        <div className="kfpl-form" style={{ gap: '16px' }}>
-          <div className="kfpl-input-group">
-            <label className="kfpl-input-label">Update Scope</label>
-            <div style={{ display: 'flex', gap: '16px', marginTop: '4px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
-                <input
-                  type="radio"
-                  name="updateScope"
-                  checked={!formData.isSegmentWide}
-                  onChange={() => setFormData({ ...formData, isSegmentWide: false })}
-                />
-                Specific Project
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
-                <input
-                  type="radio"
-                  name="updateScope"
-                  checked={formData.isSegmentWide}
-                  onChange={() => setFormData({ ...formData, isSegmentWide: true })}
-                />
-                Segment-Wide Update
-              </label>
-            </div>
-          </div>
-          
-          {!formData.isSegmentWide && (
-            <div className="kfpl-input-group animate-fade-slide-up">
-              <label className="kfpl-input-label">Project Name <span className="required">*</span></label>
-              <input type="text" className="kfpl-input" value={formData.project} onChange={e => setFormData({ ...formData, project: e.target.value })} placeholder="Enter project name" />
-            </div>
-          )}
-
-          <div className="kfpl-form-row">
-            <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Segment <span className="required">*</span></label>
-              <select
-                className="kfpl-select"
-                value={formData.segment}
-                onChange={e => {
-                  const selectedSeg = e.target.value;
-                  const segConfig = segmentsConfig.find(s => s.name === selectedSeg);
-                  const defaultStatus = segConfig && segConfig.statuses.length > 0 ? segConfig.statuses[0] : '';
-                  setFormData({ ...formData, segment: selectedSeg, status: defaultStatus });
-                }}
-              >
-                <option value="">Select segment</option>
-                {allSegments.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Status</label>
-              <select
-                className="kfpl-select"
-                value={formData.status}
-                onChange={e => setFormData({ ...formData, status: e.target.value })}
-                disabled={!formData.segment}
-              >
-                <option value="">Select status</option>
-                {((segmentsConfig.find(s => s.name === formData.segment)?.statuses) || []).map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-                {formData.status && !((segmentsConfig.find(s => s.name === formData.segment)?.statuses) || []).includes(formData.status) && (
-                  <option value={formData.status}>{formData.status} (Current)</option>
-                )}
-              </select>
-            </div>
-          </div>
-          <div className="kfpl-form-row">
-            <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Min. Investment (₹)</label>
-              <input type="number" className="kfpl-input" min="0" value={formData.minInvestment} onChange={e => setFormData({ ...formData, minInvestment: e.target.value })} placeholder="e.g. 500000" />
-            </div>
-            <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Target Funding (₹)</label>
-              <input type="number" className="kfpl-input" min="0" value={formData.targetFunding} onChange={e => setFormData({ ...formData, targetFunding: e.target.value })} placeholder="e.g. 25000000" />
-            </div>
-          </div>
-
-          <div className="kfpl-form-row">
-            <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Funded Amount (₹)</label>
-              <input type="number" className="kfpl-input" min="0" value={formData.fundedAmount} onChange={e => setFormData({ ...formData, fundedAmount: e.target.value })} placeholder="e.g. 15000000" />
-            </div>
-            <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Milestone Progress (%)</label>
-              <input type="number" className="kfpl-input" min="0" max="100" value={formData.progress} onChange={e => setFormData({ ...formData, progress: e.target.value })} />
-            </div>
-          </div>
-
-          <div className="kfpl-form-row">
-            <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Total Slots</label>
-              <input type="number" className="kfpl-input" min="1" value={formData.totalSlots} onChange={e => setFormData({ ...formData, totalSlots: e.target.value })} placeholder="20" />
-            </div>
-            <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Slots Available</label>
-              <input type="number" className="kfpl-input" min="0" value={formData.slotsAvailable} onChange={e => setFormData({ ...formData, slotsAvailable: e.target.value })} placeholder="20" />
-            </div>
-          </div>
-
-          <div className="kfpl-input-group">
-            <label className="kfpl-input-label">Notes / Description</label>
-            <textarea className="kfpl-textarea" value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })} placeholder="Brief description or status note..." rows="3" />
-          </div>
-        </div>
-      </Modal>
-
-      {/* ═══════ Add Segment Modal ═══════ */}
-      <Modal
-        isOpen={showSegmentModal}
-        onClose={() => { setShowSegmentModal(false); setNewSegmentName(''); }}
-        title="Manage Segments"
-        size="sm"
-        footer={
-          <button className="kfpl-btn kfpl-btn--ghost" onClick={() => { setShowSegmentModal(false); setNewSegmentName(''); }}>Close</button>
-        }
-      >
-        <div style={{ marginBottom: '16px' }}>
-          <div className="kfpl-input-group" style={{ marginBottom: '12px' }}>
-            <label className="kfpl-input-label">New Segment Name</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input type="text" className="kfpl-input" value={newSegmentName} onChange={e => setNewSegmentName(e.target.value)} placeholder="e.g. OTT Platform" style={{ flex: 1 }} />
-              <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" onClick={handleAddSegment}>Add</button>
-            </div>
-          </div>
-
-          {/* Existing segments */}
-          <div>
-            <label className="kfpl-input-label" style={{ marginBottom: '8px', display: 'block' }}>Active Segments ({segmentsConfig.length})</label>
-            {segmentsConfig.length === 0 ? (
-              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: 0 }}>No segments configured yet. Add a segment above.</p>
-            ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {segmentsConfig.map(seg => (
-                  <span key={seg.id || seg.name} style={{
-                    padding: '5px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600,
-                    background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-                    color: 'var(--color-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  }}>
-                    {seg.name}
-                    <button
-                      style={{
-                        background: 'none', border: 'none', color: 'var(--color-danger)',
-                        cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
-                        justifyContent: 'center', padding: 0, marginLeft: '2px'
-                      }}
-                      onClick={() => handleRemoveSegment(seg.name)}
-                      title={`Remove segment ${seg.name}`}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ width: 12, height: 12 }}>
-                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </Modal>
-
-      {/* ═══════ Delete Confirmation Modal ═══════ */}
-      <Modal
-        isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
-        title="Confirm Delete"
-        size="sm"
-        footer={
-          <>
-            <button className="kfpl-btn kfpl-btn--ghost" onClick={() => setDeleteConfirm(null)}>Cancel</button>
-            <button className="kfpl-btn kfpl-btn--primary" style={{ background: 'var(--color-danger)', borderColor: 'var(--color-danger)' }} onClick={() => handleDeleteProject(deleteConfirm.id)}>Delete</button>
-          </>
-        }
-      >
-        <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-          Are you sure you want to delete <strong>{deleteConfirm?.project}</strong>? This action cannot be undone.
-        </p>
-      </Modal>
-
-      {/* ═══════ Media Preview Modal ═══════ */}
-      <Modal
-        isOpen={!!previewMedia}
-        onClose={() => setPreviewMedia(null)}
-        title={previewMedia?.name || 'File Preview'}
-        size={previewMedia?.type?.startsWith('image/') || previewMedia?.type?.startsWith('video/') ? 'lg' : 'md'}
-        footer={
-          <>
-            <button className="kfpl-btn kfpl-btn--ghost" onClick={() => setPreviewMedia(null)}>Close</button>
-            {previewMedia?.dataUrl && (
-              <a
-                href={previewMedia.dataUrl}
-                download={previewMedia.name}
-                className="kfpl-btn kfpl-btn--primary"
-                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                Download File
-              </a>
-            )}
-          </>
-        }
-      >
-        {previewMedia && (
-          <div className="kfpl-media-preview-container">
-            {previewMedia.type?.startsWith('image/') ? (
-              <img
-                src={previewMedia.dataUrl}
-                alt={previewMedia.name}
-                className="kfpl-media-preview-content"
-              />
-            ) : previewMedia.type?.startsWith('video/') ? (
-              <video
-                src={previewMedia.dataUrl}
-                controls
-                autoPlay
-                className="kfpl-media-preview-content"
-                style={{ outline: 'none' }}
-              />
-            ) : (
-              <div className="kfpl-media-preview-doc">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="kfpl-media-preview-doc-icon">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                </svg>
-                <div className="kfpl-media-preview-info">
-                  <span className="kfpl-media-preview-filename">{previewMedia.name}</span>
-                  <span className="kfpl-media-preview-filesize">
-                    File Type: {previewMedia.type || 'Unknown'} • Size: {(previewMedia.size / 1024).toFixed(1)} KB
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
-
-      {/* ═══════ History Log Modal ═══════ */}
-      <Modal
-        isOpen={showHistoryLogModal}
-        onClose={() => setShowHistoryLogModal(false)}
-        title="Investment Status Update History"
-        size="lg"
-        footer={
-          <button className="kfpl-btn kfpl-btn--ghost" onClick={() => setShowHistoryLogModal(false)}>Close</button>
-        }
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: '12px' }}>
+      {/* ═══ SEARCH TOOLBAR ═══ */}
+      <div className="kfpl-table-container" style={{ marginBottom: '16px' }}>
+        <div className="kfpl-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
             <input
               type="text"
+              placeholder="Search client, agent, project, segment..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
               className="kfpl-input"
-              placeholder="Search history by project or note..."
-              value={historySearch}
-              onChange={e => setHistorySearch(e.target.value)}
-              style={{ flex: 1 }}
+              style={{ paddingLeft: '36px', width: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}
             />
-            <select
-              className="kfpl-select"
-              value={historySegmentFilter}
-              onChange={e => setHistorySegmentFilter(e.target.value)}
-              style={{ width: '180px' }}
-            >
-              <option value="all">All Segments</option>
-              {allSegments.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
           </div>
 
-          {/* List of historical records */}
-          <div style={{ maxHeight: '400px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '4px' }}>
-            {historyLogs
-              .filter(log => {
-                const matchesSearch =
-                  (log.project || '').toLowerCase().includes(historySearch.toLowerCase()) ||
-                  (log.note || '').toLowerCase().includes(historySearch.toLowerCase());
-                const matchesSegment =
-                  historySegmentFilter === 'all' || log.segment === historySegmentFilter;
-                return matchesSearch && matchesSegment;
-              })
-              .length === 0 ? (
-              <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '20px' }}>
-                No update history found matching your filters.
-              </div>
-            ) : historyLogs
-                .filter(log => {
-                  const matchesSearch =
-                    (log.project || '').toLowerCase().includes(historySearch.toLowerCase()) ||
-                    (log.note || '').toLowerCase().includes(historySearch.toLowerCase());
-                  const matchesSegment =
-                    historySegmentFilter === 'all' || log.segment === historySegmentFilter;
-                  return matchesSearch && matchesSegment;
-                })
-                .map(log => {
-                  const accent = SEGMENT_COLORS[log.segment] || '#10B981';
+          <div style={{ display: 'flex', background: 'var(--color-surface)', padding: '3px', borderRadius: 'var(--radius-md)', gap: '3px' }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                cursor: 'pointer',
+                background: viewMode === 'table' ? 'var(--color-white)' : 'transparent',
+                color: viewMode === 'table' ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+                boxShadow: viewMode === 'table' ? 'var(--shadow-sm)' : 'none',
+              }}
+            >
+              All Investments Table
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('grouped')}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                borderRadius: 'var(--radius-sm)',
+                border: 'none',
+                cursor: 'pointer',
+                background: viewMode === 'grouped' ? 'var(--color-white)' : 'transparent',
+                color: viewMode === 'grouped' ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+                boxShadow: viewMode === 'grouped' ? 'var(--shadow-sm)' : 'none',
+              }}
+            >
+              Grouped by Client (Multi-Project)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ DEDICATED SEGMENT FILTER BAR ═══ */}
+      <div className="kfpl-table-container" style={{ padding: '14px 20px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+        <span className="text-xs text-muted font-bold" style={{ textTransform: 'uppercase', letterSpacing: '0.6px', flexShrink: 0 }}>
+          Filter by Segment:
+        </span>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {segmentFilters.map(seg => {
+            const ss = getSegmentStyle(seg);
+            const active = selectedSegment === seg;
+            return (
+              <button
+                key={seg}
+                type="button"
+                onClick={() => setSelectedSegment(seg)}
+                style={{
+                  padding: '5px 16px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-full)',
+                  border: active ? `1.5px solid ${ss.color}` : '1px solid var(--color-border)',
+                  background: active ? ss.bg : 'var(--color-white)',
+                  color: active ? ss.color : 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  transition: 'var(--transition-fast)',
+                }}
+              >
+                {seg}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ═══ DATA VIEWS ═══ */}
+      {loading ? (
+        <div className="kfpl-table-container" style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <div style={{ width: 32, height: 32, border: '3px solid var(--color-border)', borderTopColor: 'var(--color-gold)', borderRadius: '50%', margin: '0 auto 14px', animation: 'spin 1s linear infinite' }} />
+          <span className="text-muted font-medium">Loading live investment records...</span>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="kfpl-table-container" style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--color-border)" strokeWidth="1.5" style={{ display: 'block', margin: '0 auto 12px' }}>
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--color-text-primary)' }}>No Investment Records Found</h3>
+          <p className="text-muted text-sm" style={{ margin: '6px 0 16px' }}>No active investment contracts found in database.</p>
+          <button type="button" className="kfpl-btn kfpl-btn--primary" onClick={() => setShowAssignModal(true)}>+ Assign Investment</button>
+        </div>
+      ) : viewMode === 'table' ? (
+        /* ═══ 1. ALL INVESTMENTS TABLE VIEW (PORTAL STANDARD DATA TABLE) ═══ */
+        <div className="kfpl-table-container">
+          <div className="kfpl-table-scroll">
+            <table className="kfpl-table">
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Agent</th>
+                  <th>Project & Segment</th>
+                  <th style={{ textAlign: 'right' }}>Invested Amount</th>
+                  <th style={{ textAlign: 'right' }}>ROI Rate & Monthly Return</th>
+                  <th style={{ textAlign: 'right' }}>Agent Commission</th>
+                  <th style={{ textAlign: 'center' }}>Status</th>
+                  <th style={{ textAlign: 'center' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(inv => {
+                  const ss = getSegmentStyle(inv.segment);
                   return (
-                    <div key={log.id} style={{
-                      border: '1px solid var(--color-border-light)',
-                      borderRadius: '8px',
-                      padding: '12px 16px',
-                      background: 'var(--color-surface)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className="kfpl-badge" style={{ background: `${accent}15`, color: accent, borderColor: `${accent}30` }}>{log.segment}</span>
-                          <strong style={{ fontSize: '0.9rem', color: 'var(--color-text)' }}>
-                            {log.type === 'segment' || !log.project ? 'Segment-Wide Update' : log.project}
-                          </strong>
-                        </div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{log.date}</span>
-                      </div>
-                      
-                      <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', margin: 0, fontStyle: 'italic' }}>
-                        "{log.note || 'No notes posted.'}"
-                      </p>
-                      
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border-light)', paddingTop: '6px', marginTop: '2px' }}>
-                        <span>Status: <strong>{log.status}</strong> • Progress: <strong>{log.progress}%</strong></span>
-                        {(log.media || []).length > 0 && (
-                          <span style={{ color: 'var(--color-success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
-                              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                            </svg>
-                            {log.media.length} File(s)
+                    <tr key={inv.id}>
+                      <td>
+                        <div className="kfpl-table-cell-primary">{inv.clientName}</div>
+                        {inv.clientCode !== '—' && (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--color-info)', background: 'var(--color-info-bg)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', display: 'inline-block', marginTop: '2px' }}>
+                            {inv.clientCode}
                           </span>
                         )}
+                      </td>
+                      <td>
+                        <div className="kfpl-table-cell-primary">{inv.agentName}</div>
+                        <span className="kfpl-table-cell-secondary">{inv.agentCode}</span>
+                      </td>
+                      <td>
+                        <div className="kfpl-table-cell-primary">{inv.projectName}</div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: ss.color, background: ss.bg, padding: '2px 8px', borderRadius: 'var(--radius-sm)', display: 'inline-block', marginTop: '2px' }}>
+                          {inv.segment}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text-primary)', fontSize: '0.9rem' }}>
+                        {formatCurrency(inv.amount)}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--color-success)' }}>{inv.roiRate} /mo</div>
+                        <div className="kfpl-table-cell-secondary">{formatCurrency(inv.monthlyReturn)} /mo</div>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--color-warning)' }}>{formatCurrency(inv.commPayout)}</div>
+                        <div className="kfpl-table-cell-secondary">({inv.commRate})</div>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <Badge variant={inv.status === 'active' ? 'success' : 'info'}>{inv.status.toUpperCase()}</Badge>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                          <button type="button" className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm" onClick={() => setDetailItem(inv)}>
+                            View Details
+                          </button>
+                          <button type="button" className="kfpl-btn kfpl-btn--danger kfpl-btn--sm" onClick={() => handleDeleteInvestment(inv.id, inv.projectName)}>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* ═══ 2. GROUPED BY CLIENT (MULTI-PROJECT CARDS WITH BANNER IMAGE) ═══ */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {grouped.map(g => (
+            <div key={g.clientCode || g.clientName} className="kfpl-table-container" style={{ padding: '20px 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', paddingBottom: '16px', marginBottom: '18px', borderBottom: '1px solid var(--color-border-light)' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>{g.clientName}</h2>
+                    {g.clientCode !== '—' && (
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-info)', background: 'var(--color-info-bg)', padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
+                        {g.clientCode}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-success)', background: 'var(--color-success-bg)', padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
+                      {g.projects.length} Project Investment{g.projects.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="text-sm text-muted" style={{ marginTop: '4px' }}>
+                    Assigned Agent: <strong style={{ color: 'var(--color-text-primary)' }}>{g.agentName}</strong> ({g.agentCode})
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase' }}>Total Portfolio Capital</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--color-success)' }}>{formatCurrency(g.total)}</div>
+                </div>
+              </div>
+
+              {/* Rich Project Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+                {g.projects.map(p => {
+                  const bannerUrl = p.projectDetails?.bannerImage;
+                  const bgStyle = bannerUrl ? `url(${bannerUrl})` : getSegmentGradient(p.segment);
+
+                  return (
+                    <div
+                      key={p.id}
+                      style={{
+                        background: 'var(--color-white)',
+                        border: '1px solid var(--color-border-light)',
+                        borderRadius: 'var(--radius-lg)',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        transition: 'var(--transition-smooth)',
+                        boxShadow: 'var(--shadow-sm)',
+                      }}
+                    >
+                      {/* Banner Image / Cover Header */}
+                      <div
+                        style={{
+                          height: '140px',
+                          backgroundImage: bgStyle,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          position: 'relative',
+                          display: 'flex',
+                          alignItems: 'flex-end',
+                          padding: '12px 14px',
+                        }}
+                      >
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(6,29,19,0.8) 100%)' }} />
+                        <div style={{ position: 'relative', zIndex: 2, color: '#fff', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                          <div>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#E5ECE8', display: 'inline-block', marginBottom: '2px' }}>
+                              {p.segment}
+                            </span>
+                            <h3 style={{ color: '#ffffff', fontSize: '1.05rem', fontWeight: 700, margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                              {p.projectName}
+                            </h3>
+                          </div>
+                          <Badge variant={p.status === 'active' ? 'success' : 'info'}>{p.status.toUpperCase()}</Badge>
+                        </div>
+                      </div>
+
+                      {/* Card Content & Stats */}
+                      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: 'var(--color-surface)', padding: '12px', borderRadius: 'var(--radius-md)', fontSize: '0.8125rem' }}>
+                          <div>
+                            <span className="text-xs text-muted" style={{ display: 'block' }}>Invested Amount</span>
+                            <strong style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: '0.9rem' }}>{formatCurrency(p.amount)}</strong>
+                          </div>
+                          <div>
+                            <span className="text-xs text-muted" style={{ display: 'block' }}>Monthly ROI Yield</span>
+                            <strong style={{ fontWeight: 700, color: 'var(--color-success)', fontSize: '0.9rem' }}>{p.roiRate}</strong>
+                          </div>
+                          <div>
+                            <span className="text-xs text-muted" style={{ display: 'block' }}>Agent Commission</span>
+                            <strong style={{ fontWeight: 700, color: 'var(--color-warning)' }}>{formatCurrency(p.commPayout)}</strong>
+                          </div>
+                          <div>
+                            <span className="text-xs text-muted" style={{ display: 'block' }}>Contract Date</span>
+                            <strong style={{ fontWeight: 600, color: 'var(--color-text-secondary)' }}>{p.date}</strong>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                          <button
+                            type="button"
+                            className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm"
+                            onClick={() => setDetailItem(p)}
+                            style={{ flex: 1 }}
+                          >
+                            View Details
+                          </button>
+                          <button
+                            type="button"
+                            className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
+                            onClick={() => handleDeleteInvestment(p.id, p.projectName)}
+                            style={{ padding: '6px 12px' }}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
                 })}
-          </div>
+              </div>
+            </div>
+          ))}
         </div>
-      </Modal>
+      )}
+
+      {/* ═══ RICH COMPREHENSIVE DETAIL MODAL (PROJECT SPECS, MEDIA, UPDATES, FINANCIALS) ═══ */}
+      {detailItem && (
+        <Modal isOpen onClose={() => setDetailItem(null)} title={`Investment Details — ${detailItem.projectName}`} size="lg">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', width: '100%' }}>
+            {/* Banner Preview Header */}
+            {detailItem.projectDetails && (
+              <div
+                style={{
+                  height: '180px',
+                  borderRadius: 'var(--radius-lg)',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundImage: detailItem.projectDetails.bannerImage ? `url(${detailItem.projectDetails.bannerImage})` : getSegmentGradient(detailItem.segment),
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  padding: '20px',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(6,29,19,0.85) 100%)' }} />
+                <div style={{ position: 'relative', zIndex: 2, color: '#ffffff', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                  <div>
+                    <span style={{ color: '#E5ECE8', fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                      Segment: {detailItem.segment}
+                    </span>
+                    <h2 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 700, margin: 0, textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
+                      {detailItem.projectName}
+                    </h2>
+                  </div>
+                  <Badge variant={detailItem.status === 'active' ? 'success' : 'info'}>{detailItem.status.toUpperCase()}</Badge>
+                </div>
+              </div>
+            )}
+
+            {/* 1. Project Specifications Block */}
+            {detailItem.projectDetails ? (
+              <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-light)', borderRadius: 'var(--radius-lg)', padding: '18px 22px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>
+                  Project Catalog Specifications
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.875rem' }}>
+                  <div>
+                    <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Target Funding</span>
+                    <strong style={{ color: 'var(--color-text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>{formatCurrency(detailItem.projectDetails.targetFunding)}</strong>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Min. Investment Required</span>
+                    <strong style={{ color: 'var(--color-text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>{formatCurrency(detailItem.projectDetails.minInvestment)}</strong>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Funded Amount</span>
+                    <strong style={{ color: 'var(--color-success)', fontWeight: 700, fontSize: '0.95rem' }}>{formatCurrency(detailItem.projectDetails.fundedAmount)}</strong>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Available Slots</span>
+                    <strong style={{ color: 'var(--color-text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>{detailItem.projectDetails.slotsAvailable} / {detailItem.projectDetails.totalSlots} Slots</strong>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Risk Level & Health</span>
+                    <strong style={{ color: 'var(--color-warning)', fontWeight: 700, fontSize: '0.95rem' }}>{detailItem.projectDetails.riskLevel} ({detailItem.projectDetails.health})</strong>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Project Horizon</span>
+                    <strong style={{ color: 'var(--color-text-primary)', fontWeight: 600, fontSize: '0.95rem' }}>{detailItem.projectDetails.horizon}</strong>
+                  </div>
+                </div>
+
+                {detailItem.projectDetails.summary && (
+                  <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--color-border-light)', fontSize: '0.85rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                    <strong>Summary: </strong>{detailItem.projectDetails.summary}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* 2. Project Media & Uploaded Files */}
+            {detailItem.projectDetails?.mediaFiles && detailItem.projectDetails.mediaFiles.length > 0 && (
+              <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-light)', borderRadius: 'var(--radius-lg)', padding: '18px 22px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+                  Project Media & Attachments ({detailItem.projectDetails.mediaFiles.length})
+                </div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {detailItem.projectDetails.mediaFiles.map((fileUrl, idx) => (
+                    <a
+                      key={idx}
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 14px',
+                        background: 'var(--color-white)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)',
+                        fontSize: '0.8125rem',
+                        color: 'var(--color-text-primary)',
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        transition: 'var(--transition-fast)',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-gold)" strokeWidth="2">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                        <polyline points="13 2 13 9 20 9" />
+                      </svg>
+                      Attached Media #{idx + 1}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 3. Live Project Updates & Milestones History */}
+            <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-light)', borderRadius: 'var(--radius-lg)', padding: '18px 22px' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Project Status Updates & Milestones</span>
+                <span className="text-xs text-muted">{projectUpdates.length} update{projectUpdates.length !== 1 ? 's' : ''}</span>
+              </div>
+              {loadingUpdates ? (
+                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', textAlign: 'center', padding: '12px' }}>Loading project updates...</div>
+              ) : projectUpdates.length === 0 ? (
+                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', background: 'var(--color-white)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-light)' }}>
+                  No extra status updates or milestones logged for this project yet.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {projectUpdates.map((up, i) => (
+                    <div key={up._id || i} style={{ background: 'var(--color-white)', border: '1px solid var(--color-border-light)', borderRadius: 'var(--radius-md)', padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>{up.status || 'Status Update'}</div>
+                        <span className="text-xs text-muted">{up.createdAt ? new Date(up.createdAt).toLocaleDateString('en-IN') : 'Recently'}</span>
+                      </div>
+                      {up.notes && <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>{up.notes}</p>}
+                      {up.progress > 0 && (
+                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ flex: 1, height: '6px', background: 'var(--color-border-light)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: `${up.progress}%`, height: '100%', background: 'var(--color-success)', borderRadius: '3px' }} />
+                          </div>
+                          <span className="text-xs font-semibold" style={{ color: 'var(--color-success)' }}>{up.progress}% Progress</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 4. Client Contract Financials Block */}
+            <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-light)', borderRadius: 'var(--radius-lg)', padding: '18px 22px' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>
+                Client Contract Financials
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '0.875rem' }}>
+                <div>
+                  <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Client Name & Code</span>
+                  <strong style={{ color: 'var(--color-text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>{detailItem.clientName}</strong>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-info)', fontWeight: 600 }}>{detailItem.clientCode}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Assigned Agent</span>
+                  <strong style={{ color: 'var(--color-text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>{detailItem.agentName}</strong>
+                  <div className="text-xs text-muted">{detailItem.agentCode}</div>
+                </div>
+                <div>
+                  <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Capital Investment</span>
+                  <strong style={{ color: 'var(--color-success)', fontSize: '1.15rem', fontWeight: 700 }}>{formatCurrency(detailItem.amount)}</strong>
+                </div>
+                <div>
+                  <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Monthly ROI Return</span>
+                  <strong style={{ color: 'var(--color-success)', fontWeight: 700, fontSize: '0.95rem' }}>{detailItem.roiRate} ({formatCurrency(detailItem.monthlyReturn)} / mo)</strong>
+                </div>
+                <div>
+                  <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Agent Commission</span>
+                  <strong style={{ color: 'var(--color-warning)', fontWeight: 700, fontSize: '0.95rem' }}>{formatCurrency(detailItem.commPayout)} ({detailItem.commRate})</strong>
+                </div>
+                <div>
+                  <span className="text-xs text-muted" style={{ display: 'block', marginBottom: '2px' }}>Date & Duration</span>
+                  <strong style={{ color: 'var(--color-text-primary)', fontWeight: 600, fontSize: '0.95rem' }}>{detailItem.date} ({detailItem.durationMonths} Months)</strong>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+              <button
+                type="button"
+                className="kfpl-btn kfpl-btn--danger"
+                onClick={() => handleDeleteInvestment(detailItem.id, detailItem.projectName)}
+              >
+                Delete Investment Record
+              </button>
+              <button type="button" className="kfpl-btn kfpl-btn--secondary" onClick={() => setDetailItem(null)} style={{ padding: '9px 24px', fontWeight: 600 }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ═══ ASSIGN INVESTMENT MODAL ═══ */}
+      {showAssignModal && (
+        <Modal isOpen onClose={() => setShowAssignModal(false)} title="Assign Investment to Client">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '4px' }}>
+                Select Client <span style={{ color: 'var(--color-danger)' }}>*</span>
+              </label>
+              <select
+                className="kfpl-select"
+                value={assignForm.clientId}
+                onChange={e => handleClientSelect(e.target.value)}
+                required
+                style={{ width: '100%', padding: '9px' }}
+              >
+                <option value="">-- Choose Client --</option>
+                {clientsList.map(c => (
+                  <option key={c._id || c.id} value={c._id || c.id}>
+                    {c.name} ({c.clientId || c.clientCode || '—'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedClientInfo && (
+              <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-light)', borderRadius: 'var(--radius-md)', padding: '12px 16px' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-success)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  Client Data Auto-Fetched
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8125rem' }}>
+                  <div><span className="text-xs text-muted" style={{ display: 'block' }}>Name</span><strong>{selectedClientInfo.name}</strong></div>
+                  <div><span className="text-xs text-muted" style={{ display: 'block' }}>Code</span><strong>{selectedClientInfo.code}</strong></div>
+                  <div><span className="text-xs text-muted" style={{ display: 'block' }}>Assigned Agent</span><strong>{selectedClientInfo.agentName}</strong></div>
+                  <div><span className="text-xs text-muted" style={{ display: 'block' }}>Existing Capital</span><strong style={{ color: 'var(--color-success)' }}>{formatCurrency(selectedClientInfo.totalInvestment)}</strong></div>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '4px' }}>Select Target Project</label>
+              <select
+                className="kfpl-select"
+                value={assignForm.projectId}
+                onChange={e => handleProjectSelect(e.target.value)}
+                style={{ width: '100%', padding: '9px' }}
+              >
+                <option value="">-- Choose Target Project --</option>
+                {projectsList.map(p => (
+                  <option key={p._id || p.id} value={p._id || p.id}>
+                    {p.name} [{p.segment}]
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '4px' }}>
+                Investment Amount (₹) <span style={{ color: 'var(--color-danger)' }}>*</span>
+              </label>
+              <input
+                type="number"
+                placeholder="e.g. 500000"
+                value={assignForm.investmentAmount}
+                onChange={e => handleAmountChange(e.target.value)}
+                required
+                className="kfpl-input"
+                style={{ width: '100%', padding: '9px' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '4px' }}>Monthly ROI (%)</label>
+                <input
+                  type="text"
+                  placeholder="Auto from project"
+                  value={assignForm.roiPercentage}
+                  onChange={e => setAssignForm(p => ({ ...p, roiPercentage: e.target.value }))}
+                  className="kfpl-input"
+                  style={{ width: '100%', padding: '9px' }}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '4px' }}>Agent Commission (%)</label>
+                <input
+                  type="text"
+                  placeholder="Auto from slab"
+                  value={assignForm.agentCommission}
+                  readOnly
+                  className="kfpl-input"
+                  style={{ width: '100%', padding: '9px', background: 'var(--color-surface)', cursor: 'not-allowed' }}
+                />
+              </div>
+            </div>
+
+            {previewAmount > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', padding: '12px', background: 'var(--color-gold-glow)', border: '1px dashed var(--color-gold)', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase' }}>Monthly Return</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-success)' }}>{formatCurrency(previewMonthlyReturn)}</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase' }}>Agent Payout</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-warning)' }}>{formatCurrency(previewCommAmt)}</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase' }}>Slab Rate</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-info)' }}>{assignForm.agentCommission || '—'}</div>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '12px', borderTop: '1px solid var(--color-border-light)' }}>
+              <button type="button" className="kfpl-btn kfpl-btn--secondary" onClick={() => setShowAssignModal(false)}>Cancel</button>
+              <button type="submit" className="kfpl-btn kfpl-btn--primary" disabled={submitting}>
+                {submitting ? 'Assigning...' : 'Assign Investment'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }
-
-/* ============ END: InvestmentStatus.jsx ============ */

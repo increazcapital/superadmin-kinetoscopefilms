@@ -162,8 +162,8 @@ export default function App() {
             <Route path="roi" element={<PermissionRoute permissionKey="transactionDetails" action="view"><ROIList /></PermissionRoute>} />
             <Route path="roi/:id" element={<PermissionRoute permissionKey="transactionDetails" action="view"><ROIDetail /></PermissionRoute>} />
 
-            {/* Status of Investment — permissionKey: investmentStatus */}
-            <Route path="investment-status" element={<PermissionRoute permissionKey="investmentStatus" action="view"><InvestmentStatus /></PermissionRoute>} />
+            {/* Status of Investment */}
+            <Route path="investment-status" element={<PermissionRoute permissionKey="portfolio" action="view"><InvestmentStatus /></PermissionRoute>} />
 
             {/* Portfolio Management — permissionKey: portfolio */}
             <Route path="portfolio" element={<PermissionRoute permissionKey="portfolio" action="view"><PortfolioManagement /></PermissionRoute>} />

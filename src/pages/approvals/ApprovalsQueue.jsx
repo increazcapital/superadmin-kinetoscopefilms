@@ -169,7 +169,8 @@ export default function ApprovalsQueue() {
         bankName: item.bankName || 'HDFC Bank',
         accountNo: item.accountNo || 'XXXX4567',
         ifsc: item.ifsc || 'HDFC0001234',
-        note: item.remarks || item.note || ''
+        note: item.remarks || item.note || '',
+        projectName: item.projectName || (item.projectId && typeof item.projectId === 'object' ? item.projectId.name : '') || ''
       });
 
       const depositsMapped = depQueue.map(item => mapItem(item, 'deposit'));
@@ -539,6 +540,14 @@ export default function ApprovalsQueue() {
                       <>
                         <span className="kfpl-approvals-bullet">•</span>
                         <span className="kfpl-approvals-mode-tag">{item.mode || 'Bank Transfer'}</span>
+                        {item.projectName && (
+                          <>
+                            <span className="kfpl-approvals-bullet">•</span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-gold)', background: 'var(--color-gold-glow)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-gold)' }}>
+                              Target: {item.projectName}
+                            </span>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
@@ -746,6 +755,18 @@ export default function ApprovalsQueue() {
                             <span className="kfpl-verify-field-label">IFSC Code</span>
                             <span className="kfpl-verify-field-value" style={{ fontFamily: 'monospace' }}>{resolvedIfsc}</span>
                           </div>
+                        </div>
+                      )}
+
+                      {modal.item.projectName && (
+                        <div className="kfpl-verify-field" style={{ borderTop: '1px solid var(--color-border-light)', paddingTop: '10px', marginTop: '6px', textAlign: 'left' }}>
+                          <span className="kfpl-verify-field-label">Target Allocated Project</span>
+                          <span className="kfpl-verify-field-value" style={{ color: 'var(--color-gold)', fontWeight: 700, fontSize: '0.95rem' }}>
+                            🎯 {modal.item.projectName}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-success)', display: 'block', marginTop: '3px', fontWeight: 600 }}>
+                            ✓ Upon approval, ₹{modal.item.amount.toLocaleString('en-IN')} will be linked as active investment for this project.
+                          </span>
                         </div>
                       )}
 

@@ -293,7 +293,13 @@ export default function Dashboard() {
             if (Array.isArray(rawAgents)) {
               rawAgents.forEach(ag => {
                 const agId = String(ag._id || ag.id);
-                getOrCreateAgentEntry(agId, ag.name || ag.fullName || 'Agent', ag.clientCode || ag.agentCode || 'AGT-001');
+                const entry = getOrCreateAgentEntry(agId, ag.name || ag.fullName || 'Agent', ag.agentId || ag.clientCode || ag.agentCode || 'AGT-001');
+                if (ag.clientsCount !== undefined) {
+                  entry.baseClientsCount = ag.clientsCount;
+                }
+                if (ag.totalInvestment !== undefined) {
+                  entry.baseTotalInvestment = ag.totalInvestment;
+                }
               });
             }
 
@@ -379,8 +385,8 @@ export default function Dashboard() {
                 id: item.id,
                 name: item.name,
                 agentId: item.agentId,
-                clients: item.clientsSet.size,
-                amount: item.amount
+                clients: Math.max(item.clientsSet.size, item.baseClientsCount || 0),
+                amount: Math.max(item.amount, item.baseTotalInvestment || 0)
               }))
               .filter(item => item.clients > 0 || item.amount > 0)
               .sort((a, b) => b.amount - a.amount || b.clients - a.clients);

@@ -100,6 +100,10 @@ export default function InvestmentStatus() {
   const [projectUpdates, setProjectUpdates] = useState([]);
   const [loadingUpdates, setLoadingUpdates] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [targetInvestment, setTargetInvestment] = useState(null);
+  const [approvedAmountInput, setApprovedAmountInput] = useState('');
+  const [approving, setApproving] = useState(false);
   const [assignForm, setAssignForm] = useState({
     clientId: '', projectId: '', investmentAmount: '',
     roiPercentage: '', agentCommission: '', durationMonths: '24',
@@ -107,6 +111,38 @@ export default function InvestmentStatus() {
   const [selectedClientInfo, setSelectedClientInfo] = useState(null);
   const [selectedProjectInfo, setSelectedProjectInfo] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const openApproveModal = (inv) => {
+    setTargetInvestment(inv);
+    const initialAmt = inv.amount || inv.investmentAmount || inv.projectDetails?.minInvestment || 5;
+    setApprovedAmountInput(initialAmt);
+    setShowApproveModal(true);
+  };
+
+  const handleConfirmApproval = async () => {
+    if (!targetInvestment) return;
+    try {
+      setApproving(true);
+      const invId = targetInvestment.id || targetInvestment._id;
+      const res = await apiRequest(`/api/super-admin/investments/${invId}/approve`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          investmentAmount: parseFloat(approvedAmountInput) || 0
+        })
+      });
+
+      addToast(res.message || 'Investment approved successfully!', 'success', 'Request Approved');
+      setShowApproveModal(false);
+      setTargetInvestment(null);
+      setDetailItem(null);
+      await loadData();
+    } catch (err) {
+      console.error('Failed to approve investment:', err);
+      addToast(err.message || 'Failed to approve investment', 'danger', 'Error');
+    } finally {
+      setApproving(false);
+    }
+  };
 
   /* ── Fetch Project Status Updates for Modal ─ */
   useEffect(() => {
@@ -924,16 +960,88 @@ export default function InvestmentStatus() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-              <button
-                type="button"
-                className="kfpl-btn kfpl-btn--danger"
-                onClick={() => handleDeleteInvestment(detailItem.id, detailItem.projectName)}
-              >
-                Delete Investment Record
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                {detailItem.status === 'pending' ? (
+                  <button
+                    type="button"
+                    className="kfpl-btn"
+                    style={{ background: '#10B981', color: '#ffffff', fontWeight: 700, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => openApproveModal(detailItem)}
+                  >
+                    ✓ Approve Investment & Notify Client
+                  </button>
+                ) : (
+                  <span style={{ background: '#ECFDF5', color: '#065F46', border: '1.5px solid #10B981', padding: '8px 16px', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Investment Approved & Active
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="kfpl-btn kfpl-btn--danger"
+                  onClick={() => handleDeleteInvestment(detailItem.id, detailItem.projectName)}
+                >
+                  Delete Record
+                </button>
+              </div>
               <button type="button" className="kfpl-btn kfpl-btn--secondary" onClick={() => setDetailItem(null)} style={{ padding: '9px 24px', fontWeight: 600 }}>
                 Close
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ═══ APPROVE INVESTMENT MODAL ═══ */}
+      {showApproveModal && targetInvestment && (
+        <Modal isOpen onClose={() => setShowApproveModal(false)} title={`Approve Investment — ${targetInvestment.projectName || 'Project'}`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px' }}>
+            <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderLeft: '4px solid #10B981', padding: '14px 16px', borderRadius: '8px' }}>
+              <div style={{ fontWeight: 700, color: '#166534', fontSize: '0.95rem', marginBottom: '4px' }}>
+                Confirm Investment Approval & Client Notification
+              </div>
+              <p style={{ fontSize: '0.85rem', color: '#15803D', margin: 0, lineHeight: 1.5 }}>
+                Approving this selection will activate the investment contract for <strong>{targetInvestment.clientName}</strong> ({targetInvestment.clientCode}), send an official confirmation email to <strong>{targetInvestment.clientEmail || 'registered email'}</strong>, and trigger an alert on their Client Dashboard bell icon.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '6px' }}>
+                Approved Capital Amount (₹) <span style={{ color: 'var(--color-danger)' }}>*</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                className="kfpl-input"
+                style={{ width: '100%', fontSize: '1.1rem', fontWeight: 700, padding: '10px 14px' }}
+                value={approvedAmountInput}
+                onChange={(e) => setApprovedAmountInput(e.target.value)}
+                placeholder="Enter approved amount"
+              />
+              <span className="text-xs text-muted" style={{ marginTop: '6px', display: 'block' }}>
+                Client requested project selection for <strong>{targetInvestment.projectName}</strong>. Minimum investment required is ₹{targetInvestment.projectDetails?.minInvestment || 5}.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+              <button
+                type="button"
+                className="kfpl-btn kfpl-btn--secondary"
+                onClick={() => setShowApproveModal(false)}
+                disabled={approving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="kfpl-btn"
+                style={{ background: '#10B981', color: '#ffffff', fontWeight: 700, padding: '10px 22px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+                onClick={handleConfirmApproval}
+                disabled={approving}
+              >
+                {approving ? 'Approving & Sending Email...' : '✓ Confirm Approval & Notify Client'}
               </button>
             </div>
           </div>

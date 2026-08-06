@@ -792,6 +792,8 @@ export default function ApprovalsQueue() {
                       <div className="kfpl-verify-card-body">
                         {(() => {
                            const fileUrl = typeof modal.item.proofFile === 'string' ? modal.item.proofFile : (modal.item.proofFile?.data || '');
+                           const hasFileUrl = Boolean(fileUrl && fileUrl.trim() && fileUrl !== 'undefined');
+                           
                            const isImageUrl = (url) => {
                              if (!url || typeof url !== 'string') return false;
                              const cleanUrl = url.toLowerCase().split('?')[0];
@@ -799,27 +801,29 @@ export default function ApprovalsQueue() {
                                     cleanUrl.endsWith('.jpeg') || 
                                     cleanUrl.endsWith('.png') || 
                                     cleanUrl.endsWith('.webp') || 
-                                    cleanUrl.endsWith('.gif');
+                                    cleanUrl.endsWith('.gif') ||
+                                    cleanUrl.includes('/image/upload/') ||
+                                    url.startsWith('data:image/');
                            };
                            const isPdfUrl = (url) => {
                              if (!url || typeof url !== 'string') return false;
                              const cleanUrl = url.toLowerCase().split('?')[0];
-                             return cleanUrl.endsWith('.pdf');
+                             return cleanUrl.endsWith('.pdf') || cleanUrl.includes('/raw/upload/') || url.startsWith('data:application/pdf');
                            };
 
-                           const file = modal.item.proofFile && typeof modal.item.proofFile === 'object'
+                           const file = modal.item.proofFile && typeof modal.item.proofFile === 'object' && modal.item.proofFile.name
                              ? modal.item.proofFile
                              : {
                                  name: isImageUrl(fileUrl) 
-                                   ? `deposit_receipt_${modal.item.clientId}_${modal.item.id}.png` 
-                                   : `bank_statement_receipt_${modal.item.clientId}_${modal.item.id}.pdf`,
+                                   ? `payment_proof_${modal.item.clientId}_${modal.item.id}.png` 
+                                   : `payment_proof_${modal.item.clientId}_${modal.item.id}.pdf`,
                                  type: isImageUrl(fileUrl) ? 'image/png' : 'application/pdf',
-                                 size: '420 KB',
+                                 size: 'Document Attachment',
                                  data: fileUrl
                                };
 
-                          const isImage = file.type && file.type.startsWith('image/');
-                          const isPdf = isPdfUrl(file.data) || (file.name && file.name.endsWith('.pdf'));
+                          const isImage = isImageUrl(fileUrl) || (file.type && file.type.startsWith('image/'));
+                          const isPdf = isPdfUrl(fileUrl) || (file.name && file.name.endsWith('.pdf'));
                           const fileColor = isPdf ? '#ef4444' : (isImage ? '#10b981' : '#2563eb');
 
                           return (
@@ -831,46 +835,61 @@ export default function ApprovalsQueue() {
                                 justifyContent: 'space-between',
                                 background: '#f8fafc',
                                 border: '1px solid #e2e8f0',
-                                borderRadius: '8px',
-                                padding: '12px 16px'
+                                borderRadius: '10px',
+                                padding: '12px 14px',
+                                gap: '10px'
                               }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke={fileColor} strokeWidth="2" style={{ flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                                  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke={fileColor} strokeWidth="2" style={{ flexShrink: 0 }}>
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                                     <polyline points="14 2 14 8 20 8"/>
                                     <line x1="16" y1="13" x2="8" y2="13"/>
                                     <line x1="16" y1="17" x2="8" y2="17"/>
                                   </svg>
-                                  <div style={{ textAlign: 'left', minWidth: 0 }}>
-                                    <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <div style={{ textAlign: 'left', minWidth: 0, overflow: 'hidden' }}>
+                                    <div style={{ fontSize: '0.825rem', fontWeight: '700', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
                                       {file.name}
                                     </div>
-                                    <div style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)', display: 'flex', gap: '8px' }}>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'flex', gap: '6px', marginTop: '2px' }}>
                                       <span>{file.size}</span>
                                       <span>•</span>
-                                      <span style={{ textTransform: 'uppercase' }}>{file.type ? file.type.split('/')[1] || file.type : 'PDF'}</span>
+                                      <span style={{ textTransform: 'uppercase', fontWeight: 600, color: '#059669' }}>{hasFileUrl ? (isImage ? 'IMAGE' : (isPdf ? 'PDF' : 'DOC')) : 'SYSTEM SLIP'}</span>
                                     </div>
                                   </div>
                                 </div>
                                 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                                  {/* Download button (if uploaded file data exists) */}
-                                  {file.data && (
+                                <div style={{ flexShrink: 0 }}>
+                                  {hasFileUrl && (
                                     <a
-                                      href={file.data}
-                                      download={file.name}
-                                      className="kfpl-proof-action-btn kfpl-proof-action-btn--download"
-                                      title="Download File"
+                                      href={fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        padding: '6px 12px',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 700,
+                                        background: '#10B981',
+                                        color: '#ffffff',
+                                        borderRadius: '6px',
+                                        textDecoration: 'none',
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
+                                        transition: 'all 0.2s ease'
+                                      }}
+                                      title="Open Document in New Window"
                                     >
-                                      {icons.download}
-                                      <span>Download</span>
+                                      <span>Open Document</span>
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                                     </a>
                                   )}
                                 </div>
                               </div>
 
                               {/* Rendering Image if type is image */}
-                              {isImage && file.data ? (
+                              {hasFileUrl && isImage ? (
                                 <div style={{
                                   display: 'flex',
                                   flexDirection: 'column',
@@ -882,13 +901,15 @@ export default function ApprovalsQueue() {
                                   flexGrow: 1,
                                   justifyContent: 'center'
                                 }}>
-                                  <img 
-                                    src={file.data} 
-                                    alt="Proof Attachment" 
-                                    style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: '4px', objectFit: 'contain' }} 
-                                  />
+                                  <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                                    <img 
+                                      src={fileUrl} 
+                                      alt="Proof Attachment" 
+                                      style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: '4px', objectFit: 'contain', cursor: 'pointer' }} 
+                                    />
+                                  </a>
                                 </div>
-                              ) : isPdf && file.data ? (
+                              ) : hasFileUrl && isPdf ? (
                                 <div style={{
                                   display: 'flex',
                                   flexDirection: 'column',
@@ -903,15 +924,53 @@ export default function ApprovalsQueue() {
                                   width: '100%'
                                 }}>
                                   <iframe 
-                                    src={file.data} 
+                                    src={fileUrl.startsWith('http') && fileUrl.includes('/raw/upload/') ? `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(fileUrl)}` : fileUrl} 
                                     title="PDF Preview"
                                     width="100%" 
                                     height="100%" 
                                     style={{ border: 'none', borderRadius: '4px' }}
                                   />
                                 </div>
+                              ) : hasFileUrl ? (
+                                /* Generic File Link Card */
+                                <div style={{
+                                  background: '#F0FDF4',
+                                  border: '1.5px solid #10B981',
+                                  borderRadius: '8px',
+                                  padding: '24px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexGrow: 1,
+                                  textAlign: 'center'
+                                }}>
+                                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                  <h4 style={{ margin: '12px 0 6px 0', fontSize: '0.95rem', color: '#166534', fontWeight: 700 }}>
+                                    Uploaded Payment Proof Attached
+                                  </h4>
+                                  <p style={{ fontSize: '0.8rem', color: '#15803D', margin: '0 0 16px 0' }}>
+                                    Client submitted proof document for verification.
+                                  </p>
+                                  <a
+                                    href={fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      background: '#10B981',
+                                      color: '#fff',
+                                      padding: '10px 18px',
+                                      borderRadius: '6px',
+                                      textDecoration: 'none',
+                                      fontWeight: 700,
+                                      fontSize: '0.85rem'
+                                    }}
+                                  >
+                                    View / Download Document ↗
+                                  </a>
+                                </div>
                               ) : (
-                                /* Receipt Slip Mockup */
+                                /* Fallback Receipt Slip Mockup if no file URL is attached */
                                 <div style={{
                                   background: '#f8fafc',
                                   border: '1px solid #cbd5e1',
@@ -953,7 +1012,7 @@ export default function ApprovalsQueue() {
                                       <span className="kfpl-receipt-mockup-value" style={{ fontWeight: '700', color: 'var(--color-success)' }}>{formatCurrency(modal.item.amount)}</span>
                                     </div>
                                     <div className="kfpl-receipt-mockup-footer">
-                                      System Verification Receipt for {file.name}
+                                      System Verification Slip
                                     </div>
                                   </div>
                                 </div>

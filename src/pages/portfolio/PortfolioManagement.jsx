@@ -239,14 +239,17 @@ export default function PortfolioManagement() {
         apiRequest('/api/super-admin/investments').catch(() => null)
       ]);
 
-      // Extract dividend stats
-      if (divStatsRes) {
-        setDividendStats({
-          totalPoolAmount: divStatsRes.totalPoolAmount || 0,
-          totalAllottedAmount: divStatsRes.totalAllottedAmount || 0,
-          remainingBalance: divStatsRes.remainingBalance || 0
-        });
-      }
+      // Extract dividend stats dynamically from backend API response
+      const statsObj = divStatsRes?.data || divStatsRes || allotmentsRes?.data?.stats || allotmentsRes?.data || {};
+      const totalPoolAmount = Number(statsObj.totalPoolsConfigured ?? statsObj.totalPoolAmount ?? 0);
+      const totalAllottedAmount = Number(statsObj.dividendsDistributed ?? statsObj.totalAllottedAmount ?? 0);
+      const remainingBalance = Number(statsObj.remainingPoolsBalance ?? statsObj.remainingBalance ?? (totalPoolAmount - totalAllottedAmount));
+
+      setDividendStats({
+        totalPoolAmount,
+        totalAllottedAmount,
+        remainingBalance
+      });
 
       // Extract allotments
       const rawAllotments = allotmentsRes.allotments || allotmentsRes.data?.allotments || allotmentsRes.data || allotmentsRes || [];
@@ -364,10 +367,10 @@ export default function PortfolioManagement() {
         return sum + poolVal;
       }, 0);
 
-      // Update global pool metrics
-      const backendTotalPool = divStatsRes ? (divStatsRes.totalPoolAmount || 0) : 0;
-      const totalPoolCalculated = Math.max(backendTotalPool, projectPoolsTotal, 10000000);
-      const totalAllottedCalculated = combinedAllotments.reduce((sum, al) => sum + al.amount, 0);
+      // Update global pool metrics dynamically from backend API
+      const backendTotalPool = totalPoolAmount;
+      const totalPoolCalculated = backendTotalPool > 0 ? backendTotalPool : projectPoolsTotal;
+      const totalAllottedCalculated = combinedAllotments.reduce((sum, al) => sum + (al.amount || 0), 0);
       const remainingBalanceCalculated = Math.max(0, totalPoolCalculated - totalAllottedCalculated);
 
       setDividendStats({
@@ -1933,31 +1936,40 @@ export default function PortfolioManagement() {
                 {
                   header: 'Actions',
                   render: (row) => {
-                    const isLocal = String(row.id).startsWith('local-al-');
                     return (
                       <div style={{ display: 'flex', gap: '6px' }}>
-                        {isLocal ? (
-                          <button
-                            type="button"
-                            className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
-                            style={{ color: 'var(--color-danger)', padding: '2px 8px', minWidth: 'auto' }}
-                            onClick={() => {
-                              let localAllotments = [];
-                              try {
-                                const stored = localStorage.getItem('kfpl_local_allotments');
-                                localAllotments = stored ? JSON.parse(stored) : [];
-                              } catch {}
-                              const updated = localAllotments.filter(al => al.id !== row.id);
-                              localStorage.setItem('kfpl_local_allotments', JSON.stringify(updated));
-                              addToast('Allotment deleted locally', 'success', 'Deleted');
+                        <button
+                          type="button"
+                          className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
+                          style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600 }}
+                          onClick={async () => {
+                            const clientName = row.clientDetails?.name || row._resolvedClientName || 'Client';
+                            if (!window.confirm(`Are you sure you want to delete this dividend allotment entry for ${clientName}?`)) {
+                              return;
+                            }
+                            try {
+                              if (String(row.id).startsWith('local-al-')) {
+                                let localAllotments = [];
+                                try {
+                                  const stored = localStorage.getItem('kfpl_local_allotments');
+                                  localAllotments = stored ? JSON.parse(stored) : [];
+                                } catch {}
+                                const updated = localAllotments.filter(al => al.id !== row.id);
+                                localStorage.setItem('kfpl_local_allotments', JSON.stringify(updated));
+                              } else {
+                                await apiRequest(`/api/super-admin/dividends/allotments/${row.id}`, {
+                                  method: 'DELETE'
+                                });
+                              }
+                              addToast('Dividend allotment deleted successfully', 'success', 'Allotment Deleted');
                               loadDashboardData();
-                            }}
-                          >
-                            Delete
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Synced</span>
-                        )}
+                            } catch (err) {
+                              addToast(err.message || 'Failed to delete dividend allotment', 'error', 'Error');
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
                       </div>
                     );
                   }

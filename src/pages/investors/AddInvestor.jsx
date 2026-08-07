@@ -11,6 +11,7 @@ import FileDropzone from '../../components/ui/FileDropzone';
 import { getApiUrl } from '../../config/apiUrl';
 import { apiRequest } from '../../config/apiHelper';
 import { getAuthToken } from '../../utils/authStorage';
+import { WORLD_COUNTRY_CODES } from '../../data/countryCodes';
 
 const formatAgentID = (rawId) => {
   if (!rawId || rawId === '—') return '—';
@@ -35,10 +36,10 @@ export default function AddInvestor() {
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
-    fullName: '', email: '', phone: '', dob: '', address: '',
+    fullName: '', email: '', phone: '', phoneCountryCode: '+91', dob: '', address: '',
     pan: '', bankName: '', accountNo: '', confirmAccountNo: '', ifsc: '',
     aadhaarNumber: '',
-    nomineeName: '', nomineeRelation: '', nomineeContact: '', nomineeEmail: '',
+    nomineeName: '', nomineeRelation: '', nomineeContact: '', nomineePhoneCountryCode: '+91', nomineeEmail: '',
     riskProfile: 'Conservative',
     citizenship: 'National',
     nomineeCitizenship: 'National',
@@ -163,7 +164,8 @@ export default function AddInvestor() {
       const formData = new FormData();
       formData.append('fullName', form.fullName);
       formData.append('email', form.email);
-      formData.append('phone', form.phone);
+      const fullPhone = form.phone ? `${form.phoneCountryCode} ${form.phone.replace(/^\+\d+\s*/, '')}`.trim() : '';
+      formData.append('phone', fullPhone);
       if (form.dob) formData.append('dob', form.dob);
       if (form.address) formData.append('address', form.address);
       formData.append('riskProfile', form.riskProfile);
@@ -188,7 +190,8 @@ export default function AddInvestor() {
       if (form.nomineeName) {
         formData.append('nomineeName', form.nomineeName);
         formData.append('nomineeRelation', form.nomineeRelation);
-        formData.append('nomineePhone', form.nomineeContact);
+        const fullNomineePhone = form.nomineeContact ? `${form.nomineePhoneCountryCode} ${form.nomineeContact.replace(/^\+\d+\s*/, '')}`.trim() : '';
+        formData.append('nomineePhone', fullNomineePhone);
         formData.append('nomineeEmail', form.nomineeEmail);
         formData.append('nomineeResidency', form.nomineeCitizenship === 'International' ? 'International' : 'National (Domestic)');
       }
@@ -279,7 +282,12 @@ export default function AddInvestor() {
             <div className="kfpl-form-row">
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Phone Number <span className="required">*</span></label>
-                <input className="kfpl-input" name="phone" value={form.phone} onChange={handleChange} placeholder="Enter your phone number" required />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select name="phoneCountryCode" value={form.phoneCountryCode} onChange={handleChange} className="kfpl-select" style={{ width: '130px', padding: '10px 8px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', fontSize: '0.85rem' }}>
+                    {WORLD_COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+                  </select>
+                  <input className="kfpl-input" name="phone" value={form.phone} onChange={handleChange} placeholder="Enter phone number" required style={{ flex: 1 }} />
+                </div>
               </div>
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Date of Birth</label>
@@ -478,7 +486,12 @@ export default function AddInvestor() {
             <div className="kfpl-form-row-3">
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Nominee Contact Number</label>
-                <input className="kfpl-input" name="nomineeContact" value={form.nomineeContact} onChange={handleChange} placeholder="Enter your nominee's contact number" />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select name="nomineePhoneCountryCode" value={form.nomineePhoneCountryCode} onChange={handleChange} className="kfpl-select" style={{ width: '130px', padding: '10px 8px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', fontSize: '0.85rem' }}>
+                    {WORLD_COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
+                  </select>
+                  <input className="kfpl-input" name="nomineeContact" value={form.nomineeContact} onChange={handleChange} placeholder="Enter contact number" style={{ flex: 1 }} />
+                </div>
               </div>
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Nominee Email Address</label>

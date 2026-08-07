@@ -86,57 +86,6 @@ export default function ServiceRequestsPage() {
     try {
       setLoading(true);
 
-      // Fetch all requests to build stable sequential display IDs starting from SR-101
-      const allRequestsData = await apiRequest('/api/super-admin/service-requests');
-      let allList = [];
-      if (Array.isArray(allRequestsData)) {
-        allList = allRequestsData;
-      } else if (allRequestsData?.requests) {
-        allList = allRequestsData.requests;
-      } else if (allRequestsData?.serviceRequests) {
-        allList = allRequestsData.serviceRequests;
-      } else if (allRequestsData?.data) {
-        if (Array.isArray(allRequestsData.data)) {
-          allList = allRequestsData.data;
-        } else if (allRequestsData.data.requests) {
-          allList = allRequestsData.data.requests;
-        } else if (allRequestsData.data.serviceRequests) {
-          allList = allRequestsData.data.serviceRequests;
-        }
-      }
-
-      // Filter out mock requests to only sequence real user requests
-      const actualList = allList.filter(req => {
-        const mockSubjects = [
-          'ROI payout timeline confirmation',
-          'Monthly Commission Delay',
-          'Address Update Request',
-          'Commission Payout Enquiry',
-          'ROI Payment Pending',
-          'Add new segment request',
-          'KYC document update'
-        ];
-        const raiserIdStr = typeof req.raiserId === 'object' ? (req.raiserId?._id || req.raiserId?.id) : req.raiserId;
-        const hasRealRaiser = raiserIdStr && (raiserMap.clients.has(raiserIdStr) || raiserMap.agents.has(raiserIdStr));
-        return !(mockSubjects.includes(req.subject) && !hasRealRaiser);
-      });
-
-      // Sort chronologically (oldest first)
-      const sorted = [...actualList].sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.date || 0);
-        const dateB = new Date(b.createdAt || b.date || 0);
-        return dateA - dateB;
-      });
-
-      const newSeqMap = {};
-      sorted.forEach((req, index) => {
-        const key = req._id || req.id;
-        if (key) {
-          newSeqMap[key] = `SR-${101 + index}`;
-        }
-      });
-      setSeqMap(newSeqMap);
-
       const params = [];
       if (statusFilter !== 'All') params.push(`status=${statusFilter}`);
       if (typeFilter !== 'All') params.push(`raiserType=${typeFilter}`);
@@ -367,8 +316,7 @@ export default function ServiceRequestsPage() {
 
   const getDisplayId = (req) => {
     if (!req) return 'N/A';
-    const key = req._id || req.id;
-    return seqMap[key] || req.id || req.requestId || req.ticketId || req.srId || (req._id ? 'SR-' + req._id.substring(req._id.length - 6).toUpperCase() : 'N/A');
+    return req.requestId || req.ticketId || req.id || (req._id ? 'SR-' + req._id.substring(req._id.length - 6).toUpperCase() : 'N/A');
   };
 
   const getAttachmentUrl = (req) => {

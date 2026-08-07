@@ -1183,6 +1183,15 @@ export default function AgentDetail() {
                 <span className="kfpl-detail-info-item-value">{agent.phone}</span>
               </div>
             </div>
+            {agent.address && (
+              <div className="kfpl-detail-info-row-item">
+                <div className="kfpl-detail-info-item-icon">{infoIcons.user}</div>
+                <div className="kfpl-detail-info-item-content">
+                  <span className="kfpl-detail-info-item-label">Residential Address</span>
+                  <span className="kfpl-detail-info-item-value">{agent.address}</span>
+                </div>
+              </div>
+            )}
             <div className="kfpl-detail-info-row-item">
               <div className="kfpl-detail-info-item-icon">{infoIcons.fileText}</div>
               <div className="kfpl-detail-info-item-content">

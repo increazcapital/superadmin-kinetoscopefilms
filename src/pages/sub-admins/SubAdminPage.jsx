@@ -20,6 +20,13 @@ const MODULE_GROUPS = [
     ],
   },
   {
+    group: 'Portals',
+    modules: [
+      { key: 'clientPortal', label: 'Client Portal View' },
+      { key: 'agentPortal',  label: 'Agent Portal View' },
+    ],
+  },
+  {
     group: 'Investment Management',
     modules: [
       { key: 'manageInvestments',  label: 'Manage Investments' },

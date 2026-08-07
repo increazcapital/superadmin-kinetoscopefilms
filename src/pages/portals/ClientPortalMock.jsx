@@ -8,9 +8,12 @@ import Badge from '../../components/ui/Badge';
 import { useToast } from '../../components/ui/Toast';
 import { apiRequest } from '../../config/apiHelper';
 import Modal from '../../components/ui/Modal';
+import { usePermissions } from '../../utils/usePermissions';
 
 export default function ClientPortalMock() {
   const addToast = useToast();
+  const { canDelete } = usePermissions();
+  const allowDelete = canDelete('clientPortal') || canDelete('manageClients');
   const [searchQuery, setSearchQuery] = useState('');
   const [residencyFilter, setResidencyFilter] = useState('all');
   const [tierFilter, setTierFilter] = useState('all');
@@ -291,16 +294,18 @@ export default function ClientPortalMock() {
                       >
                         Copy Credentials
                       </button>
-                      <button 
-                        className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
-                        onClick={() => {
-                          setClientToDelete(inv);
-                          setShowDeleteModal(true);
-                        }}
-                        style={{ padding: '6px 14px', fontSize: '0.8125rem', color: '#EF4444', borderColor: '#EF4444', background: 'rgba(239, 68, 68, 0.05)' }}
-                      >
-                        Delete Client
-                      </button>
+                      {allowDelete && (
+                        <button 
+                          className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
+                          onClick={() => {
+                            setClientToDelete(inv);
+                            setShowDeleteModal(true);
+                          }}
+                          style={{ padding: '6px 14px', fontSize: '0.8125rem', color: '#EF4444', borderColor: '#EF4444', background: 'rgba(239, 68, 68, 0.05)' }}
+                        >
+                          Delete Client
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

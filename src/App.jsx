@@ -204,9 +204,9 @@ export default function App() {
             <Route path="settings/commission-slabs" element={<PermissionRoute permissionKey="commissionSlabs" action="view"><CommissionConfig /></PermissionRoute>} />
             <Route path="settings/rewards" element={<PermissionRoute permissionKey="rewardsConfig" action="view"><RewardConfig /></PermissionRoute>} />
 
-            {/* Portals — tied to client/agent permissions */}
-            <Route path="portals/client" element={<PermissionRoute permissionKey="manageClients" action="view"><ClientPortalMock /></PermissionRoute>} />
-            <Route path="portals/agent" element={<PermissionRoute permissionKey="manageAgents" action="view"><AgentPortalMock /></PermissionRoute>} />
+            {/* Portals — dedicated permission keys */}
+            <Route path="portals/client" element={<PermissionRoute permissionKey="clientPortal" action="view"><ClientPortalMock /></PermissionRoute>} />
+            <Route path="portals/agent" element={<PermissionRoute permissionKey="agentPortal" action="view"><AgentPortalMock /></PermissionRoute>} />
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />

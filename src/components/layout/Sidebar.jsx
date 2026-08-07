@@ -108,8 +108,8 @@ const PATH_PERMISSION_MAP = {
   '/dashboard':                null,              // Always visible
   '/investors':                'manageClients',
   '/agents':                   'manageAgents',
-  '/portals/client':           'manageClients',
-  '/portals/agent':            'manageAgents',
+  '/portals/client':           'clientPortal',
+  '/portals/agent':            'agentPortal',
   '/investments':              'manageInvestments',
   '/roi':                      'transactionDetails',
   '/investment-status':        'investmentStatus',

@@ -7,9 +7,11 @@ import { useState, useEffect } from 'react';
 import Badge from '../../components/ui/Badge';
 import { useToast } from '../../components/ui/Toast';
 import { apiRequest } from '../../config/apiHelper';
+import { usePermissions } from '../../utils/usePermissions';
 
 export default function AgentPortalMock() {
   const addToast = useToast();
+  const { canEdit, canDelete } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [residencyFilter, setResidencyFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');

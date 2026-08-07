@@ -26,7 +26,7 @@ export default function ServiceRequestsPage() {
   // Form edit states
   const [editStatus, setEditStatus] = useState('');
   const [editNote, setEditNote] = useState('');
-  const [sendEmail, setSendEmail] = useState(false);
+  const [sendEmail, setSendEmail] = useState(true);
 
   const fetchRaiserData = async () => {
     try {

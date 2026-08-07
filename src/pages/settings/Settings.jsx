@@ -210,7 +210,8 @@ export default function Settings() {
           const data = await response.json();
           console.log('DEBUG Settings: Profile API response JSON:', data);
           
-          const adminData = data.admin || data.data || data.user || data;
+          const rawUserObj = data.data?.user || data.user || data.admin || data.data || data;
+          const adminData = rawUserObj.user ? rawUserObj.user : rawUserObj;
           console.log('DEBUG Settings: Resolved adminData:', adminData);
 
           const fetchedEmail = adminData?.email;

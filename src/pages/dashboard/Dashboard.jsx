@@ -585,6 +585,18 @@ export default function Dashboard() {
       }
     };
     fetchDashboard();
+
+    const handleFocus = () => fetchDashboard();
+    const handleUpdate = () => fetchDashboard();
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('superAdminDataUpdated', handleUpdate);
+    const interval = setInterval(fetchDashboard, 15000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('superAdminDataUpdated', handleUpdate);
+      clearInterval(interval);
+    };
   }, []);
 
   const now = new Date();

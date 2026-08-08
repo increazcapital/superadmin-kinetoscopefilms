@@ -257,6 +257,18 @@ export default function InvestorList() {
       }
     };
     fetchClients();
+
+    const handleFocus = () => fetchClients();
+    const handleUpdate = () => fetchClients();
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('superAdminDataUpdated', handleUpdate);
+    const interval = setInterval(fetchClients, 15000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('superAdminDataUpdated', handleUpdate);
+      clearInterval(interval);
+    };
   }, [renderTrigger]);
 
   const getPerkTier = (amount) => {

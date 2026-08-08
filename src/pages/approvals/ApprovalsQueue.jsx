@@ -268,6 +268,20 @@ export default function ApprovalsQueue() {
       }
     };
     fetchInvestors();
+
+    const handleFocus = () => fetchApprovals(true);
+    const handleUpdate = () => fetchApprovals(true);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('superAdminDataUpdated', handleUpdate);
+    window.addEventListener('kfpl_approval_event', handleUpdate);
+    const interval = setInterval(() => fetchApprovals(true), 12000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('superAdminDataUpdated', handleUpdate);
+      window.removeEventListener('kfpl_approval_event', handleUpdate);
+      clearInterval(interval);
+    };
   }, []);
 
   const currentItems = activeTab === 'deposits' ? depositsList : withdrawalsList;

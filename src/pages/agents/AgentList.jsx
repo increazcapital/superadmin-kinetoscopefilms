@@ -201,6 +201,18 @@ export default function AgentList() {
       }
     };
     fetchAgents();
+
+    const handleFocus = () => fetchAgents();
+    const handleUpdate = () => fetchAgents();
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('superAdminDataUpdated', handleUpdate);
+    const interval = setInterval(fetchAgents, 15000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('superAdminDataUpdated', handleUpdate);
+      clearInterval(interval);
+    };
   }, []);
 
   const filteredAgents = agentsList.filter(agt => {

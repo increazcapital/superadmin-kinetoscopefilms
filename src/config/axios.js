@@ -6,12 +6,9 @@
 
 import axios from 'axios';
 import { getAuthToken, clearAuthData } from '../utils/authStorage';
+import { getApiUrl } from './apiUrl';
 
-// Local + Production URLs
-const BASE_URL =
-  window.location.hostname === 'localhost'
-    ? 'http://192.168.1.22:5000/api'
-    : 'http://192.168.1.22:5000/api';
+const BASE_URL = getApiUrl('/api');
 
 const api = axios.create({
   baseURL: BASE_URL,

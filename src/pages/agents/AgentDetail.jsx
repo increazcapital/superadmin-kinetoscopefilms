@@ -543,7 +543,8 @@ export default function AgentDetail() {
           bankProofDocument: profile.bankProofDocument,
           nomineeProofDocument: profile.nomineeProofDocument,
           residencyStatus: profile.residencyStatus || ag.residencyStatus || 'National (Domestic)',
-          commissionHistory: ag.commissionHistory || []
+          commissionHistory: ag.commissionHistory || [],
+          profilePic: ag.header?.profilePic || profile.profilePic || user.profilePic || ag.profilePic || ''
         };
         setAgent(normalizedAg);
         localAg = normalizedAg;
@@ -1049,8 +1050,12 @@ export default function AgentDetail() {
       {/* Premium Gradient Header Card */}
       <div className="kfpl-detail-card-header">
         <div className="kfpl-detail-profile">
-          <div className="kfpl-detail-avatar">
-            {(agent.name || '').split(' ').map(n => n[0]).join('')}
+          <div className="kfpl-detail-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {agent.profilePic ? (
+              <img src={agent.profilePic} alt={agent.name} style={{ width: '100%', height: '100%', borderRadius: 'inherit', objectFit: 'cover' }} />
+            ) : (
+              (agent.name || '').split(' ').map(n => n[0]).join('')
+            )}
           </div>
           <div>
             <h2 className="kfpl-detail-name" style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>{agent.name}</h2>
@@ -1061,7 +1066,7 @@ export default function AgentDetail() {
             </div>
           </div>
         </div>
-        <div className="kfpl-detail-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="kfpl-detail-actions">
           <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" style={{ color: 'var(--color-white)', borderColor: 'rgba(255, 255, 255, 0.25)', background: 'rgba(255, 255, 255, 0.05)' }} onClick={() => navigate('/agents')}>
             ← Back
           </button>

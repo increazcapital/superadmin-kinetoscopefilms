@@ -691,6 +691,7 @@ export default function InvestorDetail() {
             investments: [],
             roiHistory: [],
             perks: [],
+            profilePic: header.profilePic || profile.profilePic || data.user?.profilePic || data.profilePic || '',
           };
 
           setInvestor(inv);
@@ -750,17 +751,25 @@ export default function InvestorDetail() {
           setDocsData({ documents: [] });
         }
 
-        // Save fresh values to SWR Cache
-        if (inv) {
-          localStorage.setItem(`kfpl_super_admin_client_detail_cache_${id}`, JSON.stringify({
-            investor: inv,
-            investmentsData: investmentsRes ? (investmentsRes.data || investmentsRes) : { investments: [] },
-            roiData: { roiHistory: clientRoiHistory },
-            perksData: perksRes ? (perksRes.data || perksRes) : { perks: [] },
-            docsData: docsRes ? (docsRes.data || docsRes) : { documents: [] },
-            verifiedDocs: verifiedMap,
-            clientProfileId: profileId
-          }));
+        // Save fresh values to SWR Cache safely (wrap in try/catch to handle QuotaExceededError)
+        try {
+          if (inv) {
+            const cachedInv = { ...inv };
+            if (cachedInv.profilePic && cachedInv.profilePic.length > 2000) {
+              delete cachedInv.profilePic;
+            }
+            localStorage.setItem(`kfpl_super_admin_client_detail_cache_${id}`, JSON.stringify({
+              investor: cachedInv,
+              investmentsData: investmentsRes ? (investmentsRes.data || investmentsRes) : { investments: [] },
+              roiData: { roiHistory: clientRoiHistory },
+              perksData: perksRes ? (perksRes.data || perksRes) : { perks: [] },
+              docsData: docsRes ? (docsRes.data || docsRes) : { documents: [] },
+              verifiedDocs: verifiedMap,
+              clientProfileId: profileId
+            }));
+          }
+        } catch (cacheErr) {
+          console.warn('SWR Cache write ignored due to quota limit:', cacheErr);
         }
 
       } catch (err) {
@@ -1296,8 +1305,12 @@ export default function InvestorDetail() {
       {/* Premium Gradient Header Card */}
       <div className="kfpl-detail-card-header">
         <div className="kfpl-detail-profile">
-          <div className="kfpl-detail-avatar">
-            {investor.name.split(' ').map(n => n[0]).join('')}
+          <div className="kfpl-detail-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {investor.profilePic ? (
+              <img src={investor.profilePic} alt={investor.name} style={{ width: '100%', height: '100%', borderRadius: 'inherit', objectFit: 'cover' }} />
+            ) : (
+              investor.name.split(' ').map(n => n[0]).join('')
+            )}
           </div>
           <div>
             <h2 className="kfpl-detail-name" style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>{investor.name}</h2>
@@ -1309,7 +1322,7 @@ export default function InvestorDetail() {
             </div>
           </div>
         </div>
-        <div className="kfpl-detail-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div className="kfpl-detail-actions">
           <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" style={{ color: 'var(--color-white)', borderColor: 'rgba(255, 255, 255, 0.25)', background: 'rgba(255, 255, 255, 0.05)' }} onClick={() => navigate('/investors')}>
             ← Back
           </button>

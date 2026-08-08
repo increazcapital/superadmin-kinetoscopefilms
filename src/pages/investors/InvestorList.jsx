@@ -228,6 +228,7 @@ export default function InvestorList() {
               agentCommissionMonthly: c.agentCommissionMonthly || profile.agentCommissionMonthly || '',
               residencyStatus: c.residencyStatus || profile.residencyStatus || c.citizenship || profile.citizenship || '',
               riskProfile: c.riskProfile || header.riskProfile || profile.riskProfile || 'Conservative',
+              profilePic: c.profilePic || profile.profilePic || user.profilePic || '',
             };
           });
           
@@ -236,7 +237,14 @@ export default function InvestorList() {
           });
 
           setClients(normalized);
-          localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(normalized));
+          try {
+            const cacheableClients = normalized.map(c => {
+              const copy = { ...c };
+              if (copy.profilePic && copy.profilePic.length > 2000) delete copy.profilePic;
+              return copy;
+            });
+            localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(cacheableClients));
+          } catch (_) {}
         } else {
           setClients([]);
         }
@@ -311,11 +319,15 @@ export default function InvestorList() {
       render: (row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: 32, height: 32, borderRadius: '50%', background: 'var(--color-navy-light)',
+            width: 40, height: 40, borderRadius: '50%', background: 'var(--color-navy-light)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--color-gold)', fontWeight: 800, fontSize: 12, flexShrink: 0
+            color: 'var(--color-gold)', fontWeight: 800, fontSize: 14, flexShrink: 0, overflow: 'hidden'
           }}>
-            {(row.fullName || row.name || 'C').charAt(0).toUpperCase()}
+            {row.profilePic ? (
+              <img src={row.profilePic} alt={row.fullName || row.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              (row.fullName || row.name || 'C').charAt(0).toUpperCase()
+            )}
           </div>
           <span style={{ fontWeight: 600, color: 'var(--color-navy)' }}>{row.fullName || row.name || 'N/A'}</span>
         </div>

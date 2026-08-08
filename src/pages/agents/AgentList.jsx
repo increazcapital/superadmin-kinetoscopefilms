@@ -183,7 +183,14 @@ export default function AgentList() {
           });
 
           setAgentsList(normalized);
-          localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(normalized));
+          try {
+            const cacheableAgents = normalized.map(a => {
+              const copy = { ...a };
+              if (copy.profilePic && copy.profilePic.length > 2000) delete copy.profilePic;
+              return copy;
+            });
+            localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(cacheableAgents));
+          } catch (_) {}
         } else {
           setAgentsList([]);
         }
@@ -225,11 +232,15 @@ export default function AgentList() {
       render: (row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: 32, height: 32, borderRadius: '50%', background: 'var(--color-navy-light)',
+            width: 40, height: 40, borderRadius: '50%', background: 'var(--color-navy-light)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--color-gold)', fontWeight: 800, fontSize: 12, flexShrink: 0
+            color: 'var(--color-gold)', fontWeight: 800, fontSize: 14, flexShrink: 0, overflow: 'hidden'
           }}>
-            {(row.name || 'A').charAt(0).toUpperCase()}
+            {row.profilePic ? (
+              <img src={row.profilePic} alt={row.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              (row.name || 'A').charAt(0).toUpperCase()
+            )}
           </div>
           <span style={{ fontWeight: 600, color: 'var(--color-navy)' }}>{row.name}</span>
         </div>

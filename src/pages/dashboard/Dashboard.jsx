@@ -106,6 +106,7 @@ export default function Dashboard() {
           if (Array.isArray(parsed.agentsRanked)) setAgentsRanked(parsed.agentsRanked);
           if (Array.isArray(parsed.roiTrend)) setRoiTrend(parsed.roiTrend);
           if (Array.isArray(parsed.activities)) setActivities(parsed.activities);
+          setLoading(false);
         }
       }
     } catch (e) {
@@ -557,17 +558,25 @@ export default function Dashboard() {
         setActivities(mappedActivities);
 
         // Save fresh calculations to SWR Cache
-        localStorage.setItem('kfpl_super_admin_dashboard_cache', JSON.stringify({
-          stats: freshStats,
-          investorsRanked: computedInvestors,
-          segments: computedSegments.length > 0 ? computedSegments : (data.segments || []),
-          investmentStatus: computedInvestmentStatus.length > 0 ? computedInvestmentStatus : [],
-          investmentFlow: computedInflow,
-          agentContribution: computedContribution,
-          agentsRanked: computedAgentsRanked,
-          roiTrend: computedRoiTrend,
-          activities: mappedActivities
-        }));
+        try {
+          const sanitizeList = (list) => Array.isArray(list) ? list.map(item => {
+            const copy = { ...item };
+            if (copy.profilePic && copy.profilePic.length > 2000) delete copy.profilePic;
+            return copy;
+          }) : list;
+
+          localStorage.setItem('kfpl_super_admin_dashboard_cache', JSON.stringify({
+            stats: freshStats,
+            investorsRanked: sanitizeList(computedInvestors),
+            segments: computedSegments.length > 0 ? computedSegments : (data.segments || []),
+            investmentStatus: computedInvestmentStatus.length > 0 ? computedInvestmentStatus : [],
+            investmentFlow: computedInflow,
+            agentContribution: computedContribution,
+            agentsRanked: sanitizeList(computedAgentsRanked),
+            roiTrend: computedRoiTrend,
+            activities: mappedActivities
+          }));
+        } catch (_) {}
 
       } catch (err) {
         console.error('Failed to fetch super-admin dashboard:', err);

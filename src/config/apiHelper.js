@@ -53,6 +53,13 @@ export async function apiRequest(path, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401 && !window.location.pathname.includes('/login')) {
+      try {
+        localStorage.removeItem('kfpl_auth');
+        sessionStorage.removeItem('kfpl_auth');
+      } catch (_) {}
+      window.location.href = '/login';
+    }
     const errorMessage = data.message || data.error || `Request failed with status ${response.status}`;
     const err = new Error(errorMessage);
     err.status = response.status;

@@ -46,8 +46,25 @@ export function setAuthData(data) {
   try {
     if (!data) return;
     const raw = typeof data === 'string' ? data : JSON.stringify(data);
-    sessionStorage.setItem('kfpl_auth', raw);
-    localStorage.setItem('kfpl_auth', raw);
+    try {
+      sessionStorage.setItem('kfpl_auth', raw);
+    } catch (_) {}
+    try {
+      localStorage.setItem('kfpl_auth', raw);
+    } catch (e) {
+      console.warn('LocalStorage full on setAuthData, clearing non-essential caches...', e);
+      try {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.includes('_cache') || k.includes('_detail_') || k.includes('_list'))) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        localStorage.setItem('kfpl_auth', raw);
+      } catch (e2) {}
+    }
   } catch (e) {
     console.error('Failed to save auth data:', e);
   }

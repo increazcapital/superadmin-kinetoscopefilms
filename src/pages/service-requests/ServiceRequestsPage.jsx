@@ -3,6 +3,7 @@ import { useToast } from '../../components/ui/Toast';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
 import { apiRequest } from '../../config/apiHelper';
+import { getApiUrl } from '../../config/apiUrl';
 
 export default function ServiceRequestsPage() {
   const addToast = useToast();
@@ -538,7 +539,7 @@ export default function ServiceRequestsPage() {
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>ATTACHMENT</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <a 
-                    href={getAttachmentUrl(selectedReq).startsWith('http') ? getAttachmentUrl(selectedReq) : `http://192.168.1.28:5000${getAttachmentUrl(selectedReq).startsWith('/') ? '' : '/'}${getAttachmentUrl(selectedReq)}`}
+                    href={getAttachmentUrl(selectedReq).startsWith('http') ? getAttachmentUrl(selectedReq) : getApiUrl(getAttachmentUrl(selectedReq).startsWith('/') ? getAttachmentUrl(selectedReq) : '/' + getAttachmentUrl(selectedReq))}
                     target="_blank" 
                     rel="noreferrer" 
                     style={{ 
@@ -556,7 +557,7 @@ export default function ServiceRequestsPage() {
                   </a>
                   {/\.(jpg|jpeg|png|gif|webp)$/i.test(getAttachmentUrl(selectedReq)) && (
                     <img 
-                      src={getAttachmentUrl(selectedReq).startsWith('http') ? getAttachmentUrl(selectedReq) : `http://192.168.1.28:5000${getAttachmentUrl(selectedReq).startsWith('/') ? '' : '/'}${getAttachmentUrl(selectedReq)}`}
+                      src={getAttachmentUrl(selectedReq).startsWith('http') ? getAttachmentUrl(selectedReq) : getApiUrl(getAttachmentUrl(selectedReq).startsWith('/') ? getAttachmentUrl(selectedReq) : '/' + getAttachmentUrl(selectedReq))}
                       alt="Attachment Preview"
                       style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '8px', border: '1px solid var(--color-border)', objectFit: 'cover', marginTop: '4px' }}
                     />

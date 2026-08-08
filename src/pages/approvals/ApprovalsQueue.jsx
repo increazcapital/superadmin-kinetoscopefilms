@@ -985,7 +985,7 @@ export default function ApprovalsQueue() {
                                   <div className="kfpl-receipt-mockup" style={{ width: '100%', fontFamily: 'monospace' }}>
                                     <div className="kfpl-receipt-mockup-header">
                                       <div className="kfpl-receipt-mockup-title">BANK TRANSACTION SLIP</div>
-                                      <div className="kfpl-receipt-mockup-bank">Kinetoscope Film Production Pvt Ltd.</div>
+                                      <div className="kfpl-receipt-mockup-bank">Kinetoscope Films Production Pvt Ltd.</div>
                                     </div>
                                     <div className="kfpl-receipt-mockup-row">
                                       <span className="kfpl-receipt-mockup-label">Sender:</span>

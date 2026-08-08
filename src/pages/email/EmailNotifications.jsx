@@ -52,7 +52,7 @@ const PRESET_TEMPLATES = [
     id: 'welcome',
     name: 'Welcome Investor Kit',
     subject: 'Welcome to Kinetoscope Family - Investor Onboarding',
-    body: `<h3>Welcome to Kinetoscope Film Production Pvt Ltd</h3>
+    body: `<h3>Welcome to Kinetoscope Films Production Pvt Ltd</h3>
 <p style="font-size:0.95rem;color:#64748b;margin-top:-10px;margin-bottom:15px;font-style:italic;">A Global Media Fund</p>
 <p>Dear {ClientName},</p>
 <p>We are thrilled to welcome you as an esteemed partner in our premium film investment catalog. Your account has been verified and registered under Client ID: <strong>{ClientID}</strong>.</p>
@@ -105,7 +105,7 @@ const PRESET_TEMPLATES = [
     subject: 'Welcome to Kinetoscope Agent Network - Onboarding Complete',
     body: `<h3>Welcome to the Kinetoscope Agent Network! 🤝</h3>
 <p>Dear {AgentName},</p>
-<p>Congratulations on being onboarded as a verified Agent Partner with Kinetoscope Film Production Pvt Ltd. Your Agent ID is: <strong>{AgentID}</strong>.</p>
+<p>Congratulations on being onboarded as a verified Agent Partner with Kinetoscope Films Production Pvt Ltd. Your Agent ID is: <strong>{AgentID}</strong>.</p>
 <p>You can now access the Agent Portal to manage your referred client base, track commission earnings, submit deposit/withdrawal requests on behalf of clients, and view your performance dashboard.</p>
 <p>We look forward to a productive partnership. If you need any assistance, please reach out to the admin support desk.</p>
 <br/>

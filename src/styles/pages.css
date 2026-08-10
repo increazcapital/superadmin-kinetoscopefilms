@@ -529,10 +529,28 @@
   .kfpl-login-panel {
     min-height: 100vh;
     background:
-      linear-gradient(180deg, rgba(6,29,19,0.92) 0%, rgba(6,29,19,0.98) 100%),
+      linear-gradient(180deg, rgba(6,29,19,0.95) 0%, rgba(6,29,19,0.99) 100%),
       url('/login-bg.jpg') center / cover no-repeat;
     overflow-y: auto;
     height: auto;
+  }
+  .kfpl-login-title {
+    color: #ffffff !important;
+  }
+  .kfpl-login-subtitle {
+    color: rgba(240, 253, 244, 0.85) !important;
+  }
+  .kfpl-login-label {
+    color: rgba(240, 253, 244, 0.95) !important;
+  }
+  .kfpl-login-remember {
+    color: rgba(240, 253, 244, 0.85) !important;
+  }
+  .kfpl-login-forgot {
+    color: var(--color-gold) !important;
+  }
+  .kfpl-login-footer, .kfpl-login-copy {
+    color: rgba(240, 253, 244, 0.65) !important;
   }
 }
 

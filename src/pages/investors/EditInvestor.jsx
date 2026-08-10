@@ -55,11 +55,18 @@ export default function EditInvestor() {
 
   // Document file upload states
   const [existingDocs, setExistingDocs] = useState({});
+  const [deletedDocs, setDeletedDocs] = useState({});
   const [panDocFile, setPanDocFile] = useState(null);
   const [aadhaarDocFile, setAadhaarDocFile] = useState(null);
   const [bankProofDocFile, setBankProofDocFile] = useState(null);
   const [agreementDocFile, setAgreementDocFile] = useState(null);
   const [nomineeProofDocFile, setNomineeProofDocFile] = useState(null);
+
+  const handleDeleteDoc = (field) => {
+    setExistingDocs(prev => ({ ...prev, [field]: '' }));
+    setDeletedDocs(prev => ({ ...prev, [field]: true }));
+    addToast('Document removed. Click "Save Changes" to apply.', 'info');
+  };
 
   const [form, setForm] = useState({
     fullName: '', email: '', phone: '', dob: '', address: '',
@@ -212,6 +219,13 @@ export default function EditInvestor() {
       formData.append('nomineePhone', form.nomineeContact || '');
       formData.append('nomineeEmail', form.nomineeEmail || '');
       formData.append('nomineeResidency', form.nomineeCitizenship);
+
+      // Deletion flags
+      if (deletedDocs.panDocument) formData.append('removePanDocument', 'true');
+      if (deletedDocs.aadhaarDocument) formData.append('removeAadhaarDocument', 'true');
+      if (deletedDocs.bankProofDocument) formData.append('removeBankProofDocument', 'true');
+      if (deletedDocs.agreementDocument) formData.append('removeAgreementDocument', 'true');
+      if (deletedDocs.nomineeProofDocument) formData.append('removeNomineeProofDocument', 'true');
 
       if (panDocFile) formData.append('panDocument', panDocFile);
       if (aadhaarDocFile) formData.append('aadhaarDocument', aadhaarDocFile);
@@ -472,16 +486,46 @@ export default function EditInvestor() {
             </div>
           </div>
 
-          {/* Document Re-upload Section (2x2 Grid Layout) */}
+          {/* Document Re-upload Section */}
           <div className="kfpl-form-section">
-            <div className="kfpl-form-section-title">KYC Document Uploads (Optional Re-upload)</div>
+            <div className="kfpl-form-section-title">KYC & Agreement Document Uploads (Edit / Delete / Re-upload)</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              <FileDropzone label={form.citizenship === 'International' ? 'Tax ID Upload' : 'PAN Card Upload'} multiple={false} existingFileUrl={existingDocs.panDocument} onFilesChange={(files) => setPanDocFile(files[0] || null)} />
-              <FileDropzone label={form.citizenship === 'International' ? 'Passport / National ID Card Upload' : 'ID Proof Upload (Aadhaar / DL / Passport)'} multiple={false} existingFileUrl={existingDocs.aadhaarDocument} onFilesChange={(files) => setAadhaarDocFile(files[0] || null)} />
-              <FileDropzone label="Bank Details Document" multiple={false} existingFileUrl={existingDocs.bankProofDocument} onFilesChange={(files) => setBankProofDocFile(files[0] || null)} />
-              <FileDropzone label="Signed Investment Agreement" multiple={false} existingFileUrl={existingDocs.agreementDocument} onFilesChange={(files) => setAgreementDocFile(files[0] || null)} />
+              <FileDropzone
+                label={form.citizenship === 'International' ? 'Tax ID Upload' : 'PAN Card Upload'}
+                multiple={false}
+                existingFileUrl={existingDocs.panDocument}
+                onFilesChange={(files) => setPanDocFile(files[0] || null)}
+                onDeleteExisting={() => handleDeleteDoc('panDocument')}
+              />
+              <FileDropzone
+                label={form.citizenship === 'International' ? 'Passport / National ID Card Upload' : 'ID Proof Upload (Aadhaar / DL / Passport)'}
+                multiple={false}
+                existingFileUrl={existingDocs.aadhaarDocument}
+                onFilesChange={(files) => setAadhaarDocFile(files[0] || null)}
+                onDeleteExisting={() => handleDeleteDoc('aadhaarDocument')}
+              />
+              <FileDropzone
+                label="Bank Details Document"
+                multiple={false}
+                existingFileUrl={existingDocs.bankProofDocument}
+                onFilesChange={(files) => setBankProofDocFile(files[0] || null)}
+                onDeleteExisting={() => handleDeleteDoc('bankProofDocument')}
+              />
+              <FileDropzone
+                label="Signed Investment Agreement"
+                multiple={false}
+                existingFileUrl={existingDocs.agreementDocument}
+                onFilesChange={(files) => setAgreementDocFile(files[0] || null)}
+                onDeleteExisting={() => handleDeleteDoc('agreementDocument')}
+              />
               <div style={{ gridColumn: '1 / -1' }}>
-                <FileDropzone label="Nominee ID Proof Document" multiple={false} existingFileUrl={existingDocs.nomineeProofDocument} onFilesChange={(files) => setNomineeProofDocFile(files[0] || null)} />
+                <FileDropzone
+                  label="Nominee ID Proof Document"
+                  multiple={false}
+                  existingFileUrl={existingDocs.nomineeProofDocument}
+                  onFilesChange={(files) => setNomineeProofDocFile(files[0] || null)}
+                  onDeleteExisting={() => handleDeleteDoc('nomineeProofDocument')}
+                />
               </div>
             </div>
           </div>

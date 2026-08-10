@@ -34,10 +34,18 @@ export default function EditAgent() {
 
   // File Upload states
   const [existingDocs, setExistingDocs] = useState({});
+  const [deletedDocs, setDeletedDocs] = useState({});
   const [panDocFile, setPanDocFile] = useState(null);
   const [idProofDocFile, setIdProofDocFile] = useState(null);
   const [bankProofDocFile, setBankProofDocFile] = useState(null);
   const [nomineeProofDocFile, setNomineeProofDocFile] = useState(null);
+  const [agreementDocFile, setAgreementDocFile] = useState(null);
+
+  const handleDeleteDoc = (field) => {
+    setExistingDocs(prev => ({ ...prev, [field]: '' }));
+    setDeletedDocs(prev => ({ ...prev, [field]: true }));
+    addToast('Document removed. Click "Save Changes" to apply.', 'info');
+  };
 
   useEffect(() => {
     const fetchAgentAndSlabs = async () => {
@@ -142,6 +150,7 @@ export default function EditAgent() {
           idProofDocument: profile.idProofDocument || '',
           bankProofDocument: profile.bankProofDocument || '',
           nomineeProofDocument: profile.nomineeProofDocument || '',
+          agreementDocument: profile.agreementDocument || profile.signedAgreementUrl || '',
         });
       } catch (err) {
         console.error('Failed to load agent profile:', err);
@@ -206,10 +215,18 @@ export default function EditAgent() {
       formData.append('nomineeEmail', form.nomineeEmail || '');
       formData.append('nomineeResidency', form.nomineeCitizenship === 'International' ? 'International' : 'National (Domestic)');
 
+      // Deletion flags
+      if (deletedDocs.panDocument) formData.append('removePanDocument', 'true');
+      if (deletedDocs.idProofDocument) formData.append('removeIdProofDocument', 'true');
+      if (deletedDocs.bankProofDocument) formData.append('removeBankProofDocument', 'true');
+      if (deletedDocs.nomineeProofDocument) formData.append('removeNomineeProofDocument', 'true');
+      if (deletedDocs.agreementDocument) formData.append('removeAgreementDocument', 'true');
+
       if (panDocFile) formData.append('panDocument', panDocFile);
       if (idProofDocFile) formData.append('idProofDocument', idProofDocFile);
       if (bankProofDocFile) formData.append('bankProofDocument', bankProofDocFile);
       if (nomineeProofDocFile) formData.append('nomineeProofDocument', nomineeProofDocFile);
+      if (agreementDocFile) formData.append('agreementDocument', agreementDocFile);
 
       await apiRequest(`/api/super-admin/agents/${id}`, {
         method: 'PATCH',
@@ -386,14 +403,47 @@ export default function EditAgent() {
             </div>
           </div>
 
-          {/* KYC & Nominee Document Uploads (2x2 Grid Layout) */}
+          {/* KYC & Nominee Document Uploads */}
           <div className="kfpl-form-section">
-            <div className="kfpl-form-section-title">KYC & Document Uploads (Optional Re-upload)</div>
+            <div className="kfpl-form-section-title">KYC & Document Uploads (Edit / Delete / Re-upload)</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-              <FileDropzone label={form.citizenship === 'International' ? 'Tax ID Upload' : 'PAN Card Upload'} multiple={false} existingFileUrl={existingDocs.panDocument} onFilesChange={(files) => setPanDocFile(files[0] || null)} />
-              <FileDropzone label={form.citizenship === 'International' ? 'Passport / National ID' : 'ID Proof (Aadhaar / DL / Passport)'} multiple={false} existingFileUrl={existingDocs.idProofDocument} onFilesChange={(files) => setIdProofDocFile(files[0] || null)} />
-              <FileDropzone label="Bank Details Document" multiple={false} existingFileUrl={existingDocs.bankProofDocument} onFilesChange={(files) => setBankProofDocFile(files[0] || null)} />
-              <FileDropzone label={form.nomineeCitizenship === 'International' ? 'Nominee Passport / ID Upload (Optional)' : 'Nominee ID Proof Document (Optional)'} multiple={false} existingFileUrl={existingDocs.nomineeProofDocument} onFilesChange={(files) => setNomineeProofDocFile(files[0] || null)} />
+              <FileDropzone
+                label={form.citizenship === 'International' ? 'Tax ID Upload' : 'PAN Card Upload'}
+                multiple={false}
+                existingFileUrl={existingDocs.panDocument}
+                onFilesChange={(files) => setPanDocFile(files[0] || null)}
+                onDeleteExisting={() => handleDeleteDoc('panDocument')}
+              />
+              <FileDropzone
+                label={form.citizenship === 'International' ? 'Passport / National ID' : 'ID Proof (Aadhaar / DL / Passport)'}
+                multiple={false}
+                existingFileUrl={existingDocs.idProofDocument}
+                onFilesChange={(files) => setIdProofDocFile(files[0] || null)}
+                onDeleteExisting={() => handleDeleteDoc('idProofDocument')}
+              />
+              <FileDropzone
+                label="Bank Details Document"
+                multiple={false}
+                existingFileUrl={existingDocs.bankProofDocument}
+                onFilesChange={(files) => setBankProofDocFile(files[0] || null)}
+                onDeleteExisting={() => handleDeleteDoc('bankProofDocument')}
+              />
+              <FileDropzone
+                label="Signed Agent Service Agreement Document"
+                multiple={false}
+                existingFileUrl={existingDocs.agreementDocument}
+                onFilesChange={(files) => setAgreementDocFile(files[0] || null)}
+                onDeleteExisting={() => handleDeleteDoc('agreementDocument')}
+              />
+              <div style={{ gridColumn: '1 / -1' }}>
+                <FileDropzone
+                  label={form.nomineeCitizenship === 'International' ? 'Nominee Passport / ID Upload (Optional)' : 'Nominee ID Proof Document (Optional)'}
+                  multiple={false}
+                  existingFileUrl={existingDocs.nomineeProofDocument}
+                  onFilesChange={(files) => setNomineeProofDocFile(files[0] || null)}
+                  onDeleteExisting={() => handleDeleteDoc('nomineeProofDocument')}
+                />
+              </div>
             </div>
           </div>
 

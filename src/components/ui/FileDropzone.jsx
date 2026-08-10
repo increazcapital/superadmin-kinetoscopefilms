@@ -33,7 +33,7 @@ function getFileIcon(type) {
   );
 }
 
-export default function FileDropzone({ onFilesChange, multiple = false, label = 'Document Upload', existingFileUrl = '' }) {
+export default function FileDropzone({ onFilesChange, multiple = false, label = 'Document Upload', existingFileUrl = '', onDeleteExisting }) {
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
@@ -128,6 +128,31 @@ export default function FileDropzone({ onFilesChange, multiple = false, label = 
               View Current File ↗
             </a>
           </div>
+          {onDeleteExisting && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteExisting();
+              }}
+              style={{
+                background: '#FEE2E2',
+                border: '1px solid #FCA5A5',
+                color: '#DC2626',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '4px 8px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title="Delete this document"
+            >
+              🗑️ Delete
+            </button>
+          )}
         </div>
       )}
 

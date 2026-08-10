@@ -13,6 +13,16 @@ import { apiRequest } from '../../config/apiHelper';
 import { useToast } from '../../components/ui/Toast';
 import { usePermissions } from '../../utils/usePermissions';
 
+const slugifyName = (name) => {
+  if (!name) return '';
+  return String(name)
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
 export default function AgentList() {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -161,13 +171,18 @@ export default function AgentList() {
               const statusVal = (profile.status || (user.isActive ? 'active' : 'inactive') || 'active').toLowerCase();
               const residencyVal = profile.residencyStatus || a.residencyStatus || a.citizenship || 'National (Domestic)';
 
+              const formattedCode = formatAgentID(resolvedCode || '—');
+              const nameVal = profile.fullName || a.name || user.name || '';
+              const agentSlug = nameVal ? slugifyName(nameVal) : (resolvedCode || a._id || a.id || user._id || profile.userId);
+
               return {
                 ...a,
                 id: a._id || a.id || user._id || profile.userId,
-                name: profile.fullName || a.name || user.name || '—',
+                slug: agentSlug,
+                name: nameVal || '—',
                 email: profile.email || a.email || user.email || '—',
                 phone: profile.phone || '—',
-                agentId: formatAgentID(resolvedCode || '—'),
+                agentId: formattedCode,
                 joinDateRaw: user.createdAt || profile.createdAt || a.createdAt || '',
                 totalClients: a.clientsCount ?? a.totalClients ?? 0,
                 totalInvestment: a.totalInvestment ?? 0,
@@ -314,7 +329,7 @@ export default function AgentList() {
               style={{ padding: '4px 8px', fontSize: '0.75rem' }}
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/agents/${row._id || row.id}/edit`);
+                navigate(`/agents/${row.slug || row.agentId || row.id || row._id}/edit`);
               }}
             >
               Edit
@@ -408,7 +423,7 @@ export default function AgentList() {
           <DataTable
             columns={columns}
             data={filteredAgents}
-            onRowClick={(row) => navigate(`/agents/${row.id}`)}
+            onRowClick={(row) => navigate(`/agents/${row.slug || row.agentId || row.id || row._id}`)}
             searchPlaceholder="Search agents by name, ID..."
           />
           {showDeleteModal && createPortal(

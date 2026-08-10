@@ -14,6 +14,16 @@ import { apiRequest } from '../../config/apiHelper';
 import { useToast } from '../../components/ui/Toast';
 import { usePermissions } from '../../utils/usePermissions';
 
+const slugifyName = (name) => {
+  if (!name) return '';
+  return String(name)
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
 export default function InvestorList() {
   const navigate = useNavigate();
   const { canCreate, canEdit, canDelete } = usePermissions();
@@ -207,10 +217,14 @@ export default function InvestorList() {
             const rawRoi = c.monthlyRoi ?? c.roi ?? summary.monthlyRoi ?? profile.monthlyRoi ?? c.roiPercentage ?? 0;
             const actualRoi = Number(rawRoi) || 0;
 
+            const fullNameVal = profile.fullName || user.name || user.fullName || c.fullName || header.clientName || c.name || profile.name || '';
+            const clientSlug = fullNameVal ? slugifyName(fullNameVal) : (user.clientCode || c.clientCode || userId);
+
             return {
               _id: userId,
+              slug: clientSlug,
               clientCode: formatClientID(user.clientCode || c.clientCode || header.clientCode || profile.clientCode || c.clientId || profile.clientId || fallbackCode),
-              fullName: profile.fullName || user.name || user.fullName || c.fullName || header.clientName || c.name || profile.name || '',
+              fullName: fullNameVal,
               email: profile.email || user.email || c.email || '',
               phone: profile.phone || c.phone || '',
               dob: profile.dob || c.dob || '',
@@ -444,7 +458,7 @@ export default function InvestorList() {
               style={{ padding: '4px 8px', fontSize: '0.75rem' }}
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/investors/${row._id || row.id}/edit`);
+                navigate(`/investors/${row.slug || row.clientCode || row.id || row._id}/edit`);
               }}
             >
               Edit
@@ -553,8 +567,8 @@ export default function InvestorList() {
             </button>
           )}
           {canDelete('manageClients') && (
-            <button 
-              className="kfpl-btn kfpl-btn--danger kfpl-btn--sm" 
+            <button
+              className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
               onClick={() => setShowClearAllModal(true)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
@@ -571,7 +585,7 @@ export default function InvestorList() {
       <DataTable
         columns={columns}
         data={filteredClients}
-        onRowClick={(row) => navigate(`/investors/${row._id || row.id}`)}
+        onRowClick={(row) => navigate(`/investors/${row.slug || row.clientCode || row.id || row._id}`)}
         searchPlaceholder="Search clients by name, email, ID..."
       />
       {showDeleteModal && createPortal(

@@ -14,6 +14,7 @@ import { usePermissions } from '../../utils/usePermissions';
 import { getApiUrl } from '../../config/apiUrl';
 import Modal from '../../components/ui/Modal';
 import { getAuthToken } from '../../utils/authStorage';
+import SensitiveValueToggle from '../../components/common/SensitiveValueToggle';
 const formatAgentID = (rawId) => {
   if (!rawId || rawId === '—') return '—';
   const str = String(rawId).trim();
@@ -1275,14 +1276,18 @@ export default function AgentDetail() {
               <div className="kfpl-detail-info-item-icon">{infoIcons.fileText}</div>
               <div className="kfpl-detail-info-item-content">
                 <span className="kfpl-detail-info-item-label">Account No.</span>
-                <span className="kfpl-detail-info-item-value">{agent.accountNo}</span>
+                <span className="kfpl-detail-info-item-value">
+                  <SensitiveValueToggle value={agent.accountNo} maskLength={4} />
+                </span>
               </div>
             </div>
             <div className="kfpl-detail-info-row-item">
               <div className="kfpl-detail-info-item-icon">{infoIcons.shield}</div>
               <div className="kfpl-detail-info-item-content">
                 <span className="kfpl-detail-info-item-label">IFSC Code</span>
-                <span className="kfpl-detail-info-item-value">{agent.ifsc}</span>
+                <span className="kfpl-detail-info-item-value">
+                  <SensitiveValueToggle value={agent.ifsc} maskLength={4} />
+                </span>
               </div>
             </div>
             <div className="kfpl-detail-info-row-item">
@@ -1296,7 +1301,9 @@ export default function AgentDetail() {
               <div className="kfpl-detail-info-item-icon">{infoIcons.phone}</div>
               <div className="kfpl-detail-info-item-content">
                 <span className="kfpl-detail-info-item-label">Nominee Phone</span>
-                <span className="kfpl-detail-info-item-value">{agent.nomineePhone}</span>
+                <span className="kfpl-detail-info-item-value">
+                  <SensitiveValueToggle value={agent.nomineePhone} maskLength={4} />
+                </span>
               </div>
             </div>
           </div>

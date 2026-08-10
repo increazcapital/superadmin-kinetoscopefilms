@@ -14,6 +14,7 @@ import { apiRequest } from '../../config/apiHelper';
 import { getApiUrl } from '../../config/apiUrl';
 import { usePermissions } from '../../utils/usePermissions';
 import { getAuthToken } from '../../utils/authStorage';
+import SensitiveValueToggle from '../../components/common/SensitiveValueToggle';
 const formatClientID = (rawId) => {
   if (!rawId || rawId === '—') return '—';
   if (rawId.startsWith('KFPL-CL-')) return rawId;
@@ -1585,7 +1586,9 @@ export default function InvestorDetail() {
                 <span className="kfpl-detail-info-item-label">
                   {investor.residencyStatus === 'International' ? 'Tax ID / SSN Number' : 'PAN Card Number'}
                 </span>
-                <span className="kfpl-detail-info-item-value">{investor.pan}</span>
+                <span className="kfpl-detail-info-item-value">
+                  <SensitiveValueToggle value={investor.pan} maskLength={4} />
+                </span>
               </div>
             </div>
             <div className="kfpl-detail-info-row-item">
@@ -1594,7 +1597,9 @@ export default function InvestorDetail() {
                 <span className="kfpl-detail-info-item-label">
                   {investor.residencyStatus === 'International' ? 'Passport / National ID Number' : 'Aadhaar Number'}
                 </span>
-                <span className="kfpl-detail-info-item-value">{investor.aadhaar}</span>
+                <span className="kfpl-detail-info-item-value">
+                  <SensitiveValueToggle value={investor.aadhaar} maskLength={4} />
+                </span>
               </div>
             </div>
             <div className="kfpl-detail-info-row-item">
@@ -1608,7 +1613,9 @@ export default function InvestorDetail() {
               <div className="kfpl-detail-info-item-icon">{infoIcons.fileText}</div>
               <div className="kfpl-detail-info-item-content">
                 <span className="kfpl-detail-info-item-label">Account No.</span>
-                <span className="kfpl-detail-info-item-value">{investor.accountNo}</span>
+                <span className="kfpl-detail-info-item-value">
+                  <SensitiveValueToggle value={investor.accountNo} maskLength={4} />
+                </span>
               </div>
             </div>
             <div className="kfpl-detail-info-row-item">
@@ -1617,7 +1624,9 @@ export default function InvestorDetail() {
                 <span className="kfpl-detail-info-item-label">
                   {investor.residencyStatus === 'International' ? 'IFSC / SWIFT Code' : 'IFSC Code'}
                 </span>
-                <span className="kfpl-detail-info-item-value">{investor.ifsc}</span>
+                <span className="kfpl-detail-info-item-value">
+                  <SensitiveValueToggle value={investor.ifsc} maskLength={4} />
+                </span>
               </div>
             </div>
             <div className="kfpl-detail-info-row-item">

@@ -130,7 +130,8 @@ function downloadStatementCSV(com, agentName) {
 function downloadStatementPDF(com, agentName, agentClients = []) {
   const dateStr = formatDateDMY(com.date || com.paidAt || com.payoutDate);
   const filteredBreakdown = com.breakdown || [];
-  const filteredTotal = filteredBreakdown.reduce((sum, b) => sum + (b.amount || 0), 0);
+  const filteredTotal = filteredBreakdown.length > 0 ? filteredBreakdown.reduce((sum, b) => sum + (b.amount || 0), 0) : (com.amount || 0);
+  const statementPeriod = com.month || com.period || (com.date ? new Date(com.date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement Period');
 
   const rowsHtml = filteredBreakdown.map(b => {
     const inv = agentClients.find(invObj => invObj.clientId === b.clientId || invObj.id === b.clientId || invObj._id === b.clientId);
@@ -205,7 +206,7 @@ function downloadStatementPDF(com, agentName, agentClients = []) {
           </div>
           <div class="meta-item">
             <span class="meta-label">Period:</span>
-            <span class="meta-val">${com.month}</span>
+            <span class="meta-val">${statementPeriod}</span>
           </div>
           <div class="meta-item">
             <span class="meta-label">Payout Date:</span>

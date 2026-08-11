@@ -14,14 +14,34 @@ export default function AssignInvestment() {
   const navigate = useNavigate();
   const addToast = useToast();
   
+  function getCalculatedEndDateStr(startDateStr, periodMonths) {
+    if (!startDateStr) return '';
+    const d = new Date(startDateStr);
+    if (isNaN(d.getTime())) return '';
+    const months = parseInt(periodMonths, 10) || 18;
+    d.setMonth(d.getMonth() + months);
+    return d.toISOString().split('T')[0];
+  }
+
+  function calculateMonthsBetweenDates(startDateStr, endDateStr) {
+    if (!startDateStr || !endDateStr) return 18;
+    const sd = new Date(startDateStr);
+    const ed = new Date(endDateStr);
+    if (isNaN(sd.getTime()) || isNaN(ed.getTime()) || ed <= sd) return 18;
+    const months = (ed.getFullYear() - sd.getFullYear()) * 12 + (ed.getMonth() - sd.getMonth());
+    return months > 0 ? months : 18;
+  }
+
   const [form, setForm] = useState({
     clientId: '',
     amount: '',
     roi: '',
     riskPercentage: '',
     riskLevel: 'Medium',
-    contractPeriod: '',
-    dateOfJoining: new Date().toISOString().split('T')[0]
+    contractPeriod: '18',
+    dateOfJoining: new Date().toISOString().split('T')[0],
+    contractEndDate: getCalculatedEndDateStr(new Date().toISOString().split('T')[0], 18),
+    extendContractDate: ''
   });
 
   const [clients, setClients] = useState([]);
@@ -30,6 +50,7 @@ export default function AssignInvestment() {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedSegments, setSelectedSegments] = useState([]);
   const [allocations, setAllocations] = useState({});
+  const [selectedClientInfo, setSelectedClientInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
 
@@ -44,7 +65,7 @@ export default function AssignInvestment() {
           apiRequest('/api/super-admin/segments').catch(() => null)
         ]);
 
-        // Extract clients list
+        // Extract clients list and sort sequentially by Client ID (KFPL-CL-1001, KFPL-CL-1002...)
         if (clientsRes) {
           let cList = [];
           if (Array.isArray(clientsRes)) {
@@ -56,10 +77,17 @@ export default function AssignInvestment() {
           } else if (clientsRes.clients) {
             cList = clientsRes.clients;
           }
+          if (cList && cList.length > 0) {
+            cList.sort((a, b) => {
+              const codeA = formatClientID(a.user?.clientCode || a.clientCode || a.clientId || '');
+              const codeB = formatClientID(b.user?.clientCode || b.clientCode || b.clientId || '');
+              return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+            });
+          }
           setClients(cList);
         }
 
-        // Extract projects list
+        // Extract projects list and filter out dummy projects (__KFPL_DUMMY__)
         if (projectsRes) {
           let pList = [];
           if (Array.isArray(projectsRes)) {
@@ -70,6 +98,9 @@ export default function AssignInvestment() {
             pList = projectsRes.data;
           } else if (projectsRes.projects) {
             pList = projectsRes.projects;
+          }
+          if (pList && pList.length > 0) {
+            pList = pList.filter(p => p.name && !p.name.includes('__KFPL_DUMMY__') && !p.name.toUpperCase().includes('DUMMY'));
           }
           setProjects(pList);
         }
@@ -101,7 +132,11 @@ export default function AssignInvestment() {
           const storedProjects = localStorage.getItem('kfpl_portfolio_projects');
           if (storedProjects) {
             try {
-              setProjects(JSON.parse(storedProjects));
+              const parsed = JSON.parse(storedProjects);
+              if (Array.isArray(parsed)) {
+                const filtered = parsed.filter(p => p.name && !p.name.includes('__KFPL_DUMMY__') && !p.name.toUpperCase().includes('DUMMY'));
+                setProjects(filtered);
+              }
             } catch (e) { /* ignore */ }
           }
         }
@@ -116,9 +151,46 @@ export default function AssignInvestment() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === 'dateOfJoining' || name === 'contractPeriod') {
+      const newStart = name === 'dateOfJoining' ? value : form.dateOfJoining;
+      const newPeriod = name === 'contractPeriod' ? value : form.contractPeriod;
+      const autoCalculatedEnd = getCalculatedEndDateStr(newStart, newPeriod);
+      setForm(prev => ({
+        ...prev,
+        [name]: value,
+        contractEndDate: autoCalculatedEnd
+      }));
+      return;
+    }
+
+    if (name === 'contractEndDate') {
+      const startStr = form.dateOfJoining;
+      const targetEnd = form.extendContractDate || value;
+      const calcPeriod = calculateMonthsBetweenDates(startStr, targetEnd);
+      setForm(prev => ({
+        ...prev,
+        contractEndDate: value,
+        contractPeriod: String(calcPeriod)
+      }));
+      return;
+    }
+
+    if (name === 'extendContractDate') {
+      const startStr = form.dateOfJoining;
+      const targetEnd = value || form.contractEndDate;
+      const calcPeriod = calculateMonthsBetweenDates(startStr, targetEnd);
+      setForm(prev => ({
+        ...prev,
+        extendContractDate: value,
+        contractPeriod: String(calcPeriod)
+      }));
+      return;
+    }
+
     setForm(prev => ({ ...prev, [name]: value }));
 
-    // Auto-fill ROI and Contract Period when client is selected
+    // Auto-fill ROI and Contract Dates when client is selected
     if (name === 'clientId' && value) {
       const selectedClient = clients.find(c => {
         const cId = c.user?._id || c.user?.id || c._id || c.id;
@@ -131,64 +203,84 @@ export default function AssignInvestment() {
                           selectedClient.roiPercentage || 
                           selectedClient.profile?.roiPercentage || '';
         
-        // Try direct contractPeriod field first
         const p = selectedClient.profile || {};
         const h = selectedClient.header || {};
-        const s = selectedClient.summaryCards || {};
-        const u = (selectedClient.userId && typeof selectedClient.userId === 'object' ? selectedClient.userId : null) || 
-                  (selectedClient.user && typeof selectedClient.user === 'object' ? selectedClient.user : null) || {};
         
-        let clientPeriod = selectedClient.contractPeriod || selectedClient.durationMonths || 
-                           p.contractPeriod || p.durationMonths || 
-                           h.contractPeriod || h.durationMonths ||
-                           s.contractPeriod || s.durationMonths ||
-                           u.contractPeriod || u.durationMonths || '';
-        
-        // If not found, calculate from contractStartDate and contractEndDate
-        if (!clientPeriod) {
-          const startStr = selectedClient.contractStartDate || p.contractStartDate || h.contractStartDate ||
-                           selectedClient.joinDate || p.joinDate || selectedClient.createdAt || p.createdAt || '';
-          const endStr = selectedClient.contractEndDate || p.contractEndDate || h.contractEndDate ||
-                         selectedClient.extendContractDate || p.extendContractDate || 
-                         selectedClient.contractExtendedDate || p.contractExtendedDate || '';
-          if (startStr && endStr) {
-            const sd = new Date(startStr);
-            const ed = new Date(endStr);
-            if (!isNaN(sd.getTime()) && !isNaN(ed.getTime())) {
-              const months = (ed.getFullYear() - sd.getFullYear()) * 12 + (ed.getMonth() - sd.getMonth());
-              if (months > 0) {
-                clientPeriod = months;
-              }
-            }
-          }
-        }
-        
-        // Final fallback: scan all keys for anything matching "period" or "duration"
-        if (!clientPeriod) {
-          const allKeys = Object.keys(selectedClient);
-          for (const key of allKeys) {
-            const lk = key.toLowerCase();
-            if ((lk.includes('period') || lk.includes('duration') || lk.includes('tenure') || lk.includes('month')) && typeof selectedClient[key] === 'number') {
-              clientPeriod = selectedClient[key];
-              break;
-            }
+        // Client contract dates resolution
+        const clientStartDate = selectedClient.contractStartDate || p.contractStartDate || h.contractStartDate ||
+                                selectedClient.joinDate || p.joinDate || selectedClient.createdAt || p.createdAt || '';
+
+        const clientEndDate = selectedClient.contractEndDate || p.contractEndDate || h.contractEndDate || '';
+
+        const clientExtDate = selectedClient.extendContractDate || p.extendContractDate || 
+                              selectedClient.contractExtendedDate || p.contractExtendedDate || '';
+
+        const formattedStartDate = clientStartDate 
+          ? new Date(clientStartDate).toISOString().split('T')[0] 
+          : new Date().toISOString().split('T')[0];
+
+        let formattedEndDate = '';
+        if (clientEndDate && !isNaN(new Date(clientEndDate).getTime())) {
+          const sd = new Date(formattedStartDate);
+          const ed = new Date(clientEndDate);
+          if (ed > sd) {
+            formattedEndDate = ed.toISOString().split('T')[0];
           }
         }
 
-        const updates = { clientId: value };
+        let formattedExtDate = '';
+        if (clientExtDate && !isNaN(new Date(clientExtDate).getTime())) {
+          const sd = new Date(formattedStartDate);
+          const extd = new Date(clientExtDate);
+          if (extd > sd) {
+            formattedExtDate = extd.toISOString().split('T')[0];
+          }
+        }
+
+        if (!formattedEndDate) {
+          formattedEndDate = getCalculatedEndDateStr(formattedStartDate, 18);
+        }
+
+        const targetEndDate = formattedExtDate || formattedEndDate;
+        const calculatedMonths = calculateMonthsBetweenDates(formattedStartDate, targetEndDate);
+
+        const clientDepAmount = Number(selectedClient.totalInvestment || selectedClient.amount || selectedClient.summaryCards?.totalInvestment || p.totalInvestment || 0);
+
+        setSelectedClientInfo({
+          depositAmount: clientDepAmount,
+          name: getClientName(selectedClient)
+        });
+
+        const updates = { 
+          clientId: value,
+          dateOfJoining: formattedStartDate,
+          contractEndDate: formattedEndDate,
+          contractPeriod: String(calculatedMonths),
+          extendContractDate: formattedExtDate
+        };
+
         const autoFilled = [];
+        if (clientDepAmount > 0) {
+          updates.amount = String(clientDepAmount);
+          autoFilled.push(`Amount: ₹${clientDepAmount.toLocaleString('en-IN')}`);
+        } else {
+          updates.amount = '';
+        }
+
+        autoFilled.push(`Start: ${formattedStartDate}`);
+        autoFilled.push(`End: ${formattedEndDate}`);
+        autoFilled.push(`Period: ${calculatedMonths} Months`);
+        if (formattedExtDate) {
+          autoFilled.push(`Extended: ${formattedExtDate}`);
+        }
+
         if (clientRoi) {
           updates.roi = String(clientRoi);
-          autoFilled.push(`ROI ${clientRoi}%`);
+          autoFilled.push(`ROI: ${clientRoi}%`);
         }
-        if (clientPeriod) {
-          updates.contractPeriod = String(clientPeriod);
-          autoFilled.push(`Contract ${clientPeriod} months`);
-        }
-        if (autoFilled.length > 0) {
-          setForm(prev => ({ ...prev, ...updates }));
-          addToast(`${autoFilled.join(', ')} auto-filled from client profile`, 'info', 'Auto-Filled');
-        }
+
+        setForm(prev => ({ ...prev, ...updates }));
+        addToast(`Client info auto-filled: ${autoFilled.join(', ')}`, 'info', 'Auto-Filled');
       }
     }
   };
@@ -395,25 +487,74 @@ export default function AssignInvestment() {
               </div>
             </div>
 
-            <div className="kfpl-form-row">
+            <div className={form.extendContractDate ? "kfpl-form-row-3" : "kfpl-form-row"}>
               <div className="kfpl-input-group">
-                <label className="kfpl-input-label">Date of Joining / Contract Start <span className="required">*</span></label>
+                <label className="kfpl-input-label">Contract Start Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span> <span className="required">*</span></label>
                 <input
                   type="date"
                   className="kfpl-input"
                   name="dateOfJoining"
                   value={form.dateOfJoining}
                   onChange={handleChange}
-                  max={new Date().toISOString().split('T')[0]}
                   required
                 />
               </div>
+              <div className="kfpl-input-group">
+                <label className="kfpl-input-label">Contract End Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span> <span className="required">*</span></label>
+                <input
+                  type="date"
+                  className="kfpl-input"
+                  name="contractEndDate"
+                  value={form.contractEndDate}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              {form.extendContractDate && (
+                <div className="kfpl-input-group">
+                  <label className="kfpl-input-label">Contract Extended Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span></label>
+                  <input
+                    type="date"
+                    className="kfpl-input"
+                    name="extendContractDate"
+                    value={form.extendContractDate}
+                    onChange={handleChange}
+                  />
+                  <span style={{ color: '#3B82F6', fontSize: '0.78rem', fontWeight: 700, marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    Contract extension active
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="kfpl-form-row-3">
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Amount (₹) <span className="required">*</span></label>
-                <input className="kfpl-input" name="amount" type="number" value={form.amount} onChange={handleChange} onWheel={(e) => e.target.blur()} placeholder="Enter amount" required />
+                <input 
+                  className="kfpl-input" 
+                  name="amount" 
+                  type="number" 
+                  value={form.amount} 
+                  onChange={handleChange} 
+                  onWheel={(e) => e.target.blur()} 
+                  placeholder={selectedClientInfo && selectedClientInfo.depositAmount === 0 ? "No capital deposited by client" : "Enter amount"} 
+                  style={selectedClientInfo && selectedClientInfo.depositAmount === 0 ? { borderColor: '#F59E0B', background: 'rgba(245, 158, 11, 0.05)' } : {}}
+                  required 
+                />
+                {selectedClientInfo && (
+                  selectedClientInfo.depositAmount > 0 ? (
+                    <span style={{ color: '#10B981', fontSize: '0.78rem', fontWeight: 700, marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      Capital Deposited: ₹{Number(selectedClientInfo.depositAmount).toLocaleString('en-IN')}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#EF4444', fontSize: '0.78rem', fontWeight: 700, marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      No capital deposited by client (Capital Pending)
+                    </span>
+                  )
+                )}
               </div>
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">ROI % <span className="required">*</span></label>
@@ -421,7 +562,13 @@ export default function AssignInvestment() {
               </div>
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Contract Period (months)</label>
-                <input className="kfpl-input" name="contractPeriod" type="number" value={form.contractPeriod} onChange={handleChange} onWheel={(e) => e.target.blur()} placeholder="e.g. 24" />
+                <input className="kfpl-input" name="contractPeriod" type="number" value={form.contractPeriod} onChange={handleChange} onWheel={(e) => e.target.blur()} placeholder="e.g. 18" />
+                {form.extendContractDate && (
+                  <span style={{ color: '#3B82F6', fontSize: '0.78rem', fontWeight: 700, marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Includes contract extension period
+                  </span>
+                )}
               </div>
             </div>
 

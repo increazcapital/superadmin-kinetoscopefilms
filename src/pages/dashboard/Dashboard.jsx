@@ -15,6 +15,7 @@ import PieChart from '../../components/charts/PieChart';
 import AreaChart from '../../components/charts/AreaChart';
 import Badge from '../../components/ui/Badge';
 import { apiRequest } from '../../config/apiHelper';
+import { getSWRCache, setSWRCache } from '../../utils/swrHelper';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { getAuthUser } from '../../utils/authStorage';
 
@@ -91,27 +92,23 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // --- SWR Cache Initialization for Instant Load (0ms) ---
+    // --- User-Scoped SWR Cache Initialization for Instant Load (0ms) ---
     try {
-      const cacheData = localStorage.getItem('kfpl_super_admin_dashboard_cache');
-      if (cacheData) {
-        const parsed = JSON.parse(cacheData);
-        if (parsed && typeof parsed === 'object') {
-          if (parsed.stats && typeof parsed.stats === 'object') setStats(parsed.stats);
-          if (Array.isArray(parsed.investorsRanked)) setInvestorsRanked(parsed.investorsRanked);
-          if (Array.isArray(parsed.segments)) setSegments(parsed.segments);
-          if (Array.isArray(parsed.investmentStatus)) setInvestmentStatus(parsed.investmentStatus);
-          if (Array.isArray(parsed.investmentFlow)) setInvestmentFlow(parsed.investmentFlow);
-          if (Array.isArray(parsed.agentContribution)) setAgentContribution(parsed.agentContribution);
-          if (Array.isArray(parsed.agentsRanked)) setAgentsRanked(parsed.agentsRanked);
-          if (Array.isArray(parsed.roiTrend)) setRoiTrend(parsed.roiTrend);
-          if (Array.isArray(parsed.activities)) setActivities(parsed.activities);
-          setLoading(false);
-        }
+      const parsed = getSWRCache('sa_dashboard');
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.stats && typeof parsed.stats === 'object') setStats(parsed.stats);
+        if (Array.isArray(parsed.investorsRanked)) setInvestorsRanked(parsed.investorsRanked);
+        if (Array.isArray(parsed.segments)) setSegments(parsed.segments);
+        if (Array.isArray(parsed.investmentStatus)) setInvestmentStatus(parsed.investmentStatus);
+        if (Array.isArray(parsed.investmentFlow)) setInvestmentFlow(parsed.investmentFlow);
+        if (Array.isArray(parsed.agentContribution)) setAgentContribution(parsed.agentContribution);
+        if (Array.isArray(parsed.agentsRanked)) setAgentsRanked(parsed.agentsRanked);
+        if (Array.isArray(parsed.roiTrend)) setRoiTrend(parsed.roiTrend);
+        if (Array.isArray(parsed.activities)) setActivities(parsed.activities);
+        setLoading(false);
       }
     } catch (e) {
       console.warn('Failed to parse super admin dashboard cache:', e);
-      localStorage.removeItem('kfpl_super_admin_dashboard_cache');
     }
 
     const fetchDashboard = async () => {
@@ -565,7 +562,7 @@ export default function Dashboard() {
             return copy;
           }) : list;
 
-          localStorage.setItem('kfpl_super_admin_dashboard_cache', JSON.stringify({
+          setSWRCache('sa_dashboard', {
             stats: freshStats,
             investorsRanked: sanitizeList(computedInvestors),
             segments: computedSegments.length > 0 ? computedSegments : (data.segments || []),
@@ -575,7 +572,7 @@ export default function Dashboard() {
             agentsRanked: sanitizeList(computedAgentsRanked),
             roiTrend: computedRoiTrend,
             activities: mappedActivities
-          }));
+          });
         } catch (_) {}
 
       } catch (err) {

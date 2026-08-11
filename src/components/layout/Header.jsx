@@ -31,6 +31,33 @@ const routeConfig = {
   '/settings': { title: 'Settings', breadcrumb: 'Operations' },
 };
 
+const navigationPages = [
+  { title: 'Dashboard Overview', path: '/dashboard', category: 'Page', desc: 'Platform overview, KPIs, total investors, active investments & monthly trends', keywords: ['dashboard', 'overview', 'analytics', 'home', 'kpis', 'metrics', 'welcome back', 'total investment', 'total investors', 'roi paid', 'active investments', 'pending approvals'] },
+  { title: 'Manage Clients', path: '/investors', category: 'Page', desc: 'View, filter, edit & manage all registered investor clients', keywords: ['clients', 'client', 'investors', 'investor', 'manage clients', 'customers', 'client list', 'client code'] },
+  { title: 'Add New Client', path: '/investors/add', category: 'Page', desc: 'Onboard and register a new client profile with initial capital', keywords: ['add client', 'create client', 'new client', 'register client', 'onboard client'] },
+  { title: 'Manage Agents', path: '/agents', category: 'Page', desc: 'View agent network, manage agent profiles & commission rates', keywords: ['agents', 'agent', 'broker', 'manage agents', 'sub-agent', 'agent code', 'agent list', 'commission'] },
+  { title: 'Add New Agent', path: '/agents/add', category: 'Page', desc: 'Onboard and register a new agent partner', keywords: ['add agent', 'create agent', 'new agent', 'register agent', 'onboard agent'] },
+  { title: 'Manage Investments', path: '/investments', category: 'Page', desc: 'View and assign client capital investments', keywords: ['investments', 'investment', 'manage investments', 'capital', 'funds', 'unallocated capital', 'allocated capital', 'active investments'] },
+  { title: 'Assign Investment', path: '/investments/assign', category: 'Page', desc: 'Allocate client capital to specific film projects & segments', keywords: ['assign investment', 'allocate investment', 'project assign', 'assign capital', 'new investment'] },
+  { title: 'Investment Status', path: '/investment-status', category: 'Page', desc: 'Track active vs unallocated capital allocations & project links', keywords: ['investment status', 'status of investment', 'unallocated', 'allocated', 'capital status', 'active investments', 'status'] },
+  { title: 'Transaction & ROI Details', path: '/roi', category: 'Page', desc: 'Track monthly ROI returns, payouts & ledger entries', keywords: ['transaction details', 'complete transaction details', 'roi', 'roi paid', 'monthly returns', 'payout', 'ledger', 'payouts', 'transactions'] },
+  { title: 'Portfolio Management', path: '/portfolio', category: 'Page', desc: 'Film fund projects, segments, target funding & performance', keywords: ['portfolio', 'portfolio management', 'projects', 'project', 'film fund', 'media fund', 'segments', 'segment', 'target funding', 'min investment'] },
+  { title: 'Perks & Recognition', path: '/perks', category: 'Page', desc: 'Investor loyalty perks, reward tiers & milestones', keywords: ['perks', 'perk', 'perks & recognition', 'recognition', 'rewards', 'reward', 'loyalty', 'tier', 'milestones'] },
+  { title: 'Deposit & Withdrawal Approvals', path: '/approvals', category: 'Page', desc: 'Review & approve pending deposit and withdrawal requests', keywords: ['approvals', 'approval', 'deposit', 'withdrawal', 'pending approvals', 'money deposit', 'payout approval', 'receipt', 'pending'] },
+  { title: 'Approval History', path: '/approvals/history', category: 'Page', desc: 'Audit trail of past approved & rejected financial requests', keywords: ['approval history', 'passed approvals', 'rejected approvals', 'history', 'logs', 'audit'] },
+  { title: 'Client Portal Hub', path: '/portals/client', category: 'Page', desc: 'Manage client portal login credentials, passwords & access', keywords: ['client portal', 'client portal hub', 'portal credentials', 'client login credentials', 'credentials', 'password', 'copy credentials', 'mock'] },
+  { title: 'Agent Portal Hub', path: '/portals/agent', category: 'Page', desc: 'Manage agent portal login credentials, passwords & access', keywords: ['agent portal', 'agent portal hub', 'agent login credentials', 'agent credentials', 'agent login', 'credentials'] },
+  { title: 'Email Notifications', path: '/email-notifications', category: 'Page', desc: 'Configure automated system emails, triggers & templates', keywords: ['email', 'notifications', 'email notifications', 'templates', 'auto triggers', 'smtp', 'mail'] },
+  { title: 'Service Requests', path: '/service-requests', category: 'Page', desc: 'Manage client & agent support tickets, queries & issues', keywords: ['service requests', 'recent service requests', 'support tickets', 'queries', 'query', 'tickets', 'support'] },
+  { title: 'News & Media Control', path: '/news-media', category: 'Page', desc: 'Publish and manage press releases, news & media articles', keywords: ['news', 'media', 'news & media', 'news media', 'press', 'articles', 'article', 'heading', 'upload news', 'news article', 'press release'] },
+  { title: 'Add News Article', path: '/news-media/add', category: 'Page', desc: 'Create and publish a new press release or article', keywords: ['add news', 'create news', 'publish article', 'upload article', 'new article'] },
+  { title: 'FAQ Control Board', path: '/faq', category: 'Page', desc: 'Manage help questions, answers & portal knowledge base', keywords: ['faq', 'faqs', 'faq control board', 'questions', 'answers', 'how to update', 'help', 'knowledge base', 'guide'] },
+  { title: 'Sub-Admin Management', path: '/sub-admins', category: 'Page', desc: 'Manage sub-admin accounts, roles & granular permissions', keywords: ['sub admin', 'sub-admins', 'sub admin management', 'rbac', 'staff', 'admin permissions', 'roles', 'team'] },
+  { title: 'Settings', path: '/settings', category: 'Page', desc: 'Platform configuration, system defaults & security', keywords: ['settings', 'system settings', 'general settings', 'platform settings', 'config'] },
+  { title: 'Commission Slabs Config', path: '/settings/commission-slabs', category: 'Page', desc: 'Configure agent commission tiers, percentages & slabs', keywords: ['commission slab', 'commission slabs', 'commission config', 'agent commission', 'commission percentage', 'slabs', 'slab'] },
+  { title: 'Rewards Configuration', path: '/settings/rewards', category: 'Page', desc: 'Configure milestone reward bonuses & perk thresholds', keywords: ['reward config', 'rewards config', 'rewards configuration', 'perk rewards', 'agent rewards', 'reward slabs'] },
+];
+
 function getPageConfig(pathname) {
   if (routeConfig[pathname]) return routeConfig[pathname];
   if (pathname.match(/^\/investors\/\d+\/edit/)) return { title: 'Edit Client', breadcrumb: 'Client & Agent / Clients' };
@@ -56,8 +83,13 @@ export default function Header({ isCollapsed, onMenuClick }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [clientsList, setClientsList] = useState([]);
   const [agentsList, setAgentsList] = useState([]);
+  const [rawProjectsList, setRawProjectsList] = useState([]);
+  const [rawArticlesList, setRawArticlesList] = useState([]);
+  const [rawRequestsList, setRawRequestsList] = useState([]);
   const [faqsList, setFaqsList] = useState([]);
-  const [searchResults, setSearchResults] = useState({ clients: [], agents: [], faqs: [] });
+  const [rawDepositsList, setRawDepositsList] = useState([]);
+  const [rawWithdrawalsList, setRawWithdrawalsList] = useState([]);
+  const [searchResults, setSearchResults] = useState({ pages: [], clients: [], agents: [], projects: [], articles: [], requests: [], faqs: [], transactions: [] });
 
   // Notifications states (onboarded clients & agents)
   const [notifications, setNotifications] = useState([]);
@@ -66,6 +98,7 @@ export default function Header({ isCollapsed, onMenuClick }) {
   // Service requests state
   const [requestsList, setRequestsList] = useState([]);
   const [hasUnreadRequests, setHasUnreadRequests] = useState(false);
+  const [unreadRequestsCount, setUnreadRequestsCount] = useState(0);
 
   // Refs for click-away detection
   const profileRef = useRef(null);
@@ -94,12 +127,18 @@ export default function Header({ isCollapsed, onMenuClick }) {
       const canViewClients = isSuperAdminUser || !!perms?.manageClients?.view;
       const canViewAgents = isSuperAdminUser || !!perms?.manageAgents?.view;
       const canViewRequests = isSuperAdminUser || !!perms?.serviceRequests?.view;
+      const canViewApprovals = isSuperAdminUser || !!perms?.depositWithdrawal?.view;
 
-      // 1. Fetch Clients, Agents, and Service Requests concurrently using Promise.all
-      const [clientsData, agentsData, requestsData] = await Promise.all([
+      // 1. Fetch Clients, Agents, Service Requests, Deposits, Withdrawals, Projects, Articles, and FAQs concurrently
+      const [clientsData, agentsData, requestsData, depositsData, withdrawalsData, projectsData, articlesData, faqsData] = await Promise.all([
         canViewClients ? apiRequest('/api/super-admin/clients').catch(() => []) : Promise.resolve([]),
         canViewAgents ? apiRequest('/api/super-admin/agents').catch(() => []) : Promise.resolve([]),
-        canViewRequests ? apiRequest('/api/super-admin/service-requests').catch(() => []) : Promise.resolve([])
+        canViewRequests ? apiRequest('/api/super-admin/service-requests').catch(() => []) : Promise.resolve([]),
+        canViewApprovals ? apiRequest('/api/super-admin/transactions/approvals?type=deposit&limit=100').catch(() => ({ queue: [] })) : Promise.resolve({ queue: [] }),
+        canViewApprovals ? apiRequest('/api/super-admin/transactions/approvals?type=withdrawal&limit=100').catch(() => ({ queue: [] })) : Promise.resolve({ queue: [] }),
+        apiRequest('/api/super-admin/projects').catch(() => []),
+        apiRequest('/api/super-admin/articles').catch(() => []),
+        apiRequest('/api/super-admin/faqs').catch(() => []),
       ]);
       
       const extractClients = (res) => {
@@ -124,58 +163,176 @@ export default function Header({ isCollapsed, onMenuClick }) {
         return [];
       };
 
+      const extractQueue = (res) => {
+        if (!res) return [];
+        const data = res.data || res;
+        if (Array.isArray(data)) return data;
+        if (data.transactions && Array.isArray(data.transactions)) return data.transactions;
+        if (data.queue && Array.isArray(data.queue)) return data.queue;
+        return [];
+      };
+
+      const extractList = (res) => {
+        if (!res) return [];
+        if (Array.isArray(res)) return res;
+        if (res.data) {
+          if (Array.isArray(res.data)) return res.data;
+          if (res.data.projects && Array.isArray(res.data.projects)) return res.data.projects;
+          if (res.data.articles && Array.isArray(res.data.articles)) return res.data.articles;
+          if (res.data.faqs && Array.isArray(res.data.faqs)) return res.data.faqs;
+        }
+        if (res.projects && Array.isArray(res.projects)) return res.projects;
+        if (res.articles && Array.isArray(res.articles)) return res.articles;
+        if (res.faqs && Array.isArray(res.faqs)) return res.faqs;
+        return [];
+      };
+
       const clients = extractClients(clientsData);
       const agents = extractAgents(agentsData);
+      const deposits = extractQueue(depositsData);
+      const withdrawals = extractQueue(withdrawalsData);
+      const projectsList = extractList(projectsData);
+      const articlesList = extractList(articlesData);
+      const faqsListFetched = extractList(faqsData);
+
+      let reqs = [];
+      if (Array.isArray(requestsData)) {
+        reqs = requestsData;
+      } else if (requestsData) {
+        reqs = requestsData.data?.requests || requestsData.requests || requestsData.serviceRequests || (Array.isArray(requestsData.data) ? requestsData.data : []) || [];
+      }
 
       setClientsList(clients);
       setAgentsList(agents);
+      setRawProjectsList(projectsList);
+      setRawArticlesList(articlesList);
+      setRawRequestsList(reqs);
+      setFaqsList(faqsListFetched);
+      setRawDepositsList(deposits);
+      setRawWithdrawalsList(withdrawals);
 
-      // Create a list of notification events sorted by date
+      // Create a unified list of notification events sorted by date
       const notifyList = [];
-      clients.forEach(c => {
-        if (c.createdAt || c.id) {
+
+      // Pending Deposits
+      deposits.forEach(d => {
+        if ((d.status || 'pending').toLowerCase() === 'pending') {
+          const clientDisplayName = d.investorName || d.clientName || (d.clientId ? d.clientId.name : '') || d.clientCode || 'Client';
           notifyList.push({
-            id: 'c-' + c.id,
-            type: 'client',
-            name: c.fullName || c.name || 'New Client',
-            email: c.email,
-            date: c.createdAt ? new Date(c.createdAt) : new Date(),
-            link: `/investors/${c.id}`
+            id: 'dep-' + (d._id || d.id),
+            type: 'deposit',
+            title: 'Deposit Approval Needed',
+            name: `${clientDisplayName} — ₹${Number(d.amount || 0).toLocaleString('en-IN')}`,
+            email: d.paymentMethod ? `Method: ${d.paymentMethod}` : 'Pending Deposit',
+            date: d.createdAt || d.actionAt ? new Date(d.createdAt || d.actionAt) : new Date(),
+            link: '/approvals'
           });
         }
       });
 
-      agents.forEach(a => {
-        if (a.createdAt || a.id) {
+      // Pending Withdrawals
+      withdrawals.forEach(w => {
+        if ((w.status || 'pending').toLowerCase() === 'pending') {
+          const clientDisplayName = w.investorName || w.clientName || (w.clientId ? w.clientId.name : '') || w.clientCode || 'Client';
           notifyList.push({
-            id: 'a-' + a.id,
-            type: 'agent',
-            name: a.name || a.fullName || 'New Agent',
-            email: a.email,
-            date: a.createdAt ? new Date(a.createdAt) : new Date(),
-            link: `/agents/${a.id}`
+            id: 'with-' + (w._id || w.id),
+            type: 'withdrawal',
+            title: 'Withdrawal Request',
+            name: `${clientDisplayName} — ₹${Number(w.amount || 0).toLocaleString('en-IN')}`,
+            email: w.paymentMethod ? `Method: ${w.paymentMethod}` : 'Pending Withdrawal',
+            date: w.createdAt || w.actionAt ? new Date(w.createdAt || w.actionAt) : new Date(),
+            link: '/approvals'
           });
         }
       });
+
+      // Service Requests are shown ONLY in the Chat Icon dropdown, NOT in the Bell Icon dropdown
+
+      // Client Onboarding & KYC Review
+      clients.forEach(c => {
+        const cDate = c.createdAt ? new Date(c.createdAt) : null;
+        if (cDate && (Date.now() - cDate.getTime() < 7 * 24 * 60 * 60 * 1000)) {
+          notifyList.push({
+            id: 'c-' + (c._id || c.id),
+            type: 'client',
+            title: 'New Client Onboarded',
+            name: c.fullName || c.name || 'New Client',
+            email: c.email || c.clientCode || '',
+            date: cDate,
+            link: `/investors/${c._id || c.id}`
+          });
+        }
+        if (c.kycStatus === 'Pending' || c.kycStatus === 'submitted' || c.kycStatus === 'Submitted') {
+          notifyList.push({
+            id: 'kyc-c-' + (c._id || c.id),
+            type: 'kyc',
+            title: 'Client KYC Under Review',
+            name: c.fullName || c.name || 'Client KYC',
+            email: 'Verification Pending',
+            date: c.updatedAt || c.createdAt ? new Date(c.updatedAt || c.createdAt) : new Date(),
+            link: `/investors/${c._id || c.id}`
+          });
+        }
+      });
+
+      // Agent Onboarding & KYC Review
+      agents.forEach(a => {
+        const aDate = a.createdAt ? new Date(a.createdAt) : null;
+        if (aDate && (Date.now() - aDate.getTime() < 7 * 24 * 60 * 60 * 1000)) {
+          notifyList.push({
+            id: 'a-' + (a._id || a.id),
+            type: 'agent',
+            title: 'New Agent Onboarded',
+            name: a.name || a.fullName || 'New Agent',
+            email: a.email || a.code || '',
+            date: aDate,
+            link: `/agents/${a._id || a.id}`
+          });
+        }
+        if (a.kycStatus === 'Pending' || a.kycStatus === 'submitted' || a.kycStatus === 'Submitted') {
+          notifyList.push({
+            id: 'kyc-a-' + (a._id || a.id),
+            type: 'kyc',
+            title: 'Agent KYC Under Review',
+            name: a.name || a.fullName || 'Agent KYC',
+            email: 'Verification Pending',
+            date: a.updatedAt || a.createdAt ? new Date(a.updatedAt || a.createdAt) : new Date(),
+            link: `/agents/${a._id || a.id}`
+          });
+        }
+      });
+
+      // Projects and Articles notifications are intended for Client & Agent portals, not Super Admin self-notifications
 
       // Sort notification list: latest first
       notifyList.sort((a, b) => b.date - a.date);
 
-      // Read read status from localStorage
+      // Read read & cleared status from localStorage
       let readIds = [];
+      let clearedIds = [];
       let lastReadTime = 0;
       try {
         const storedReadIds = localStorage.getItem('kfpl_read_notifications');
         readIds = storedReadIds ? JSON.parse(storedReadIds) : [];
+        const storedClearedIds = localStorage.getItem('kfpl_cleared_notifications');
+        clearedIds = storedClearedIds ? JSON.parse(storedClearedIds) : [];
         const storedLastRead = localStorage.getItem('kfpl_notifications_last_read');
         lastReadTime = storedLastRead ? parseInt(storedLastRead, 10) : 0;
       } catch (e) {
         console.error('Error loading notification read state:', e);
       }
 
-      const formattedNotifications = notifyList.slice(0, 15).map(n => {
-        const itemTime = n.date ? n.date.getTime() : 0;
-        const isRead = readIds.includes(n.id) || (lastReadTime > 0 && itemTime <= lastReadTime);
+      const activeNotifyList = notifyList.filter(n => !clearedIds.includes(n.id));
+
+      const formattedNotifications = activeNotifyList.slice(0, 20).map(n => {
+        const isActionItem = n.type === 'deposit' || n.type === 'withdrawal' || n.type === 'service';
+        let isRead = false;
+        if (isActionItem) {
+          isRead = readIds.includes(n.id);
+        } else {
+          const itemTime = n.date ? n.date.getTime() : 0;
+          isRead = readIds.includes(n.id) || (lastReadTime > 0 && itemTime <= lastReadTime);
+        }
         return { ...n, isRead };
       });
 
@@ -183,18 +340,15 @@ export default function Header({ isCollapsed, onMenuClick }) {
       setUnreadNotifications(formattedNotifications.filter(n => !n.isRead).length);
 
       // 2. Process Service Requests for the chat bubble
-      let reqs = [];
-      if (Array.isArray(requestsData)) {
-        reqs = requestsData;
-      } else if (requestsData) {
-        reqs = requestsData.data?.requests || requestsData.requests || requestsData.serviceRequests || (Array.isArray(requestsData.data) ? requestsData.data : []) || [];
-      }
-      
       // Sort: latest requests first and slice 5
       const sortedReqs = [...reqs].sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0));
       setRequestsList(sortedReqs.slice(0, 5));
 
-      const openCount = reqs.filter(r => (r.status || '').toUpperCase() === 'OPEN' || r.status === 'Open').length;
+      const openCount = reqs.filter(r => {
+        const st = (r.status || '').toUpperCase();
+        return st === 'OPEN' || st === 'PENDING' || st === 'IN PROGRESS' || st === 'IN_PROGRESS';
+      }).length;
+
       let lastReadReqTime = 0;
       let isRequestsViewed = false;
       try {
@@ -207,17 +361,13 @@ export default function Header({ isCollapsed, onMenuClick }) {
 
       if (openCount > 0 && !isRequestsViewed && (lastReadReqTime === 0 || newestReqTime > lastReadReqTime)) {
         setHasUnreadRequests(true);
+        setUnreadRequestsCount(openCount);
       } else {
         setHasUnreadRequests(false);
+        setUnreadRequestsCount(0);
       }
 
-      // 3. Load FAQs from localStorage
-      try {
-        const storedFaqs = localStorage.getItem('kfpl_faqs');
-        setFaqsList(storedFaqs ? JSON.parse(storedFaqs) : []);
-      } catch {
-        setFaqsList([]);
-      }
+      // FAQs are fetched directly from MongoDB via API
 
     } catch (e) {
       console.error('Error fetching header metrics', e);
@@ -233,7 +383,26 @@ export default function Header({ isCollapsed, onMenuClick }) {
       console.error('Failed to save service request read state:', e);
     }
     setHasUnreadRequests(false);
+    setUnreadRequestsCount(0);
     window.dispatchEvent(new Event('serviceRequestsUpdated'));
+  };
+
+  const clearAllNotifications = () => {
+    try {
+      const allIds = notifications.map(n => n.id);
+      let clearedIds = [];
+      try {
+        const stored = localStorage.getItem('kfpl_cleared_notifications');
+        clearedIds = stored ? JSON.parse(stored) : [];
+      } catch (e) {}
+      const updatedCleared = Array.from(new Set([...clearedIds, ...allIds]));
+      localStorage.setItem('kfpl_cleared_notifications', JSON.stringify(updatedCleared));
+      localStorage.setItem('kfpl_notifications_cleared', 'true');
+    } catch (e) {
+      console.error('Failed to clear notifications:', e);
+    }
+    setNotifications([]);
+    setUnreadNotifications(0);
   };
 
   const markAllNotificationsAsRead = () => {
@@ -279,9 +448,17 @@ export default function Header({ isCollapsed, onMenuClick }) {
 
   useEffect(() => {
     fetchHeaderData();
-    // Listen for custom trigger updates to refresh count
+    const interval = setInterval(() => {
+      fetchHeaderData();
+    }, 5000);
+
     window.addEventListener('serviceRequestsUpdated', fetchHeaderData);
-    return () => window.removeEventListener('serviceRequestsUpdated', fetchHeaderData);
+    window.addEventListener('approvalsUpdated', fetchHeaderData);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('serviceRequestsUpdated', fetchHeaderData);
+      window.removeEventListener('approvalsUpdated', fetchHeaderData);
+    };
   }, []);
 
   // Handle click outside to close dropdowns
@@ -306,38 +483,75 @@ export default function Header({ isCollapsed, onMenuClick }) {
     };
   }, []);
 
-  // Universal Search Handler
+  // Universal Search Handler (Multi-token + direct substring matching)
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setSearchResults({ clients: [], agents: [], faqs: [] });
+      setSearchResults({ pages: [], clients: [], agents: [], projects: [], articles: [], requests: [], faqs: [], transactions: [] });
       return;
     }
-    const query = searchQuery.toLowerCase();
 
+    const rawQuery = searchQuery.toLowerCase().trim();
+    const queryTokens = rawQuery.split(/\s+/).filter(Boolean);
+
+    // Helper: Returns true if query substring matches or ALL tokens match any text field
+    const isMatch = (targetText, extraFields = []) => {
+      const combined = [targetText, ...extraFields].filter(Boolean).join(' ').toLowerCase();
+      if (combined.includes(rawQuery)) return true;
+      return queryTokens.every(token => combined.includes(token));
+    };
+
+    // 1. Navigation Pages
+    const matchedPages = navigationPages.filter(p =>
+      isMatch(p.title, [p.desc, ...(p.keywords || [])])
+    ).slice(0, 5);
+
+    // 2. Clients
     const matchedClients = clientsList.filter(c => 
-      (c.fullName || c.name || '').toLowerCase().includes(query) ||
-      (c.email || '').toLowerCase().includes(query) ||
-      (c.phone || '').toLowerCase().includes(query)
+      isMatch(c.fullName || c.name || '', [c.email, c.phone, c.clientCode, String(c.totalInvestment || '')])
     ).slice(0, 5);
 
+    // 3. Agents
     const matchedAgents = agentsList.filter(a => 
-      (a.name || a.fullName || '').toLowerCase().includes(query) ||
-      (a.email || '').toLowerCase().includes(query) ||
-      (a.phone || '').toLowerCase().includes(query) ||
-      (a.agentId || a.code || '').toLowerCase().includes(query)
+      isMatch(a.name || a.fullName || '', [a.email, a.phone, a.agentId, a.code, String(a.totalBusiness || '')])
     ).slice(0, 5);
 
-    const matchedFaqs = faqsList.filter(f => 
-      (f.question || '').toLowerCase().includes(query) ||
-      (f.answer || '').toLowerCase().includes(query)
+    // 4. Projects & Segments
+    const matchedProjects = (rawProjectsList || []).filter(p =>
+      isMatch(p.name || '', [p.segment, p.description, String(p.minInvestment || ''), String(p.targetFunding || ''), p.status])
+    ).slice(0, 5);
+
+    // 5. News & Media Articles
+    const matchedArticles = (rawArticlesList || []).filter(art =>
+      isMatch(art.title || art.heading || '', [art.heading, art.title, art.category, art.summary, art.content, art.author, art.status])
+    ).slice(0, 5);
+
+    // 6. Service Requests
+    const matchedRequests = (rawRequestsList || []).filter(r =>
+      isMatch(r.requestId || '', [r.category, r.subject, r.type, r.clientName, r.clientCode, r.createdBy?.name, r.status])
+    ).slice(0, 5);
+
+    // 7. FAQs
+    const matchedFaqs = (faqsList || []).filter(f => 
+      isMatch(f.question || '', [f.answer, f.category, f.targetPortal])
+    ).slice(0, 5);
+
+    // 8. Transactions & Amounts
+    const allTxs = [...rawDepositsList, ...rawWithdrawalsList];
+    const matchedTxs = allTxs.filter(t =>
+      isMatch(String(t.amount || ''), [t.investorName, t.clientName, t.clientCode, t.type, t.paymentMethod, t.referenceNumber, t.status])
     ).slice(0, 5);
 
     setSearchResults({
+      pages: matchedPages,
       clients: matchedClients,
       agents: matchedAgents,
-      faqs: matchedFaqs
+      projects: matchedProjects,
+      articles: matchedArticles,
+      requests: matchedRequests,
+      faqs: matchedFaqs,
+      transactions: matchedTxs
     });
-  }, [searchQuery, clientsList, agentsList, faqsList]);
+  }, [searchQuery, clientsList, agentsList, rawProjectsList, rawArticlesList, rawRequestsList, faqsList, rawDepositsList, rawWithdrawalsList]);
 
   const handleLogout = async () => {
     const token = getAuthToken();
@@ -470,7 +684,7 @@ export default function Header({ isCollapsed, onMenuClick }) {
                   </svg>
                   <input
                     type="text"
-                    placeholder="Search Clients, Agents, FAQs..."
+                    placeholder="Search Pages, Clients, Agents, Projects, News, FAQs..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="kfpl-input"
@@ -479,28 +693,48 @@ export default function Header({ isCollapsed, onMenuClick }) {
                   />
                 </div>
               </div>
-              <div className="kfpl-header-dropdown-body" style={{ maxHeight: '360px' }}>
+              <div className="kfpl-header-dropdown-body" style={{ maxHeight: '380px' }}>
                 {!searchQuery.trim() ? (
                   <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.825rem' }}>
-                    <p style={{ margin: 0, fontWeight: 600 }}>Universal Search Console</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.75rem' }}>Type client name, email, agent code, or FAQ keyword to find records instantly.</p>
+                    <p style={{ margin: 0, fontWeight: 600 }}>Universal Console Search</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.75rem' }}>Search pages, clients, agents, projects, news articles, FAQs, or request IDs.</p>
                   </div>
                 ) : (
                   <>
+                    {/* Navigation Pages Section */}
+                    {searchResults.pages && searchResults.pages.length > 0 && (
+                      <div>
+                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#2563eb', letterSpacing: '0.5px' }}>Pages & Views ({searchResults.pages.length})</div>
+                        {searchResults.pages.map((pg, idx) => (
+                          <div 
+                            key={'spg-' + idx} 
+                            className="kfpl-dropdown-list-item"
+                            onClick={() => { navigate(pg.path); setShowSearchDropdown(false); }}
+                          >
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb' }}></span>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-navy)' }}>{pg.title}</span>
+                              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{pg.desc}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Clients Section */}
                     {searchResults.clients.length > 0 && (
                       <div>
-                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.5px' }}>Clients</div>
+                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#0284c7', letterSpacing: '0.5px' }}>Clients ({searchResults.clients.length})</div>
                         {searchResults.clients.map(c => (
                           <div 
-                            key={c.id} 
+                            key={'sc-' + (c._id || c.id)} 
                             className="kfpl-dropdown-list-item"
-                            onClick={() => { navigate(`/investors/${c.id}`); setShowSearchDropdown(false); }}
+                            onClick={() => { navigate(`/investors/${c._id || c.id}`); setShowSearchDropdown(false); }}
                           >
                             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-emerald)' }}></span>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-navy)' }}>{c.fullName || c.name}</span>
-                              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{c.email} • {c.phone}</span>
+                              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{c.clientCode ? `${c.clientCode} • ` : ''}{c.email}</span>
                             </div>
                           </div>
                         ))}
@@ -510,12 +744,12 @@ export default function Header({ isCollapsed, onMenuClick }) {
                     {/* Agents Section */}
                     {searchResults.agents.length > 0 && (
                       <div>
-                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.5px' }}>Agents</div>
+                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#d97706', letterSpacing: '0.5px' }}>Agents ({searchResults.agents.length})</div>
                         {searchResults.agents.map(a => (
                           <div 
-                            key={a.id} 
+                            key={'sa-' + (a._id || a.id)} 
                             className="kfpl-dropdown-list-item"
-                            onClick={() => { navigate(`/agents/${a.id}`); setShowSearchDropdown(false); }}
+                            onClick={() => { navigate(`/agents/${a._id || a.id}`); setShowSearchDropdown(false); }}
                           >
                             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-gold)' }}></span>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -527,13 +761,93 @@ export default function Header({ isCollapsed, onMenuClick }) {
                       </div>
                     )}
 
-                    {/* FAQs Section */}
-                    {searchResults.faqs.length > 0 && (
+                    {/* Projects Section */}
+                    {searchResults.projects && searchResults.projects.length > 0 && (
                       <div>
-                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.5px' }}>FAQs</div>
+                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#059669', letterSpacing: '0.5px' }}>Projects & Funds ({searchResults.projects.length})</div>
+                        {searchResults.projects.map(p => (
+                          <div 
+                            key={'sp-' + (p._id || p.id)} 
+                            className="kfpl-dropdown-list-item"
+                            onClick={() => { navigate('/projects'); setShowSearchDropdown(false); }}
+                          >
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669' }}></span>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-navy)' }}>{p.name}</span>
+                              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Segment: {p.segment || 'Film Fund'}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* News & Media Section */}
+                    {searchResults.articles && searchResults.articles.length > 0 && (
+                      <div>
+                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#0284c7', letterSpacing: '0.5px' }}>News & Articles ({searchResults.articles.length})</div>
+                        {searchResults.articles.map(art => (
+                          <div 
+                            key={'sart-' + (art._id || art.id)} 
+                            className="kfpl-dropdown-list-item"
+                            onClick={() => { navigate('/news-media'); setShowSearchDropdown(false); }}
+                          >
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0284c7' }}></span>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-navy)' }}>{art.title || art.heading}</span>
+                              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Category: {art.category || 'Press'}{art.summary ? ` • ${art.summary.substring(0, 45)}...` : ''}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Transactions & Amounts Section */}
+                    {searchResults.transactions && searchResults.transactions.length > 0 && (
+                      <div>
+                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#16a34a', letterSpacing: '0.5px' }}>Transactions & Amounts ({searchResults.transactions.length})</div>
+                        {searchResults.transactions.map((tx, idx) => (
+                          <div 
+                            key={'stx-' + (tx._id || tx.id || idx)} 
+                            className="kfpl-dropdown-list-item"
+                            onClick={() => { navigate('/approvals'); setShowSearchDropdown(false); }}
+                          >
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a' }}></span>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-navy)' }}>₹{tx.amount?.toLocaleString('en-IN') || tx.amount} • {(tx.type || 'Transaction').toUpperCase()}</span>
+                              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Client: {tx.investorName || tx.clientName || tx.clientCode || 'Investor'} • Ref: {tx.referenceNumber || tx.paymentMethod || 'N/A'}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Service Requests Section */}
+                    {searchResults.requests && searchResults.requests.length > 0 && (
+                      <div>
+                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#7c3aed', letterSpacing: '0.5px' }}>Service Requests ({searchResults.requests.length})</div>
+                        {searchResults.requests.map(r => (
+                          <div 
+                            key={'srq-' + (r._id || r.id)} 
+                            className="kfpl-dropdown-list-item"
+                            onClick={() => { navigate('/service-requests'); setShowSearchDropdown(false); }}
+                          >
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#7c3aed' }}></span>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-navy)' }}>{r.category || r.subject || r.type || 'Request'}</span>
+                              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Client: {r.clientName || r.clientCode || 'User'} • Status: {r.status || 'OPEN'}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* FAQs Section */}
+                    {searchResults.faqs && searchResults.faqs.length > 0 && (
+                      <div>
+                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#a855f7', letterSpacing: '0.5px' }}>FAQs ({searchResults.faqs.length})</div>
                         {searchResults.faqs.map(f => (
                           <div 
-                            key={f.id} 
+                            key={'sf-' + (f.id || f._id)} 
                             className="kfpl-dropdown-list-item"
                             onClick={() => { navigate('/faq'); setShowSearchDropdown(false); }}
                           >
@@ -548,7 +862,14 @@ export default function Header({ isCollapsed, onMenuClick }) {
                     )}
 
                     {/* No matches */}
-                    {searchResults.clients.length === 0 && searchResults.agents.length === 0 && searchResults.faqs.length === 0 && (
+                    {(!searchResults.pages || searchResults.pages.length === 0) &&
+                     (!searchResults.clients || searchResults.clients.length === 0) &&
+                     (!searchResults.agents || searchResults.agents.length === 0) &&
+                     (!searchResults.projects || searchResults.projects.length === 0) &&
+                     (!searchResults.articles || searchResults.articles.length === 0) &&
+                     (!searchResults.transactions || searchResults.transactions.length === 0) &&
+                     (!searchResults.requests || searchResults.requests.length === 0) &&
+                     (!searchResults.faqs || searchResults.faqs.length === 0) && (
                       <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.825rem' }}>
                         No matches found for "{searchQuery}"
                       </div>
@@ -570,9 +891,6 @@ export default function Header({ isCollapsed, onMenuClick }) {
               setShowSearchDropdown(false);
               setShowRequestDropdown(false);
               setShowProfileDropdown(false);
-              if (nextState) {
-                markAllNotificationsAsRead();
-              }
             }}
             aria-label="Notifications"
           >
@@ -590,62 +908,99 @@ export default function Header({ isCollapsed, onMenuClick }) {
           {showNotificationDropdown && (
             <div className="kfpl-header-dropdown-card">
               <div className="kfpl-header-dropdown-header">
-                <span className="kfpl-header-dropdown-title">Onboarding Alerts</span>
+                <span className="kfpl-header-dropdown-title">System & Platform Alerts</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.725rem', color: 'var(--color-emerald)', fontWeight: 700 }}>New Registrations</span>
                   {notifications.some(n => !n.isRead) && (
                     <button 
                       onClick={(e) => { e.stopPropagation(); markAllNotificationsAsRead(); }}
-                      style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.725rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                      style={{ background: 'none', border: 'none', color: '#10B981', fontSize: '0.725rem', cursor: 'pointer', fontWeight: 600, padding: 0 }}
                     >
                       Mark all read
                     </button>
+                  )}
+                  {notifications.length > 0 && (
+                    <>
+                      {notifications.some(n => !n.isRead) && <span style={{ color: '#cbd5e1' }}>|</span>}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); clearAllNotifications(); }}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.725rem', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+                      >
+                        Clear all
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
               <div className="kfpl-header-dropdown-body">
                 {notifications.length === 0 ? (
                   <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.825rem' }}>
-                    No recent registration logs found.
+                    No recent notifications found.
                   </div>
                 ) : (
-                  notifications.map(n => (
-                    <div 
-                      key={n.id} 
-                      className="kfpl-dropdown-list-item"
-                      style={{
-                        background: n.isRead ? 'transparent' : 'rgba(239, 68, 68, 0.04)',
-                        position: 'relative'
-                      }}
-                      onClick={() => {
-                        markNotificationAsRead(n.id);
-                        navigate(n.link);
-                        setShowNotificationDropdown(false);
-                      }}
-                    >
-                      <div style={{
-                        width: '32px', height: '32px', borderRadius: '50%',
-                        background: n.type === 'client' ? '#e0f2fe' : '#fef3c7',
-                        color: n.type === 'client' ? '#0284c7' : '#d97706',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.875rem', fontWeight: 800, flexShrink: 0
-                      }}>
-                        {n.type === 'client' ? 'C' : 'A'}
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.825rem', color: 'var(--color-navy)', fontWeight: 700 }}>
-                            New {n.type === 'client' ? 'Client' : 'Agent'} Onboarded
-                          </span>
-                          {!n.isRead && (
-                            <span style={{ fontSize: '0.625rem', background: '#ef4444', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 700 }}>New</span>
-                          )}
+                  notifications.map(n => {
+                    const badgeBg = 
+                      n.type === 'deposit' ? '#dcfce7' :
+                      n.type === 'withdrawal' ? '#fee2e2' :
+                      n.type === 'service' ? '#fef3c7' :
+                      n.type === 'client' ? '#e0f2fe' :
+                      n.type === 'agent' ? '#f3e8ff' :
+                      n.type === 'project' ? '#ecfdf5' :
+                      n.type === 'news' ? '#eff6ff' : '#fef2f2';
+                    const badgeColor = 
+                      n.type === 'deposit' ? '#166534' :
+                      n.type === 'withdrawal' ? '#991b1b' :
+                      n.type === 'service' ? '#b45309' :
+                      n.type === 'client' ? '#0284c7' :
+                      n.type === 'agent' ? '#6b21a8' :
+                      n.type === 'project' ? '#047857' :
+                      n.type === 'news' ? '#1d4ed8' : '#b91c1c';
+                    const badgeLetter = 
+                      n.type === 'deposit' ? '₹' :
+                      n.type === 'withdrawal' ? 'W' :
+                      n.type === 'service' ? 'S' :
+                      n.type === 'client' ? 'C' :
+                      n.type === 'agent' ? 'A' :
+                      n.type === 'project' ? 'P' :
+                      n.type === 'news' ? 'N' : 'K';
+
+                    return (
+                      <div 
+                        key={n.id} 
+                        className="kfpl-dropdown-list-item"
+                        style={{
+                          background: n.isRead ? 'transparent' : 'rgba(239, 68, 68, 0.04)',
+                          position: 'relative'
+                        }}
+                        onClick={() => {
+                          markNotificationAsRead(n.id);
+                          navigate(n.link);
+                          setShowNotificationDropdown(false);
+                        }}
+                      >
+                        <div style={{
+                          width: '32px', height: '32px', borderRadius: '50%',
+                          background: badgeBg,
+                          color: badgeColor,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.875rem', fontWeight: 800, flexShrink: 0
+                        }}>
+                          {badgeLetter}
                         </div>
-                        <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 600 }}>{n.name}</span>
-                        <span style={{ fontSize: '0.675rem', color: '#94a3b8', marginTop: '2px' }}>{n.email}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.825rem', color: 'var(--color-navy)', fontWeight: 700 }}>
+                              {n.title}
+                            </span>
+                            {!n.isRead && (
+                              <span style={{ fontSize: '0.625rem', background: '#ef4444', color: '#fff', padding: '1px 6px', borderRadius: '10px', fontWeight: 700 }}>New</span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 600 }}>{n.name}</span>
+                          <span style={{ fontSize: '0.675rem', color: '#94a3b8', marginTop: '2px' }}>{n.email}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -672,8 +1027,10 @@ export default function Header({ isCollapsed, onMenuClick }) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
-            {hasUnreadRequests && (
-              <span className="kfpl-header-notification-dot" style={{ background: '#f59e0b' }}></span>
+            {hasUnreadRequests && unreadRequestsCount > 0 && (
+              <span className="kfpl-header-notification-dot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.625rem', fontWeight: 800, color: '#fff', background: '#f59e0b', width: '16px', height: '16px', top: '-2px', right: '-2px', borderRadius: '50%', position: 'absolute' }}>
+                {unreadRequestsCount}
+              </span>
             )}
           </button>
 

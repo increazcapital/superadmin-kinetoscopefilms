@@ -22,26 +22,51 @@ function formatDateDMY(dateStr) {
   return `${day}/${mon}/${yr}`;
 }
 
-function getEndDateDMY(dateStr, periodMonths) {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  const months = parseInt(periodMonths, 10) || 24; // Default to 24 months
-  d.setMonth(d.getMonth() + months);
-  const day = String(d.getDate()).padStart(2, '0');
-  const mon = String(d.getMonth() + 1).padStart(2, '0');
-  const yr = d.getFullYear();
-  return `${day}/${mon}/${yr}`;
+function calculateMonthsBetween(startStr, endStr) {
+  if (!startStr || !endStr) return 18;
+  const sd = new Date(startStr);
+  const ed = new Date(endStr);
+  if (isNaN(sd.getTime()) || isNaN(ed.getTime()) || ed <= sd) return 18;
+  const months = (ed.getFullYear() - sd.getFullYear()) * 12 + (ed.getMonth() - sd.getMonth());
+  return months > 0 ? months : 18;
 }
 
-function getEndDateYYYYMMDD(dateStr, periodMonths) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const months = parseInt(periodMonths, 10) || 24;
-  d.setMonth(d.getMonth() + months);
-  const yr = d.getFullYear();
-  const mon = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${yr}-${mon}-${day}`;
+function getDynamicEndDateAndMonths(row) {
+  const clientObj = row.clientId && typeof row.clientId === 'object' ? row.clientId : null;
+  const startDateStr = row.investmentDate || row.date || row.createdAt || row.contractStartDate || clientObj?.contractStartDate || clientObj?.profile?.contractStartDate;
+  
+  const extDate = row.extendContractDate || row.contractExtendedDate || clientObj?.extendContractDate || clientObj?.profile?.extendContractDate;
+
+  // 1. If explicitly extended, calculate from startDate to extDate
+  if (startDateStr && extDate) {
+    const sd = new Date(startDateStr);
+    const ed = new Date(extDate);
+    if (!isNaN(sd.getTime()) && !isNaN(ed.getTime()) && ed > sd) {
+      const months = calculateMonthsBetween(startDateStr, extDate);
+      return {
+        formattedDate: formatDateDMY(extDate),
+        monthsText: `${months} Months`
+      };
+    }
+  }
+
+  // 2. Default: 18 months standard term from contractStartDate
+  if (startDateStr) {
+    const sd = new Date(startDateStr);
+    if (!isNaN(sd.getTime())) {
+      const defaultEd = new Date(sd);
+      defaultEd.setMonth(defaultEd.getMonth() + 18);
+      return {
+        formattedDate: formatDateDMY(defaultEd),
+        monthsText: `18 Months`
+      };
+    }
+  }
+
+  return {
+    formattedDate: '—',
+    monthsText: '18 Months'
+  };
 }
 
 export default function InvestmentList() {
@@ -98,6 +123,31 @@ export default function InvestmentList() {
     }
   };
 
+  const handleApproveInvestment = async (investmentId, amount) => {
+    // Optimistic UI update for instant activation
+    setInvestments(prev => prev.map(inv => {
+      const invId = inv._id || inv.id;
+      if (String(invId) === String(investmentId)) {
+        return { ...inv, status: 'active' };
+      }
+      return inv;
+    }));
+
+    addToast('Activating investment...', 'info', 'Processing');
+
+    try {
+      await apiRequest(`/api/super-admin/investments/${investmentId}/approve`, {
+        method: 'PATCH',
+        body: JSON.stringify({ investmentAmount: amount })
+      });
+      addToast('Investment successfully activated!', 'success', 'Activated');
+      window.dispatchEvent(new Event('superAdminDataUpdated'));
+    } catch (err) {
+      console.error('Failed to activate investment:', err);
+      addToast(err.message || 'Failed to activate investment.', 'error', 'Error');
+    }
+  };
+
   useEffect(() => {
     const fetchInvestments = async () => {
       setLoading(true);
@@ -121,43 +171,48 @@ export default function InvestmentList() {
   const handleExtendContractToDate = async (investmentId, newEndDateStr) => {
     if (!newEndDateStr) return;
     
+    const targetEndDateISO = new Date(newEndDateStr).toISOString();
+
+    // 1. Optimistic Local State Update (Instant UI response, zero refresh delay)
+    setInvestments(prev => prev.map(inv => {
+      const invId = inv._id || inv.id;
+      if (String(invId) === String(investmentId)) {
+        const startDt = inv.investmentDate || inv.date || inv.createdAt || inv.contractStartDate;
+        const newMonths = calculateMonthsBetween(startDt, newEndDateStr);
+        return {
+          ...inv,
+          contractEndDate: targetEndDateISO,
+          extendContractDate: targetEndDateISO,
+          contractPeriod: newMonths,
+          durationMonths: newMonths
+        };
+      }
+      return inv;
+    }));
+
+    addToast('Contract extension submitted. Syncing in background...', 'info', 'Updating');
+
+    // 2. Concurrent Background API Execution
     try {
-      // Call the backend PATCH API for contract extension
-      await apiRequest(`/api/super-admin/investments/${investmentId}/extend`, {
-        method: 'PATCH',
-        body: JSON.stringify({ newEndDate: new Date(newEndDateStr).toISOString() })
-      });
+      const clientObj = extendingInvestment?.clientId;
+      const clientRealId = clientObj && typeof clientObj === 'object' ? (clientObj._id || clientObj.id) : (typeof clientObj === 'string' ? clientObj : null);
 
-      addToast('Contract successfully extended!', 'success', 'Contract Extended');
-      // Refresh the investments list from the API
-      setRenderTrigger(prev => prev + 1);
+      await Promise.all([
+        apiRequest(`/api/super-admin/investments/${investmentId}/extend`, {
+          method: 'PATCH',
+          body: JSON.stringify({ newEndDate: targetEndDateISO })
+        }).catch(err => console.error('[BG API] Investment extend error:', err)),
+        clientRealId ? apiRequest(`/api/super-admin/clients/${clientRealId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ extendContractDate: targetEndDateISO })
+        }).catch(err => console.error('[BG API] Client extend error:', err)) : Promise.resolve()
+      ]);
+
+      addToast('Contract extension saved successfully!', 'success', 'Contract Extended');
+      window.dispatchEvent(new Event('superAdminDataUpdated'));
     } catch (err) {
-      console.error('Failed to extend contract via API:', err);
-      
-      // Fallback: update local state if API fails
-      const selectedEndDate = new Date(newEndDateStr);
-      let investment = investments.find(i => (i._id || i.id) === investmentId);
-      if (!investment) {
-        investment = mockInvestments.find(i => (i._id || i.id) === investmentId);
-      }
-      
-      if (investment) {
-        const startDate = new Date(investment.investmentDate || investment.date || investment.createdAt);
-        const yearsDiff = selectedEndDate.getFullYear() - startDate.getFullYear();
-        const monthsDiff = selectedEndDate.getMonth() - startDate.getMonth();
-        const calculatedMonths = Math.max(1, (yearsDiff * 12) + monthsDiff);
-
-        setInvestments(prev => prev.map(inv => {
-          if ((inv._id || inv.id) === investmentId) {
-            return { ...inv, contractPeriod: calculatedMonths, durationMonths: calculatedMonths };
-          }
-          return inv;
-        }));
-
-        addToast(`Contract extended locally. New duration: ${calculatedMonths} Months.`, 'warning', 'Local Update');
-      } else {
-        addToast(err.message || 'Failed to extend contract.', 'danger', 'Error');
-      }
+      console.error('Background contract extension failed:', err);
+      addToast(err.message || 'Failed to sync extension.', 'error', 'Error');
     }
   };
 
@@ -197,6 +252,7 @@ export default function InvestmentList() {
       accessor: 'clientId',
       render: (row) => {
         const clientObj = row.clientId && typeof row.clientId === 'object' ? row.clientId : null;
+        const clientRealId = clientObj ? (clientObj._id || clientObj.id) : (typeof row.clientId === 'string' && /^[0-9a-fA-F]{24}$/.test(row.clientId) ? row.clientId : null);
         const clientName = row.clientName || 
                            row.investorName || 
                            clientObj?.profile?.fullName || 
@@ -209,9 +265,16 @@ export default function InvestmentList() {
                            clientObj?.userId?.clientCode || 
                            '';
         return (
-          <div>
-            <div className="kfpl-table-cell-primary">{clientName}</div>
-            {clientCode && <div className="kfpl-table-cell-secondary">{clientCode}</div>}
+          <div 
+            style={{ cursor: clientRealId ? 'pointer' : 'default' }}
+            onClick={() => {
+              if (clientRealId) navigate(`/investors/${clientRealId}`);
+            }}
+          >
+            <div className="kfpl-table-cell-primary" style={{ color: 'var(--color-navy-dark)', fontWeight: 700 }}>
+              {clientName}
+            </div>
+            {clientCode && <div className="kfpl-table-cell-secondary" style={{ color: 'var(--color-gold-dark)', fontWeight: 600 }}>{clientCode}</div>}
           </div>
         );
       },
@@ -220,64 +283,60 @@ export default function InvestmentList() {
       header: 'Segment', 
       accessor: 'segment', 
       render: (row) => {
-        const segmentText = row.segment || 
-                            (Array.isArray(row.segmentAllocation) && row.segmentAllocation.length > 0
-                              ? row.segmentAllocation.map(s => s.segmentName).join(', ')
-                              : '—');
-        return <span className="font-medium">{segmentText}</span>;
+        const rawSeg = row.segment || 
+                       (Array.isArray(row.segmentAllocation) && row.segmentAllocation.length > 0
+                         ? row.segmentAllocation.map(s => s.segmentName).join(', ')
+                         : 'Unallocated');
+        const isUnallocated = !rawSeg || rawSeg === 'Project Allocated' || rawSeg === 'General Capital Pool' || rawSeg === 'Capital Deposit' || rawSeg === 'Unallocated Pool';
+        const segmentText = isUnallocated ? 'Unallocated' : rawSeg;
+        return (
+          <span 
+            className="font-medium"
+            style={{ cursor: 'pointer', color: 'var(--color-navy)', fontWeight: 600 }}
+            onClick={() => navigate('/portfolio')}
+          >
+            {segmentText}
+          </span>
+        );
       } 
     },
     { header: 'Amount', accessor: 'investmentAmount', render: (row) => <span className="font-semibold">{formatCurrency(row.investmentAmount || row.amount || 0)}</span> },
     { header: 'ROI %', accessor: 'roiPercentage', render: (row) => `${row.roiPercentage || row.roi || 0}%` },
     { header: 'Risk %', accessor: 'riskPercentage', render: (row) => `${row.riskPercentage || row.risk || 0}%` },
-    { header: 'Contract Start', accessor: 'investmentDate', render: (row) => formatDateDMY(row.investmentDate || row.date || row.createdAt) },
+    { 
+      header: 'Contract Start', 
+      accessor: 'investmentDate', 
+      render: (row) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{formatDateDMY(row.investmentDate || row.date || row.createdAt)}</div>
+          <div className="kfpl-table-cell-secondary" style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>DD/MM/YYYY</div>
+        </div>
+      ) 
+    },
     {
       header: 'End Date',
       render: (row) => {
-        const period = row.contractPeriod || row.durationMonths || 24;
-        const startDate = row.investmentDate || row.date || row.createdAt;
-        // If API returns contractEndDate, use that directly
-        if (row.contractEndDate) {
-          return (
-            <div>
-              <div>{formatDateDMY(row.contractEndDate)}</div>
-              <div className="kfpl-table-cell-secondary">{period} Months</div>
-            </div>
-          );
-        }
+        const info = getDynamicEndDateAndMonths(row);
         return (
           <div>
-            <div>{getEndDateDMY(startDate, period)}</div>
-            <div className="kfpl-table-cell-secondary">{period} Months</div>
+            <div style={{ fontWeight: 600 }}>{info.formattedDate}</div>
+            <div className="kfpl-table-cell-secondary" style={{ fontSize: '0.7rem' }}>{info.monthsText} · DD/MM/YYYY</div>
           </div>
         );
       }
     },
-    { header: 'Status', accessor: 'status', render: (row) => <Badge status={row.status || 'active'}>{row.status || 'active'}</Badge> },
+    { 
+      header: 'Status', 
+      accessor: 'status', 
+      render: (row) => <Badge status={(row.status || 'active').toLowerCase()}>{(row.status || 'active').toUpperCase()}</Badge> 
+    },
     {
       header: 'Actions',
       render: (row) => (
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button
-            className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
-            style={{ borderColor: 'var(--color-gold)', color: 'var(--color-gold-dark)', fontWeight: 600, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setExtendingInvestment(row);
-              const currentEndDate = row.contractEndDate 
-                ? new Date(row.contractEndDate).toISOString().split('T')[0]
-                : getEndDateYYYYMMDD(row.investmentDate || row.date || row.createdAt, row.contractPeriod || 24);
-              setExtensionEndDate(currentEndDate);
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" width="12" height="12">
-              <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
-            </svg>
-            Extend
-          </button>
-          <button
             className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
-            style={{ padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-danger)' }}
+            style={{ padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-danger)' }}
             onClick={(e) => {
               e.stopPropagation();
               handleDeleteInvestmentClick(row._id || row.id);
@@ -371,24 +430,39 @@ export default function InvestmentList() {
               </button>
             </div>
             <div className="kfpl-modal-body" style={{ padding: '20px 24px' }}>
-              <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>
-                Extend contract for <strong>{extendingInvestment.investorName}</strong>'s investment in <strong>{extendingInvestment.segment}</strong>.
-              </p>
-              <div style={{ marginBottom: '16px' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Contract Start Date:</span>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>
-                  {formatDateDMY(extendingInvestment.investmentDate || extendingInvestment.date)}
-                </div>
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Current End Date:</span>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>
-                  {extendingInvestment.contractEndDate 
-                    ? formatDateDMY(extendingInvestment.contractEndDate) 
-                    : getEndDateDMY(extendingInvestment.investmentDate || extendingInvestment.date || extendingInvestment.createdAt, extendingInvestment.contractPeriod || 24)
-                  } ({extendingInvestment.contractPeriod || extendingInvestment.durationMonths || 24} Months)
-                </div>
-              </div>
+              {(() => {
+                const clientName = extendingInvestment.clientName ||
+                                   extendingInvestment.investorName ||
+                                   (extendingInvestment.clientId && typeof extendingInvestment.clientId === 'object' ? (extendingInvestment.clientId.profile?.fullName || extendingInvestment.clientId.userId?.name) : '') ||
+                                   'Client';
+                const rawSeg = extendingInvestment.segment || 'Unallocated';
+                const isUnallocated = !rawSeg || rawSeg === 'Project Allocated' || rawSeg === 'General Capital Pool' || rawSeg === 'Capital Deposit' || rawSeg === 'Unallocated Pool';
+                const segmentText = isUnallocated ? 'Unallocated' : rawSeg;
+                const period = extendingInvestment.contractPeriod || extendingInvestment.durationMonths || 18;
+
+                return (
+                  <>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>
+                      Extend contract for <strong>{clientName}</strong>'s investment in <strong>{segmentText}</strong>.
+                    </p>
+                    <div style={{ marginBottom: '16px' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Contract Start Date:</span>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>
+                        {formatDateDMY(extendingInvestment.investmentDate || extendingInvestment.date || extendingInvestment.createdAt)}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: '20px' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Current End Date:</span>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>
+                        {(() => {
+                          const info = getDynamicEndDateAndMonths(extendingInvestment);
+                          return `${info.formattedDate} (${info.monthsText})`;
+                        })()}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Select New End Date <span className="required">*</span></label>
                 <input
@@ -396,7 +470,7 @@ export default function InvestmentList() {
                   className="kfpl-input"
                   value={extensionEndDate}
                   onChange={(e) => setExtensionEndDate(e.target.value)}
-                  min={getEndDateYYYYMMDD(extendingInvestment.investmentDate || extendingInvestment.date, 0)}
+                  min={extendingInvestment.investmentDate ? new Date(extendingInvestment.investmentDate).toISOString().split('T')[0] : undefined}
                   required
                 />
               </div>

@@ -10,6 +10,7 @@ import { useToast } from '../../components/ui/Toast';
 import FileDropzone from '../../components/ui/FileDropzone';
 import { getApiUrl } from '../../config/apiUrl';
 import { apiRequest } from '../../config/apiHelper';
+import { invalidateSWRCache } from '../../utils/swrHelper';
 import { getAuthToken } from '../../utils/authStorage';
 import { WORLD_COUNTRY_CODES } from '../../data/countryCodes';
 
@@ -227,8 +228,8 @@ export default function AddInvestor() {
 
       if (response.ok) {
         try {
-          localStorage.removeItem('kfpl_super_admin_clients_cache');
-          localStorage.removeItem('kfpl_super_admin_dashboard_cache');
+          invalidateSWRCache('sa_clients');
+          invalidateSWRCache('sa_dashboard');
         } catch (_) {}
         addToast(`Client "${form.fullName}" registered successfully!`, 'success', 'Client Added');
         

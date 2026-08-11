@@ -11,6 +11,7 @@ import Modal from '../../components/ui/Modal';
 import { formatCurrency } from '../../utils/formatters';
 import { useToast } from '../../components/ui/Toast';
 import { apiRequest } from '../../config/apiHelper';
+import { getSWRCache, setSWRCache, invalidateSWRCache } from '../../utils/swrHelper';
 import { getApiUrl } from '../../config/apiUrl';
 import { usePermissions } from '../../utils/usePermissions';
 import { getAuthToken } from '../../utils/authStorage';
@@ -549,11 +550,10 @@ export default function InvestorDetail() {
 
   // ── API 2: Fetch client details & tab data on mount concurrently ─────
   useEffect(() => {
-    // --- SWR Cache Initialization for Instant Load (0ms) ---
+    // --- User-Scoped SWR Cache Initialization for Instant Load (0ms) ---
     try {
-      const cacheData = localStorage.getItem(`kfpl_super_admin_client_detail_cache_${id}`);
-      if (cacheData) {
-        const parsed = JSON.parse(cacheData);
+      const parsed = getSWRCache(`sa_client_detail_${id}`);
+      if (parsed) {
         if (parsed.investor) setInvestor(parsed.investor);
         if (parsed.investmentsData) setInvestmentsData(parsed.investmentsData);
         if (parsed.roiData) setRoiData(parsed.roiData);
@@ -566,6 +566,29 @@ export default function InvestorDetail() {
     } catch (e) {
       console.warn('Failed to parse client detail cache:', e);
     }
+
+  const handleMarkRoiPaid = async (roi) => {
+    try {
+      const payoutId = roi._id || roi.id;
+      const res = await apiRequest(`/api/super-admin/clients/${id}/roi/${payoutId}/pay`, {
+        method: 'PATCH'
+      });
+      addToast('ROI payout marked as PAID successfully!', 'success');
+
+      setRoiData(prev => {
+        const list = (prev?.roiHistory || []).map(item => {
+          if ((item._id || item.id) === payoutId) {
+            return { ...item, status: 'PAID', processedDate: new Date().toISOString().split('T')[0] };
+          }
+          return item;
+        });
+        return { ...prev, roiHistory: list };
+      });
+    } catch (err) {
+      console.error('Error marking ROI paid:', err);
+      addToast(err.message || 'Failed to mark ROI paid', 'error');
+    }
+  };
 
   const handleVerifyDocument = async (docLabel) => {
     try {
@@ -676,7 +699,7 @@ export default function InvestorDetail() {
             riskProfile: header.riskProfile || profile.riskProfile || 'Conservative',
             totalInvestment: summary.totalInvestment || profile.totalPortfolioValue || 0,
             roiPercentage: summary.monthlyRoi ?? profile.monthlyRoi ?? 0,
-            activeSegments: summary.activeInvestments || 0,
+            activeSegments: summary.activeSegments !== undefined ? summary.activeSegments : (summary.activeInvestments || 0),
             pan: profile.panNumber || profile.pan || '—',
             aadhaar: profile.aadhaarNumber || profile.aadhaar || '—',
             residencyStatus: profile.residencyStatus || 'National (Domestic)',
@@ -714,26 +737,34 @@ export default function InvestorDetail() {
           let extractedPayouts = [];
           if (Array.isArray(data)) {
             extractedPayouts = data;
+          } else if (data.roiHistory && Array.isArray(data.roiHistory)) {
+            extractedPayouts = data.roiHistory;
           } else if (data.payouts && Array.isArray(data.payouts)) {
             extractedPayouts = data.payouts;
           } else if (data.list && Array.isArray(data.list)) {
             extractedPayouts = data.list;
           }
 
-          clientRoiHistory = extractedPayouts.filter(r => {
-            const recId = r.recipientId || r.investorId || r.clientId || '';
-            return String(recId) === String(profileId) || String(recId) === String(id);
-          }).map(r => ({
-            _id: r.id || r._id,
-            payoutMonth: r.month || r.period || '—',
-            roiRate: r.roiPercentage ?? 0,
-            amount: Number(r.amount || 0),
-            status: r.status || 'pending',
-            processedDate: r.paidAt || r.date || '—',
-            ...r
-          }));
+          clientRoiHistory = extractedPayouts.map(r => {
+            const rawRate = r.roiRate || r.roiPercentage || r.rate || localRoiPercentage || 0;
+            const cleanRate = String(rawRate).replace('%', '').trim();
+            const displayRate = cleanRate && cleanRate !== '0' ? `${cleanRate}%` : `${localRoiPercentage || 0}%`;
+            return {
+              ...r,
+              _id: r.id || r._id,
+              payoutMonth: r.payoutMonth || r.month || r.period || 'Aug 2026',
+              roiRate: displayRate,
+              amount: Number(r.amount || 0),
+              status: (r.status || 'PENDING').toUpperCase(),
+              processedDate: r.processedDate || r.paidAt || r.date || '—',
+            };
+          });
 
-          setRoiData({ roiHistory: clientRoiHistory });
+          setRoiData({
+            roiHistory: clientRoiHistory,
+            totalRoiPaid: data.totalRoiPaid || 0,
+            totalRoiPending: data.totalRoiPending || 0
+          });
         } else {
           setRoiData({ roiHistory: [], totalRoiPaid: 0, totalRoiPending: 0 });
         }
@@ -759,7 +790,7 @@ export default function InvestorDetail() {
             if (cachedInv.profilePic && cachedInv.profilePic.length > 2000) {
               delete cachedInv.profilePic;
             }
-            localStorage.setItem(`kfpl_super_admin_client_detail_cache_${id}`, JSON.stringify({
+            setSWRCache(`sa_client_detail_${id}`, {
               investor: cachedInv,
               investmentsData: investmentsRes ? (investmentsRes.data || investmentsRes) : { investments: [] },
               roiData: { roiHistory: clientRoiHistory },
@@ -767,7 +798,7 @@ export default function InvestorDetail() {
               docsData: docsRes ? (docsRes.data || docsRes) : { documents: [] },
               verifiedDocs: verifiedMap,
               clientProfileId: profileId
-            }));
+            });
           }
         } catch (cacheErr) {
           console.warn('SWR Cache write ignored due to quota limit:', cacheErr);
@@ -917,8 +948,12 @@ export default function InvestorDetail() {
       setLocalRoiPercentage(newRoi);
       setInvestor(prev => prev ? { ...prev, roiPercentage: newRoi } : prev);
       try {
-        localStorage.removeItem(`kfpl_super_admin_client_detail_cache_${id}`);
-        localStorage.removeItem(`kfpl_agent_client_detail_${id}`);
+        const cachedData = getSWRCache(`sa_client_detail_${id}`);
+        if (cachedData && cachedData.investor) {
+          cachedData.investor.roiPercentage = newRoi;
+          setSWRCache(`sa_client_detail_${id}`, cachedData);
+        }
+        invalidateSWRCache(`sa_client_detail_${id}`);
       } catch (e) {}
       addToast(`Monthly ROI % updated to ${newRoi}%`, 'success', 'ROI Updated');
       setShowRoiEditModal(false);
@@ -969,87 +1004,23 @@ export default function InvestorDetail() {
       else if (data.data.payouts && Array.isArray(data.data.payouts)) list = data.data.payouts;
       else if (data.data.list && Array.isArray(data.data.list)) list = data.data.list;
     }
-
-    let paidMockIds = [];
-    try {
-      const stored = localStorage.getItem('kfpl_super_admin_paid_mock_payouts');
-      if (stored) paidMockIds = JSON.parse(stored);
-    } catch (e) {}
-    
-    if (list.length === 0 && investor && investor.totalInvestment) {
-      const roiPercent = localRoiPercentage ?? investor.roiPercentage ?? 0;
-      const monthlyROIVal = Math.round((investor.totalInvestment * roiPercent) / 100);
-      const start = investor.rawContractStartDate ? new Date(investor.rawContractStartDate) : new Date();
-      if (isNaN(start.getTime())) {
-        start.setMonth(start.getMonth() - 5);
-      }
-      
-      const end = new Date();
-      const mockList = [];
-      let current = new Date(start.getFullYear(), start.getMonth(), 1);
-      const targetEnd = new Date(end.getFullYear(), end.getMonth(), 1);
-      
-      let index = 201;
-      while (current <= targetEnd) {
-        const monthLabel = current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        const isCurrentMonth = current.getFullYear() === end.getFullYear() && current.getMonth() === end.getMonth();
-        const isLastMonth = current.getFullYear() === end.getFullYear() && current.getMonth() === (end.getMonth() - 1);
-        
-        const payoutId = String(index++);
-        const isPaidMock = paidMockIds.includes(payoutId);
-        const status = isPaidMock ? 'Paid' : ((isCurrentMonth || isLastMonth) ? 'Pending' : 'Paid');
-        const paidDate = status === 'Paid'
-          ? (isPaidMock ? new Date().toLocaleDateString('en-IN') : new Date(current.getFullYear(), current.getMonth() + 1, 0).toLocaleDateString('en-IN'))
-          : null;
- 
-        mockList.push({
-          id: parseInt(payoutId, 10),
-          _id: payoutId,
-          month: monthLabel,
-          payoutMonth: monthLabel,
-          amount: monthlyROIVal,
-          status: status,
-          paidAt: paidDate,
-          processedDate: paidDate || '—',
-          roiRate: roiPercent
-        });
-        current.setMonth(current.getMonth() + 1);
-      }
- 
-      if (mockList.length === 0) {
-        return [
-          { id: 201, month: 'Jan 2026', payoutMonth: 'Jan 2026', amount: monthlyROIVal, status: 'Paid', paidAt: '2026-01-31', processedDate: '2026-01-31', roiRate: roiPercent },
-          { id: 202, month: 'Feb 2026', payoutMonth: 'Feb 2026', amount: monthlyROIVal, status: 'Paid', paidAt: '2026-02-28', processedDate: '2026-02-28', roiRate: roiPercent },
-          { id: 203, month: 'Mar 2026', payoutMonth: 'Mar 2026', amount: monthlyROIVal, status: 'Paid', paidAt: '2026-03-31', processedDate: '2026-03-31', roiRate: roiPercent },
-          { id: 204, month: 'Apr 2026', payoutMonth: 'Apr 2026', amount: monthlyROIVal, status: 'Pending', paidAt: null, processedDate: '—', roiRate: roiPercent },
-          { id: 205, month: 'May 2026', payoutMonth: 'May 2026', amount: monthlyROIVal, status: 'Pending', paidAt: null, processedDate: '—', roiRate: roiPercent },
-        ].map(r => {
-          const isPaidMock = paidMockIds.includes(String(r.id));
-          return {
-            ...r,
-            status: isPaidMock ? 'Paid' : r.status,
-            processedDate: isPaidMock ? new Date().toLocaleDateString('en-IN') : r.processedDate
-          };
-        });
-      }
-      return mockList;
-    }
-    
-    return list.map(r => {
-      const payoutId = String(r.id || r._id || '');
-      const isPaidMock = paidMockIds.includes(payoutId);
-      return {
-        ...r,
-        month: r.month || r.payoutMonth || r.period || '—',
-        payoutMonth: r.payoutMonth || r.month || r.period || '—',
-        roiRate: r.roiRate ?? r.roiPercentage ?? localRoiPercentage ?? 0,
-        amount: Number(r.amount || 0),
-        status: isPaidMock ? 'Paid' : (r.status || 'pending'),
-        processedDate: isPaidMock ? new Date().toLocaleDateString('en-IN') : (r.processedDate || r.paidAt || r.date || '—'),
-      };
-    });
+    return list;
   };
-  const roiHistory = getRoiHistoryList(roiData);
+
+  const roiHistory = getRoiHistoryList(roiData).map(r => {
+    const rawRate = r.roiRate || r.roiPercentage || r.rate || localRoiPercentage || 0;
+    const cleanRate = String(rawRate).replace('%', '').trim();
+    const displayRate = cleanRate && cleanRate !== '0' ? `${cleanRate}%` : `${localRoiPercentage || 0}%`;
+    return {
+      ...r,
+      _id: r.id || r._id,
+      payoutMonth: r.payoutMonth || r.month || r.period || 'Aug 2026',
+      roiRate: displayRate,
+      amount: Number(r.amount || 0),
+      status: (r.status || 'PENDING').toUpperCase(),
+      processedDate: r.processedDate || r.paidAt || r.date || '—',
+    };
+  });
   const totalPaidROI = roiHistory.filter(r => (r.status || '').toLowerCase() === 'paid').reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const totalPendingROI = roiHistory.filter(r => (r.status || '').toLowerCase() === 'pending').reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
@@ -1361,7 +1332,20 @@ export default function InvestorDetail() {
         </div>
         <div className="kfpl-detail-kpi-summary-card">
           <span className="kfpl-detail-kpi-summary-label">Active Segments</span>
-          <span className="kfpl-detail-kpi-summary-value">{investor.activeSegments || investmentsList.filter(i => (i.status || '').toUpperCase() === 'ACTIVE').length} Segments</span>
+          <span className="kfpl-detail-kpi-summary-value">
+            {(() => {
+              const list = (investmentsList && investmentsList.length > 0)
+                ? investmentsList.filter(i => (i.status || '').toUpperCase() === 'ACTIVE')
+                : [];
+              const allocated = list.filter(i => {
+                const seg = String(i.segment || i.projectName || i.name || '').toLowerCase().trim();
+                return seg && seg !== 'unallocated' && seg !== 'unallocated segment' && seg !== 'none' && seg !== '—' && seg !== '-';
+              });
+              const uniqueSegs = new Set(allocated.map(i => String(i.segment || i.projectName || i.name).toLowerCase().trim()));
+              const count = investor.activeSegments !== undefined ? investor.activeSegments : uniqueSegs.size;
+              return `${count} ${count === 1 ? 'Segment' : 'Segments'}`;
+            })()}
+          </span>
         </div>
         <div className="kfpl-detail-kpi-summary-card">
           <span className="kfpl-detail-kpi-summary-label">Monthly ROI %</span>
@@ -1448,7 +1432,7 @@ export default function InvestorDetail() {
             <div className="kfpl-detail-info-row-item">
               <div className="kfpl-detail-info-item-icon">{infoIcons.calendar}</div>
               <div className="kfpl-detail-info-item-content">
-                <span className="kfpl-detail-info-item-label">Date of Birth</span>
+                <span className="kfpl-detail-info-item-label">Date of Birth <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span></span>
                 <span className="kfpl-detail-info-item-value">{investor.dob}</span>
               </div>
             </div>
@@ -1462,28 +1446,28 @@ export default function InvestorDetail() {
             <div className="kfpl-detail-info-row-item">
               <div className="kfpl-detail-info-item-icon">{infoIcons.calendar}</div>
               <div className="kfpl-detail-info-item-content">
-                <span className="kfpl-detail-info-item-label">Join Date</span>
+                <span className="kfpl-detail-info-item-label">Join Date <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span></span>
                 <span className="kfpl-detail-info-item-value">{investor.joinDate}</span>
               </div>
             </div>
             <div className="kfpl-detail-info-row-item">
               <div className="kfpl-detail-info-item-icon">{infoIcons.calendar}</div>
               <div className="kfpl-detail-info-item-content">
-                <span className="kfpl-detail-info-item-label">Contract Start Date</span>
+                <span className="kfpl-detail-info-item-label">Contract Start Date <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span></span>
                 <span className="kfpl-detail-info-item-value">{investor.contractStartDate}</span>
               </div>
             </div>
             <div className="kfpl-detail-info-row-item">
               <div className="kfpl-detail-info-item-icon">{infoIcons.calendar}</div>
               <div className="kfpl-detail-info-item-content">
-                <span className="kfpl-detail-info-item-label">Contract End Date</span>
+                <span className="kfpl-detail-info-item-label">Contract End Date <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span></span>
                 <span className="kfpl-detail-info-item-value">{investor.contractEndDate}</span>
               </div>
             </div>
             <div className="kfpl-detail-info-row-item">
               <div className="kfpl-detail-info-item-icon">{infoIcons.calendar}</div>
               <div className="kfpl-detail-info-item-content">
-                <span className="kfpl-detail-info-item-label">Contract Extended Date</span>
+                <span className="kfpl-detail-info-item-label">Contract Extended Date <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span></span>
                 <span className="kfpl-detail-info-item-value">{investor.extendContractDate}</span>
               </div>
             </div>
@@ -1669,9 +1653,12 @@ export default function InvestorDetail() {
                       </div>
                     </td>
                   </tr>
-                ) : resolvedInvestments.map(inv => (
-                  <tr key={inv._id || inv.id}>
-                    <td className="kfpl-table-cell-primary">{inv.segment}</td>
+                ) : resolvedInvestments.map(inv => {
+                  const isUnallocated = !inv.segment || inv.segment === 'Project Allocated' || inv.segment === 'General Capital Pool' || inv.segment === 'Capital Deposit' || inv.segment === 'Unallocated Pool';
+                  const segText = isUnallocated ? 'Unallocated' : inv.segment;
+                  return (
+                    <tr key={inv._id || inv.id}>
+                      <td className="kfpl-table-cell-primary">{segText}</td>
                     <td className="font-semibold" style={{ color: '#10B981' }}>{formatCurrency(inv.investmentAmount || inv.amount || 0)}</td>
                     <td>{inv.roiPercentage || inv.roi || localRoiPercentage}%</td>
                     <td>
@@ -1682,7 +1669,8 @@ export default function InvestorDetail() {
                     <td>{inv.allocationDate ? new Date(inv.allocationDate).toLocaleDateString('en-IN') : inv.investmentDate ? new Date(inv.investmentDate).toLocaleDateString('en-IN') : '—'}</td>
                     <td><Badge status={(inv.status || 'active').toLowerCase()}>{inv.status || 'Active'}</Badge></td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>
@@ -1767,33 +1755,32 @@ export default function InvestorDetail() {
                     roiHistory.map(roi => (
                       <tr key={roi._id || roi.id}>
                         <td className="kfpl-table-cell-primary">{roi.payoutMonth || roi.month}</td>
-                        <td><strong>{roi.roiRate ?? roi.roiPercentage ?? localRoiPercentage ?? 0}%</strong></td>
+                        <td><strong>{String(roi.roiRate || roi.roiPercentage || localRoiPercentage || 0).replace('%', '')}%</strong></td>
                         <td className="font-semibold">{formatCurrency(roi.amount || 0)}</td>
                         <td>
                           {(() => {
-                            const isPaid = String(roi.status || '').toLowerCase() === 'paid';
-                            const statusText = isPaid ? 'Paid' : 'Approved';
-                            return <Badge status={statusText.toLowerCase()}>{statusText}</Badge>;
+                            const statusStr = String(roi.status || 'PENDING').toUpperCase();
+                            const isPaid = statusStr === 'PAID' || statusStr === 'APPROVED';
+                            return (
+                              <Badge status={isPaid ? 'approved' : 'pending'}>
+                                {isPaid ? 'APPROVED' : 'PENDING'}
+                              </Badge>
+                            );
                           })()}
                         </td>
                         <td>
                           {(() => {
-                            const rawDate = roi.processedDate || roi.paidAt || roi.date;
-                            if (rawDate && rawDate !== '—' && rawDate !== '-') {
+                            const statusStr = String(roi.status || 'PENDING').toUpperCase();
+                            const isPaid = statusStr === 'PAID' || statusStr === 'APPROVED';
+                            const rawDate = roi.processedDate || roi.paidAt;
+                            if (isPaid && rawDate && rawDate !== '—' && rawDate !== '-') {
                               try {
                                 const d = new Date(rawDate);
                                 if (!isNaN(d.getTime())) return d.toLocaleDateString('en-IN');
                               } catch (e) {}
+                              return rawDate;
                             }
-                            // Fallback to month-end date for display
-                            try {
-                              const monthStr = roi.payoutMonth || roi.month;
-                              const d = new Date(monthStr);
-                              if (!isNaN(d.getTime())) {
-                                return new Date(d.getFullYear(), d.getMonth() + 1, 0).toLocaleDateString('en-IN');
-                              }
-                            } catch (e) {}
-                            return new Date().toLocaleDateString('en-IN');
+                            return '—';
                           })()}
                         </td>
                         <td style={{ textAlign: 'center' }}>

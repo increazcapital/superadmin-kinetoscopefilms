@@ -10,6 +10,7 @@ import DataTable from '../../components/ui/DataTable';
 import Badge from '../../components/ui/Badge';
 import { formatCurrency, formatAgentID } from '../../utils/formatters';
 import { apiRequest } from '../../config/apiHelper';
+import { getSWRCache, setSWRCache, invalidateSWRCache } from '../../utils/swrHelper';
 import { useToast } from '../../components/ui/Toast';
 import { usePermissions } from '../../utils/usePermissions';
 
@@ -53,8 +54,8 @@ export default function AgentList() {
     const updated = previousAgents.filter(a => (a.id || a._id) !== targetId);
     setAgentsList(updated);
     try {
-      localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(updated));
-      localStorage.removeItem('kfpl_super_admin_dashboard_cache');
+      setSWRCache('sa_agents', updated);
+      invalidateSWRCache('sa_dashboard');
     } catch (_) {}
 
     try {
@@ -66,7 +67,7 @@ export default function AgentList() {
       console.error('Failed to delete agent:', err);
       setAgentsList(previousAgents);
       try {
-        localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(previousAgents));
+        setSWRCache('sa_agents', previousAgents);
       } catch (_) {}
       addToast(err.message || 'Failed to delete agent.', 'error', 'Error');
     } finally {
@@ -83,8 +84,8 @@ export default function AgentList() {
     const previousAgents = agentsList;
     setAgentsList([]);
     try {
-      localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify([]));
-      localStorage.removeItem('kfpl_super_admin_dashboard_cache');
+      setSWRCache('sa_agents', []);
+      invalidateSWRCache('sa_dashboard');
     } catch (_) {}
 
     try {
@@ -96,7 +97,7 @@ export default function AgentList() {
       console.error('Failed to clear agents:', err);
       setAgentsList(previousAgents);
       try {
-        localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(previousAgents));
+        setSWRCache('sa_agents', previousAgents);
       } catch (_) {}
       addToast(err.message || 'Failed to clear agents.', 'error', 'Error');
     } finally {
@@ -131,15 +132,12 @@ export default function AgentList() {
   };
 
   useEffect(() => {
-    // --- SWR Cache Initialization for Instant Load (0ms) ---
+    // --- User-Scoped SWR Cache Initialization for Instant Load (0ms) ---
     try {
-      const cacheData = localStorage.getItem('kfpl_super_admin_agents_cache');
-      if (cacheData) {
-        const parsed = JSON.parse(cacheData);
-        if (Array.isArray(parsed)) {
-          setAgentsList(parsed);
-          setLoading(false);
-        }
+      const parsed = getSWRCache('sa_agents');
+      if (Array.isArray(parsed)) {
+        setAgentsList(parsed);
+        setLoading(false);
       }
     } catch (e) {
       console.warn('Failed to parse agents cache:', e);
@@ -204,7 +202,7 @@ export default function AgentList() {
               if (copy.profilePic && copy.profilePic.length > 2000) delete copy.profilePic;
               return copy;
             });
-            localStorage.setItem('kfpl_super_admin_agents_cache', JSON.stringify(cacheableAgents));
+            setSWRCache('sa_agents', cacheableAgents);
           } catch (_) {}
         } else {
           setAgentsList([]);

@@ -9,6 +9,7 @@ import { useToast } from '../../components/ui/Toast';
 import { COMMISSION_SLABS } from '../../data/mockData';
 import FileDropzone from '../../components/ui/FileDropzone';
 import { WORLD_COUNTRY_CODES } from '../../data/countryCodes';
+import { invalidateSWRCache } from '../../utils/swrHelper';
 
 export default function AddAgent() {
   const navigate = useNavigate();
@@ -191,8 +192,8 @@ export default function AddAgent() {
       });
 
       try {
-        localStorage.removeItem('kfpl_super_admin_agents_cache');
-        localStorage.removeItem('kfpl_super_admin_dashboard_cache');
+        invalidateSWRCache('sa_agents');
+        invalidateSWRCache('sa_dashboard');
       } catch (_) {}
 
       addToast(`Agent "${form.name}" registered successfully!`, 'success', 'Agent Added');

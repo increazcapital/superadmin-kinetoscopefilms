@@ -211,9 +211,9 @@ export default function EditInvestor() {
       formData.append('residencyStatus', form.citizenship);
       formData.append('monthlyRoi', String(parseFloat(form.roiPercentage) || 0));
       formData.append('assignedAgent', selectedAgentId || 'Direct Client (No Agent)');
-      if (form.contractStartDate) formData.append('contractStartDate', form.contractStartDate);
-      if (form.contractEndDate) formData.append('contractEndDate', form.contractEndDate);
-      if (form.extendContractDate) formData.append('extendContractDate', form.extendContractDate);
+      formData.append('contractStartDate', form.contractStartDate || '');
+      formData.append('contractEndDate', form.contractEndDate || '');
+      formData.append('extendContractDate', form.extendContractDate || '');
       formData.append('nomineeName', form.nomineeName || '');
       formData.append('nomineeRelation', form.nomineeRelation || '');
       formData.append('nomineePhone', form.nomineeContact || '');
@@ -392,7 +392,7 @@ export default function EditInvestor() {
 
             <div className="kfpl-form-row" style={{ marginTop: '16px' }}>
               <div className="kfpl-input-group" style={{ flex: 1 }}>
-                <label className="kfpl-input-label">Contract Start Date</label>
+                <label className="kfpl-input-label">Contract Start Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span></label>
                 <input 
                   type="date" 
                   className="kfpl-input" 
@@ -402,7 +402,7 @@ export default function EditInvestor() {
                 />
               </div>
               <div className="kfpl-input-group" style={{ flex: 1 }}>
-                <label className="kfpl-input-label">Contract End Date</label>
+                <label className="kfpl-input-label">Contract End Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span></label>
                 <input 
                   type="date" 
                   className="kfpl-input" 
@@ -415,7 +415,7 @@ export default function EditInvestor() {
 
             <div className="kfpl-form-row" style={{ marginTop: '16px' }}>
               <div className="kfpl-input-group" style={{ flex: 1 }}>
-                <label className="kfpl-input-label">Extend Contract Date</label>
+                <label className="kfpl-input-label">Extend Contract Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span></label>
                 <input 
                   type="date" 
                   className="kfpl-input" 

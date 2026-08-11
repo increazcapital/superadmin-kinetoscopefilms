@@ -72,6 +72,15 @@ export function setAuthData(data) {
 
 export function clearAuthData() {
   try {
+    // Nuclear wipe all SWR cached data (user-scoped)
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('swr_')) keysToRemove.push(k);
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch {}
     sessionStorage.removeItem('kfpl_auth');
     sessionStorage.removeItem('kfpl_tfa');
     localStorage.removeItem('kfpl_auth');

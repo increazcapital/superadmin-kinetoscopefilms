@@ -11,6 +11,7 @@ import DataTable from '../../components/ui/DataTable';
 import Badge from '../../components/ui/Badge';
 import { formatCurrency, getCategoryFromAmount } from '../../utils/formatters';
 import { apiRequest } from '../../config/apiHelper';
+import { getSWRCache, setSWRCache, invalidateSWRCache } from '../../utils/swrHelper';
 import { useToast } from '../../components/ui/Toast';
 import { usePermissions } from '../../utils/usePermissions';
 
@@ -74,10 +75,10 @@ export default function InvestorList() {
     const updated = previousClients.filter(c => (c._id || c.id) !== targetId);
     setClients(updated);
 
-    // Also update localStorage cache immediately
+    // Also update SWR cache immediately (user-scoped)
     try {
-      localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(updated));
-      localStorage.removeItem('kfpl_super_admin_dashboard_cache');
+      setSWRCache('sa_clients', updated);
+      invalidateSWRCache('sa_dashboard');
     } catch (_) {}
 
     try {
@@ -90,7 +91,7 @@ export default function InvestorList() {
       console.error('Failed to delete client:', err);
       setClients(previousClients);
       try {
-        localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(previousClients));
+        setSWRCache('sa_clients', previousClients);
       } catch (_) {}
       addToast(err.message || 'Failed to delete client.', 'error', 'Error');
     } finally {
@@ -108,8 +109,8 @@ export default function InvestorList() {
     const previousClients = clients;
     setClients([]);
     try {
-      localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify([]));
-      localStorage.removeItem('kfpl_super_admin_dashboard_cache');
+      setSWRCache('sa_clients', []);
+      invalidateSWRCache('sa_dashboard');
     } catch (_) {}
 
     try {
@@ -122,7 +123,7 @@ export default function InvestorList() {
       console.error('Failed to clear clients:', err);
       setClients(previousClients);
       try {
-        localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(previousClients));
+        setSWRCache('sa_clients', previousClients);
       } catch (_) {}
       addToast(err.message || 'Failed to clear clients.', 'error', 'Error');
     } finally {
@@ -131,15 +132,12 @@ export default function InvestorList() {
   };
 
   useEffect(() => {
-    // --- SWR Cache Initialization for Instant Load (0ms) ---
+    // --- User-Scoped SWR Cache Initialization for Instant Load (0ms) ---
     try {
-      const cacheData = localStorage.getItem('kfpl_super_admin_clients_cache');
-      if (cacheData) {
-        const parsed = JSON.parse(cacheData);
-        if (Array.isArray(parsed)) {
-          setClients(parsed);
-          setLoading(false);
-        }
+      const parsed = getSWRCache('sa_clients');
+      if (Array.isArray(parsed)) {
+        setClients(parsed);
+        setLoading(false);
       }
     } catch (e) {
       console.warn('Failed to parse clients cache:', e);
@@ -228,9 +226,24 @@ export default function InvestorList() {
               email: profile.email || user.email || c.email || '',
               phone: profile.phone || c.phone || '',
               dob: profile.dob || c.dob || '',
-              joinDate: c.joinDate || profile.joinDate || c.createdAt || profile.createdAt || '',
-              contractStartDate: c.contractStartDate || profile.contractStartDate || c.joinDate || profile.joinDate || '',
-              contractEndDate: c.contractEndDate || profile.contractEndDate || '',
+              joinDate: c.joinDate || profile.joinDate || c.createdAt || profile.createdAt || user.createdAt || '',
+              contractStartDate: c.contractStartDate || profile.contractStartDate || c.joinDate || profile.joinDate || c.createdAt || profile.createdAt || user.createdAt || '',
+              contractEndDate: (() => {
+                const startStr = c.contractStartDate || profile.contractStartDate || c.joinDate || profile.joinDate || c.createdAt || profile.createdAt || user.createdAt || '';
+                const rawEndStr = c.contractEndDate || profile.contractEndDate || '';
+                if (rawEndStr && startStr) {
+                  const sd = new Date(startStr);
+                  const ed = new Date(rawEndStr);
+                  if (!isNaN(sd.getTime()) && !isNaN(ed.getTime()) && ed > sd) {
+                    return rawEndStr;
+                  }
+                }
+                if (!startStr) return '';
+                const d = new Date(startStr);
+                if (isNaN(d.getTime())) return '';
+                d.setMonth(d.getMonth() + 18);
+                return d.toISOString();
+              })(),
               extendContractDate: c.extendContractDate || profile.extendContractDate || c.contractExtendedDate || profile.contractExtendedDate || '',
               totalInvestment: Number(c.totalInvestment || summary.totalInvestment || profile.totalPortfolioValue || 0),
               monthlyRoi: actualRoi,
@@ -257,7 +270,7 @@ export default function InvestorList() {
               if (copy.profilePic && copy.profilePic.length > 2000) delete copy.profilePic;
               return copy;
             });
-            localStorage.setItem('kfpl_super_admin_clients_cache', JSON.stringify(cacheableClients));
+            setSWRCache('sa_clients', cacheableClients);
           } catch (_) {}
         } else {
           setClients([]);

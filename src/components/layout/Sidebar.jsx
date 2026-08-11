@@ -222,92 +222,53 @@ export default function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileC
   useEffect(() => {
     const updateCounts = async () => {
       // ── Service Requests Badge ──
-      // Only fetch if super-admin OR sub-admin has serviceRequests.view
       const canViewRequests = isSuperAdmin || hasViewPermission(permissions, 'serviceRequests');
-
       if (canViewRequests) {
-        if (location.pathname.startsWith('/service-requests')) {
-          setUnresolvedCount(0);
-          localStorage.setItem('kfpl_requests_viewed', 'true');
-          localStorage.setItem('kfpl_service_requests_last_read', Date.now().toString());
-        } else {
-          const isViewed = localStorage.getItem('kfpl_requests_viewed') === 'true';
-          const lastReadTime = parseInt(localStorage.getItem('kfpl_service_requests_last_read') || '0', 10);
-
-          try {
-            const data = await apiRequest('/api/super-admin/service-requests').catch(() => []);
-            let list = [];
-            if (Array.isArray(data)) {
-              list = data;
-            } else if (data) {
-              list = data.data?.requests || data.requests || data.serviceRequests || (Array.isArray(data.data) ? data.data : []) || [];
-            }
-
-            if (isViewed) {
-              if (lastReadTime > 0) {
-                const newUnresolved = list.filter(r => {
-                  const st = (r.status || '').toUpperCase();
-                  const isUnresolved = st === 'OPEN' || st === 'IN PROGRESS' || st === 'IN_PROGRESS';
-                  const reqTime = r.createdAt ? new Date(r.createdAt).getTime() : 0;
-                  return isUnresolved && reqTime > lastReadTime;
-                }).length;
-                setUnresolvedCount(newUnresolved);
-              } else {
-                setUnresolvedCount(0);
-              }
-            } else {
-              const count = list.filter(r => {
-                const st = (r.status || '').toUpperCase();
-                return st === 'OPEN' || st === 'IN PROGRESS' || st === 'IN_PROGRESS';
-              }).length;
-              setUnresolvedCount(count);
-            }
-          } catch (err) {
-            console.error('Failed to update sidebar unresolved badge:', err);
+        try {
+          const data = await apiRequest('/api/super-admin/service-requests').catch(() => []);
+          let list = [];
+          if (Array.isArray(data)) {
+            list = data;
+          } else if (data) {
+            list = data.data?.requests || data.requests || data.serviceRequests || (Array.isArray(data.data) ? data.data : []) || [];
           }
+          const count = list.filter(r => {
+            const st = (r.status || '').toUpperCase();
+            return st === 'OPEN' || st === 'IN PROGRESS' || st === 'IN_PROGRESS' || st === 'PENDING';
+          }).length;
+          setUnresolvedCount(count);
+        } catch (err) {
+          console.error('Failed to update sidebar unresolved badge:', err);
         }
       } else {
         setUnresolvedCount(0);
       }
 
       // ── Deposit & Withdrawal Approvals Badge ──
-      // Only fetch if super-admin OR sub-admin has depositWithdrawal.view
       const canViewApprovals = isSuperAdmin || hasViewPermission(permissions, 'depositWithdrawal');
-
       if (canViewApprovals) {
-        if (location.pathname.startsWith('/approvals')) {
-          setPendingApprovalsCount(0);
-          localStorage.setItem('kfpl_approvals_viewed', 'true');
-          localStorage.setItem('kfpl_approvals_viewed_time', Date.now().toString());
-        } else {
-          const isViewed = localStorage.getItem('kfpl_approvals_viewed') === 'true';
-          if (isViewed) {
-            setPendingApprovalsCount(0);
-          } else {
-            try {
-              const [resDeposits, resWithdrawals] = await Promise.all([
-                apiRequest('/api/super-admin/transactions/approvals?type=deposit').catch(() => ({ queue: [] })),
-                apiRequest('/api/super-admin/transactions/approvals?type=withdrawal').catch(() => ({ queue: [] }))
-              ]);
+        try {
+          const [resDeposits, resWithdrawals] = await Promise.all([
+            apiRequest('/api/super-admin/transactions/approvals?type=deposit').catch(() => ({ queue: [] })),
+            apiRequest('/api/super-admin/transactions/approvals?type=withdrawal').catch(() => ({ queue: [] }))
+          ]);
 
-              const extractQueue = (res) => {
-                const data = res.data || res;
-                if (Array.isArray(data)) return data;
-                if (data.queue && Array.isArray(data.queue)) return data.queue;
-                if (data.transactions && Array.isArray(data.transactions)) return data.transactions;
-                return [];
-              };
+          const extractQueue = (res) => {
+            const data = res.data || res;
+            if (Array.isArray(data)) return data;
+            if (data.queue && Array.isArray(data.queue)) return data.queue;
+            if (data.transactions && Array.isArray(data.transactions)) return data.transactions;
+            return [];
+          };
 
-              const depQueue = extractQueue(resDeposits);
-              const withQueue = extractQueue(resWithdrawals);
-              const pendingDep = depQueue.filter(i => (i.status || 'pending').toLowerCase() === 'pending').length;
-              const pendingWith = withQueue.filter(i => (i.status || 'pending').toLowerCase() === 'pending').length;
-              
-              setPendingApprovalsCount(pendingDep + pendingWith);
-            } catch (err) {
-              console.error('Failed to update sidebar approvals badge:', err);
-            }
-          }
+          const depQueue = extractQueue(resDeposits);
+          const withQueue = extractQueue(resWithdrawals);
+          const pendingDep = depQueue.filter(i => (i.status || 'pending').toLowerCase() === 'pending').length;
+          const pendingWith = withQueue.filter(i => (i.status || 'pending').toLowerCase() === 'pending').length;
+          
+          setPendingApprovalsCount(pendingDep + pendingWith);
+        } catch (err) {
+          console.error('Failed to update sidebar approvals badge:', err);
         }
       } else {
         setPendingApprovalsCount(0);
@@ -315,10 +276,14 @@ export default function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileC
     };
     
     updateCounts();
+    const interval = setInterval(() => {
+      updateCounts();
+    }, 5000);
     
     window.addEventListener('serviceRequestsUpdated', updateCounts);
     window.addEventListener('approvalsUpdated', updateCounts);
     return () => {
+      clearInterval(interval);
       window.removeEventListener('serviceRequestsUpdated', updateCounts);
       window.removeEventListener('approvalsUpdated', updateCounts);
     };

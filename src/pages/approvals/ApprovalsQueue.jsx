@@ -11,6 +11,7 @@ import { formatCurrency, getCategoryFromAmount } from '../../utils/formatters';
 import { useToast } from '../../components/ui/Toast';
 import { usePermissions } from '../../utils/usePermissions';
 import { apiRequest } from '../../config/apiHelper';
+import { getSWRCache, setSWRCache } from '../../utils/swrHelper';
 
 // Icons
 const icons = {
@@ -194,20 +195,19 @@ export default function ApprovalsQueue() {
 
       setStats(updatedStats);
 
-      // Save to SWR cache
-      localStorage.setItem('kfpl_super_admin_approvals_cache', JSON.stringify({
+      // Save to user-scoped SWR cache
+      setSWRCache('sa_approvals', {
         depositsList: depositsMapped,
         withdrawalsList: withdrawalsMapped,
         stats: updatedStats
-      }));
+      });
 
     } catch (err) {
       console.error('Failed to fetch approvals:', err);
       // Rollback to SWR cache
       try {
-        const cache = localStorage.getItem('kfpl_super_admin_approvals_cache');
-        if (cache) {
-          const parsed = JSON.parse(cache);
+        const parsed = getSWRCache('sa_approvals');
+        if (parsed) {
           if (parsed.depositsList) setDepositsList(parsed.depositsList);
           if (parsed.withdrawalsList) setWithdrawalsList(parsed.withdrawalsList);
           if (parsed.stats) setStats(parsed.stats);
@@ -235,11 +235,10 @@ export default function ApprovalsQueue() {
     localStorage.setItem('kfpl_approvals_viewed_time', Date.now().toString());
     window.dispatchEvent(new Event('approvalsUpdated'));
 
-    // --- SWR Cache Initialization for Instant Load (0ms) ---
+    // --- User-Scoped SWR Cache Initialization for Instant Load (0ms) ---
     try {
-      const cache = localStorage.getItem('kfpl_super_admin_approvals_cache');
-      if (cache) {
-        const parsed = JSON.parse(cache);
+      const parsed = getSWRCache('sa_approvals');
+      if (parsed) {
         if (parsed.depositsList) setDepositsList(parsed.depositsList);
         if (parsed.withdrawalsList) setWithdrawalsList(parsed.withdrawalsList);
         if (parsed.stats) setStats(parsed.stats);
@@ -251,9 +250,9 @@ export default function ApprovalsQueue() {
 
     const fetchInvestors = async () => {
       try {
-        const cache = localStorage.getItem('kfpl_super_admin_clients_cache');
-        if (cache) {
-          setInvestors(JSON.parse(cache));
+        const cached = getSWRCache('sa_clients');
+        if (cached) {
+          setInvestors(cached);
         }
       } catch (_) {}
 

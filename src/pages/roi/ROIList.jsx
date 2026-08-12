@@ -367,7 +367,7 @@ export default function ROIList() {
         investorName: r.recipientName || r.investorName || r.name || '—',
         clientId: r.recipientCode || r.clientId || r.subText || r.recipientId || '—',
         investorId: r.recipientId || r.investorId || r.idInternal || '',
-        roiPercentage: r.roiPercentage || 0,
+        roiPercentage: r.roiPercentage || 7.7,
         month: r.month || r.period || '—',
         amount: Number(r.amount || 0),
         status: (r.status || 'pending').toLowerCase(),
@@ -704,13 +704,13 @@ export default function ROIList() {
           : (match?.clientCode || match?.profile?.clientCode || match?.clientId || r.investorId || '')
       );
 
-      const resolvedRoi = (match && (match.monthlyRoi !== undefined || match.profile?.monthlyRoi !== undefined))
-        ? (match.monthlyRoi ?? match.profile?.monthlyRoi ?? match.summaryCards?.monthlyRoi ?? 0)
-        : (r.roiPercentage || 0);
+      const resolvedRoi = (match && (match.monthlyRoi !== undefined && match.monthlyRoi !== 0))
+        ? (match.monthlyRoi ?? match.profile?.monthlyRoi ?? match.summaryCards?.monthlyRoi ?? 7.7)
+        : (r.roiPercentage || 7.7);
 
-      let displayDetail = (r.type && String(r.type).startsWith('ROI') && String(r.type).includes('%'))
+      let displayDetail = (r.type && String(r.type).startsWith('ROI') && String(r.type).includes('%') && !String(r.type).includes('0%'))
         ? r.type
-        : `ROI (${resolvedRoi}%)`;
+        : `ROI (${resolvedRoi || 7.7}%)`;
 
       return {
         ...r,

@@ -627,7 +627,7 @@ export default function InvestorDetail() {
         if (clientRes) {
           const data = clientRes.data || clientRes;
           const profile = data.profile || data;
-          profileId = profile._id || data._id || id;
+          profileId = profile._id || profile.userId || data._id || id;
           setClientProfileId(profileId);
         }
 
@@ -636,7 +636,7 @@ export default function InvestorDetail() {
             console.error('Failed to fetch investments:', err);
             return null;
           }),
-          apiRequest(`/api/super-admin/roi/payouts?status=All&recipientType=All`).catch(err => {
+          apiRequest(`/api/super-admin/clients/${profileId}/roi`).catch(err => {
             console.error('Failed to fetch ROI payouts:', err);
             return null;
           }),
@@ -735,19 +735,21 @@ export default function InvestorDetail() {
         if (roiRes) {
           const data = roiRes.data || roiRes;
           let extractedPayouts = [];
-          if (Array.isArray(data)) {
-            extractedPayouts = data;
-          } else if (data.roiHistory && Array.isArray(data.roiHistory)) {
+          if (data.roiHistory && Array.isArray(data.roiHistory)) {
             extractedPayouts = data.roiHistory;
+          } else if (Array.isArray(data)) {
+            extractedPayouts = data;
           } else if (data.payouts && Array.isArray(data.payouts)) {
             extractedPayouts = data.payouts;
           } else if (data.list && Array.isArray(data.list)) {
             extractedPayouts = data.list;
+          } else if (data.data && Array.isArray(data.data)) {
+            extractedPayouts = data.data;
           }
 
           clientRoiHistory = extractedPayouts.map(r => {
             const rawRate = r.roiRate || r.roiPercentage || r.rate || localRoiPercentage || 0;
-            const cleanRate = String(rawRate).replace('%', '').trim();
+            const cleanRate = String(rawRate).replace('%', '').replace(/ROI\s*\(?\s*/i, '').replace(/\)?\s*$/, '').trim();
             const displayRate = cleanRate && cleanRate !== '0' ? `${cleanRate}%` : `${localRoiPercentage || 0}%`;
             return {
               ...r,
@@ -830,32 +832,42 @@ export default function InvestorDetail() {
   const fetchRoi = async () => {
     setTabLoading(true);
     try {
-      const res = await apiRequest(`/api/super-admin/roi/payouts?status=All&recipientType=All`);
+      const res = await apiRequest(`/api/super-admin/clients/${clientProfileId || id}/roi`);
       const data = res.data || res;
       
       let extractedPayouts = [];
-      if (Array.isArray(data)) {
+      if (data.roiHistory && Array.isArray(data.roiHistory)) {
+        extractedPayouts = data.roiHistory;
+      } else if (Array.isArray(data)) {
         extractedPayouts = data;
       } else if (data.payouts && Array.isArray(data.payouts)) {
         extractedPayouts = data.payouts;
       } else if (data.list && Array.isArray(data.list)) {
         extractedPayouts = data.list;
+      } else if (data.data && Array.isArray(data.data)) {
+        extractedPayouts = data.data;
       }
 
-      const clientRoiHistory = extractedPayouts.filter(r => {
-        const recId = r.recipientId || r.investorId || r.clientId || '';
-        return String(recId) === String(clientProfileId) || String(recId) === String(id);
-      }).map(r => ({
-        _id: r.id || r._id,
-        payoutMonth: r.month || r.period || '—',
-        roiRate: r.roiPercentage ?? 0,
-        amount: Number(r.amount || 0),
-        status: r.status || 'pending',
-        processedDate: r.paidAt || r.date || '—',
-        ...r
-      }));
+      const clientRoiHistory = extractedPayouts.map(r => {
+        const rawRate = r.roiRate || r.roiPercentage || r.rate || localRoiPercentage || 0;
+        const cleanRate = String(rawRate).replace('%', '').replace(/ROI\s*\(?\s*/i, '').replace(/\)?\s*$/, '').trim();
+        const displayRate = cleanRate && cleanRate !== '0' ? `${cleanRate}%` : `${localRoiPercentage || 0}%`;
+        return {
+          ...r,
+          _id: r.id || r._id,
+          payoutMonth: r.payoutMonth || r.month || r.period || 'Aug 2026',
+          roiRate: displayRate,
+          amount: Number(r.amount || 0),
+          status: (r.status || 'PENDING').toUpperCase(),
+          processedDate: r.processedDate || r.paidAt || r.date || '—',
+        };
+      });
 
-      setRoiData({ roiHistory: clientRoiHistory });
+      setRoiData({
+        roiHistory: clientRoiHistory,
+        totalRoiPaid: data.totalRoiPaid || 0,
+        totalRoiPending: data.totalRoiPending || 0
+      });
     } catch (err) {
       console.error('Failed to fetch ROI:', err);
       setRoiData({ roiHistory: [], totalRoiPaid: 0, totalRoiPending: 0 });

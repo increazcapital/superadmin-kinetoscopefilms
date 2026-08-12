@@ -1465,8 +1465,8 @@ export default function AgentDetail() {
               <tbody>
                 {filteredCommission.length === 0 ? (
                   <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>No commission records found</td></tr>
-                ) : filteredCommission.map(com => (
-                  <tr key={com.id}>
+                ) : filteredCommission.map((com, idx) => (
+                  <tr key={com._id || com.id || `com-${idx}`}>
                     <td>
                       <button
                         onClick={() => setSelectedCommission(com)}

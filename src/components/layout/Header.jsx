@@ -129,8 +129,8 @@ export default function Header({ isCollapsed, onMenuClick }) {
       const canViewRequests = isSuperAdminUser || !!perms?.serviceRequests?.view;
       const canViewApprovals = isSuperAdminUser || !!perms?.depositWithdrawal?.view;
 
-      // 1. Fetch Clients, Agents, Service Requests, Deposits, Withdrawals, Projects, Articles, and FAQs concurrently
-      const [clientsData, agentsData, requestsData, depositsData, withdrawalsData, projectsData, articlesData, faqsData] = await Promise.all([
+      // 1. Fetch Clients, Agents, Service Requests, Deposits, Withdrawals, Projects, Articles, FAQs, and Notification User Status concurrently
+      const [clientsData, agentsData, requestsData, depositsData, withdrawalsData, projectsData, articlesData, faqsData, userStatusRes] = await Promise.all([
         canViewClients ? apiRequest('/api/super-admin/clients').catch(() => []) : Promise.resolve([]),
         canViewAgents ? apiRequest('/api/super-admin/agents').catch(() => []) : Promise.resolve([]),
         canViewRequests ? apiRequest('/api/super-admin/service-requests').catch(() => []) : Promise.resolve([]),
@@ -139,6 +139,7 @@ export default function Header({ isCollapsed, onMenuClick }) {
         apiRequest('/api/super-admin/projects').catch(() => []),
         apiRequest('/api/super-admin/articles').catch(() => []),
         apiRequest('/api/super-admin/faqs').catch(() => []),
+        apiRequest('/api/super-admin/notifications/user-status').catch(() => ({ data: { readIds: [], deletedIds: [] } }))
       ]);
       
       const extractClients = (res) => {
@@ -390,14 +391,11 @@ export default function Header({ isCollapsed, onMenuClick }) {
   const clearAllNotifications = () => {
     try {
       const allIds = notifications.map(n => n.id);
-      let clearedIds = [];
-      try {
-        const stored = localStorage.getItem('kfpl_cleared_notifications');
-        clearedIds = stored ? JSON.parse(stored) : [];
-      } catch (e) {}
-      const updatedCleared = Array.from(new Set([...clearedIds, ...allIds]));
-      localStorage.setItem('kfpl_cleared_notifications', JSON.stringify(updatedCleared));
-      localStorage.setItem('kfpl_notifications_cleared', 'true');
+      apiRequest('/api/super-admin/notifications/user-status/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: allIds })
+      }).catch(e => console.error('Failed to clear notifications:', e));
     } catch (e) {
       console.error('Failed to clear notifications:', e);
     }
@@ -406,17 +404,13 @@ export default function Header({ isCollapsed, onMenuClick }) {
   };
 
   const markAllNotificationsAsRead = () => {
-    const now = Date.now();
     try {
-      localStorage.setItem('kfpl_notifications_last_read', now.toString());
       const allIds = notifications.map(n => n.id);
-      let readIds = [];
-      try {
-        const stored = localStorage.getItem('kfpl_read_notifications');
-        readIds = stored ? JSON.parse(stored) : [];
-      } catch (e) {}
-      const updatedRead = Array.from(new Set([...readIds, ...allIds]));
-      localStorage.setItem('kfpl_read_notifications', JSON.stringify(updatedRead));
+      apiRequest('/api/super-admin/notifications/user-status/read', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: allIds })
+      }).catch(e => console.error('Failed to save read notification state:', e));
     } catch (e) {
       console.error('Failed to save read notification state:', e);
     }
@@ -426,15 +420,11 @@ export default function Header({ isCollapsed, onMenuClick }) {
 
   const markNotificationAsRead = (id) => {
     try {
-      let readIds = [];
-      try {
-        const stored = localStorage.getItem('kfpl_read_notifications');
-        readIds = stored ? JSON.parse(stored) : [];
-      } catch (e) {}
-      if (!readIds.includes(id)) {
-        readIds.push(id);
-        localStorage.setItem('kfpl_read_notifications', JSON.stringify(readIds));
-      }
+      apiRequest('/api/super-admin/notifications/user-status/read', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      }).catch(e => console.error('Failed to save read state:', e));
     } catch (e) {
       console.error('Failed to save read state:', e);
     }
@@ -442,6 +432,24 @@ export default function Header({ isCollapsed, onMenuClick }) {
       const updated = prev.map(n => n.id === id ? { ...n, isRead: true } : n);
       const unreadCount = updated.filter(n => !n.isRead).length;
       setUnreadNotifications(unreadCount);
+      return updated;
+    });
+  };
+
+  const deleteSingleNotification = (id, e) => {
+    if (e) e.stopPropagation();
+    try {
+      apiRequest('/api/super-admin/notifications/user-status/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      }).catch(e => console.error('Failed to delete notification:', e));
+    } catch (e) {
+      console.error('Failed to delete notification:', e);
+    }
+    setNotifications(prev => {
+      const updated = prev.filter(n => n.id !== id);
+      setUnreadNotifications(updated.filter(n => !n.isRead).length);
       return updated;
     });
   };

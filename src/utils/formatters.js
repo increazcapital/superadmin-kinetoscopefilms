@@ -15,6 +15,21 @@ export function formatNumber(num) {
   return Number(num).toLocaleString('en-IN');
 }
 
+export function formatDateTime(dateVal) {
+  if (!dateVal || dateVal === '—') return '—';
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return String(dateVal);
+  const day = String(d.getDate()).padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
+}
+
 export function getCategoryFromAmount(amount) {
   if (amount > 30000000) return 'platinum';
   if (amount > 10000000) return 'diamond';

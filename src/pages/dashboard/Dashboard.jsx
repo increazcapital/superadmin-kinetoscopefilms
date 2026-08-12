@@ -707,6 +707,15 @@ export default function Dashboard() {
           iconColor="navy"
           delay={400}
         />
+        <KpiCard
+          title="Total Withdrawals"
+          value={formatCurrency(stats.totalWithdrawals || stats.totalWithdrawalAmount || 0)}
+          trend="Approved capital withdrawals"
+          trendDirection="down"
+          icon={kpiIcons.pending}
+          iconColor="danger"
+          delay={480}
+        />
       </div>
 
       {/* ═══════════════ CHARTS 2×2 GRID ═══════════════ */}

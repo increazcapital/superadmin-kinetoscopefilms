@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import DataTable from '../../components/ui/DataTable';
 import Badge from '../../components/ui/Badge';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { apiRequest } from '../../config/apiHelper';
 import { useToast } from '../../components/ui/Toast';
 
@@ -115,7 +115,11 @@ export default function ApprovalHistory() {
       accessor: 'amount',
       render: (row) => <span className="font-semibold">{formatCurrency(row.amount)}</span>,
     },
-    { header: 'Date', accessor: 'date' },
+    {
+      header: 'Date',
+      accessor: 'date',
+      render: (row) => <span>{formatDateTime(row.date)}</span>
+    },
     {
       header: 'Status',
       accessor: 'status',
@@ -126,7 +130,11 @@ export default function ApprovalHistory() {
       accessor: 'adminNote',
       render: (row) => <span className="text-sm text-muted">{row.adminNote || '—'}</span>,
     },
-    { header: 'Action Time', accessor: 'actionAt' },
+    {
+      header: 'Action Time',
+      accessor: 'actionAt',
+      render: (row) => <span>{formatDateTime(row.actionAt)}</span>
+    },
   ];
 
   return (

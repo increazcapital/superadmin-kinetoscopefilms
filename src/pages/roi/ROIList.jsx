@@ -367,7 +367,7 @@ export default function ROIList() {
         investorName: r.recipientName || r.investorName || r.name || '—',
         clientId: r.recipientCode || r.clientId || r.subText || r.recipientId || '—',
         investorId: r.recipientId || r.investorId || r.idInternal || '',
-        roiPercentage: r.roiPercentage || 12,
+        roiPercentage: r.roiPercentage || 0,
         month: r.month || r.period || '—',
         amount: Number(r.amount || 0),
         status: (r.status || 'pending').toLowerCase(),
@@ -687,7 +687,12 @@ export default function ROIList() {
           (c.profile?.userId) ||
           c._id || c.id;
         const profileId = c.profile?._id || c.profile?.id || c._id || c.id;
-        return String(userId) === String(r.investorId) || String(profileId) === String(r.investorId);
+        const code = c.clientCode || c.profile?.clientCode || c.code || '';
+        const recId = String(r.recipientId || r.clientId || r.recipientCode || r.investorId || '').toLowerCase();
+        return String(userId) === String(r.investorId) ||
+               String(profileId) === String(r.investorId) ||
+               (code && recId.includes(String(code).toLowerCase())) ||
+               (c.name && recId.includes(String(c.name).toLowerCase()));
       });
       const resolvedName = r.investorName && r.investorName !== 'Unknown' && r.investorName !== '—'
         ? r.investorName
@@ -699,16 +704,20 @@ export default function ROIList() {
           : (match?.clientCode || match?.profile?.clientCode || match?.clientId || r.investorId || '')
       );
 
-      const resolvedRoi = match
-        ? (match.monthlyRoi ?? match.summaryCards?.monthlyRoi ?? match.profile?.monthlyRoi ?? match.profile?.roiPercentage ?? match.roiPercentage ?? 0)
-        : (r.roiPercentage ?? 0);
+      const resolvedRoi = (match && (match.monthlyRoi !== undefined || match.profile?.monthlyRoi !== undefined))
+        ? (match.monthlyRoi ?? match.profile?.monthlyRoi ?? match.summaryCards?.monthlyRoi ?? 0)
+        : (r.roiPercentage || 0);
+
+      let displayDetail = (r.type && String(r.type).startsWith('ROI') && String(r.type).includes('%'))
+        ? r.type
+        : `ROI (${resolvedRoi}%)`;
 
       return {
         ...r,
         recordType: 'Client',
         name: resolvedName,
         subText: resolvedCode,
-        payoutDetail: `ROI (${resolvedRoi}%)`
+        payoutDetail: displayDetail
       };
     }),
     ...agentCommissions.map(c => {

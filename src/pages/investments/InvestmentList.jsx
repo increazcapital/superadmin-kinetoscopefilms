@@ -111,9 +111,15 @@ export default function InvestmentList() {
 
   const handleClearAllInvestments = async () => {
     try {
-      await apiRequest('/api/super-admin/investments', {
-        method: 'DELETE'
-      });
+      try {
+        await apiRequest('/api/super-admin/investments/clear', {
+          method: 'DELETE'
+        });
+      } catch (e) {
+        await apiRequest('/api/super-admin/investments', {
+          method: 'DELETE'
+        });
+      }
       addToast('All investments cleared successfully.', 'success', 'Data Cleared');
       setShowClearAllModal(false);
       setRenderTrigger(prev => prev + 1);

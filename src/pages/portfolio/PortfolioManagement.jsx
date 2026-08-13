@@ -1603,7 +1603,7 @@ export default function PortfolioManagement() {
       ) : activePage === 'projects' ? (
         <>
           {/* Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginBottom: '24px' }}>
             <div className="kfpl-card" style={{ padding: '20px' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Total Projects</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{totalProjects}</div>
@@ -1715,7 +1715,7 @@ export default function PortfolioManagement() {
                     )}
 
                     {/* Four Action Buttons: Update, Edit, Attach, Delete */}
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--color-border)', position: 'relative', zIndex: 10 }} onClick={e => e.stopPropagation()}>
+                    <div className="kfpl-project-card-actions" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--color-border)', position: 'relative', zIndex: 10 }} onClick={e => e.stopPropagation()}>
                       <button
                         type="button"
                         className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
@@ -2201,7 +2201,7 @@ export default function PortfolioManagement() {
             <textarea className="kfpl-textarea" value={formData.summary} onChange={e => setFormData({ ...formData, summary: e.target.value })} placeholder="Brief project description..." rows="2" />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="kfpl-form-row">
             <div className="kfpl-input-group">
               <label className="kfpl-input-label">Current Update</label>
               <textarea className="kfpl-textarea" value={formData.update} onChange={e => setFormData({ ...formData, update: e.target.value })} placeholder="e.g. Principal photography completed..." rows="2" />
@@ -2277,10 +2277,10 @@ export default function PortfolioManagement() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="kfpl-grid-2col kfpl-segments-manager-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
 
             {/* Left Column: Segments List */}
-            <div style={{ borderRight: '1px solid var(--color-border)', paddingRight: '20px' }}>
+            <div className="kfpl-segments-manager-left">
               <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--color-text-secondary)', fontWeight: 700 }}>
                 Existing Segments
               </h4>

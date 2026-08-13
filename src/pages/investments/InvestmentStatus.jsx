@@ -63,20 +63,32 @@ function getSegmentGradient(seg) {
 }
 
 /* Slab-based commission calculation */
-function computeSlabCommission(amount, slabs) {
+function computeSlabCommission(amount, slabs, slabType = 'one-time') {
   const num = Number(amount) || 0;
-  if (!slabs || slabs.length === 0) {
-    if (num < 2500000) return 1.0;
-    if (num < 10000000) return 1.5;
-    if (num < 30000000) return 2.0;
-    return 2.5;
+  if (slabs && slabs.length > 0) {
+    const typeSlabs = slabs.filter(s => s.type === slabType || !s.type);
+    const activeSlabs = typeSlabs.length > 0 ? typeSlabs : slabs;
+    for (const slab of activeSlabs) {
+      const min = Number(slab.minAmount) || 0;
+      const max = (slab.maxAmount === null || slab.maxAmount === undefined || slab.maxAmount === 999999999) ? Infinity : Number(slab.maxAmount);
+      if (num >= min && num <= max) {
+        return Number(slab.commissionPercentage !== undefined ? slab.commissionPercentage : (slab.percentage || 1.0));
+      }
+    }
   }
-  for (const slab of slabs) {
-    const min = Number(slab.minAmount) || 0;
-    const max = Number(slab.maxAmount) || Infinity;
-    if (num >= min && num <= max) return Number(slab.percentage) || 1.5;
+  if (slabType === 'one-time') {
+    if (num <= 10000) return 1.0;
+    if (num <= 2500000) return 2.0;
+    if (num <= 5000000) return 3.0;
+    if (num <= 10000000) return 4.0;
+    return 5.0;
+  } else {
+    if (num <= 1500000) return 0.5;
+    if (num <= 2500000) return 0.75;
+    if (num <= 5000000) return 1.0;
+    if (num <= 10000000) return 1.5;
+    return 2.0;
   }
-  return 1.5;
 }
 
 export default function InvestmentStatus() {
@@ -187,7 +199,8 @@ export default function InvestmentStatus() {
       if (!Array.isArray(rawSlabs)) {
         for (const k in slabRes) { if (Array.isArray(slabRes[k])) { rawSlabs = slabRes[k]; break; } }
       }
-      setCommissionSlabs(Array.isArray(rawSlabs) ? rawSlabs : []);
+      const activeSlabsList = Array.isArray(rawSlabs) ? rawSlabs : [];
+      setCommissionSlabs(activeSlabsList);
 
       const clientMap = {};
       rawClients.forEach(c => {
@@ -209,9 +222,14 @@ export default function InvestmentStatus() {
         const agentObj = inv.clientId?.assignedAgent || inv.assignedAgent;
         const projObj = typeof inv.projectId === 'object' ? inv.projectId : null;
         const amount = Number(inv.investmentAmount || inv.amount || 0);
-        const roiNum = inv.roiPercentage !== undefined ? Number(inv.roiPercentage) : (projObj?.monthlyRoi ? parseFloat(projObj.monthlyRoi) : (ci.monthlyRoi || 1.5));
-        const commStr = inv.agentCommission || '1.5%';
-        const commNum = parseFloat(commStr) || 1.5;
+        const roiNum = inv.roiPercentage !== undefined ? Number(inv.roiPercentage) : (projObj?.monthlyRoi ? parseFloat(projObj.monthlyRoi) : (ci.monthlyRoi || 7.7));
+        
+        let commNum = 0;
+        if (inv.agentCommission && inv.agentCommission !== '1.5%' && !isNaN(parseFloat(inv.agentCommission))) {
+          commNum = parseFloat(inv.agentCommission);
+        } else {
+          commNum = computeSlabCommission(amount, activeSlabsList, 'one-time');
+        }
 
         return {
           id: inv._id || inv.id,
@@ -302,7 +320,7 @@ export default function InvestmentStatus() {
       setAssignForm(prev => ({
         ...prev,
         investmentAmount: String(info.totalInvestment),
-        roiPercentage: String(info.monthlyRoi || '1.5'),
+        roiPercentage: String(info.monthlyRoi || '7.7'),
         agentCommission: `${autoComm}%`,
       }));
     }
@@ -401,9 +419,9 @@ export default function InvestmentStatus() {
   const previewCommAmt = (previewAmount * previewCommPct) / 100;
 
   return (
-    <div className="kfpl-page-container" style={{ padding: '24px 32px', maxWidth: '1600px', margin: '0 auto' }}>
+    <div className="kfpl-page-container" style={{ maxWidth: '1600px', margin: '0 auto' }}>
       {/* ═══ PAGE HEADER ═══ */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+      <div className="kfpl-page-header" style={{ marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
             Investment Status
@@ -412,7 +430,7 @@ export default function InvestmentStatus() {
             Live tracking of client investments, assigned agents, ROI yields, and commissions
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="kfpl-page-header-actions" style={{ display: 'flex', gap: '10px' }}>
           <button type="button" className="kfpl-btn kfpl-btn--secondary" onClick={loadData} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
@@ -438,8 +456,8 @@ export default function InvestmentStatus() {
         </div>
       </div>
 
-      {/* ═══ 4 KPI CARDS (2x2 GRID FOR EXTRA WIDE VIEW) ═══ */}
-      <div className="kfpl-dashboard-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '24px' }}>
+      {/* ═══ 4 KPI CARDS (RESPONSIVE GRID) ═══ */}
+      <div className="kfpl-dashboard-kpis kfpl-inv-status-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <KpiCard
           title="Total Investment Volume"
           value={formatCurrency(totalVol)}
@@ -477,8 +495,8 @@ export default function InvestmentStatus() {
 
       {/* ═══ SEARCH TOOLBAR ═══ */}
       <div className="kfpl-table-container" style={{ marginBottom: '16px' }}>
-        <div className="kfpl-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
-          <div style={{ flex: 1, position: 'relative' }}>
+        <div className="kfpl-table-toolbar">
+          <div style={{ flex: 1, position: 'relative', width: '100%' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
@@ -492,11 +510,12 @@ export default function InvestmentStatus() {
             />
           </div>
 
-          <div style={{ display: 'flex', background: 'var(--color-surface)', padding: '3px', borderRadius: 'var(--radius-md)', gap: '3px' }}>
+          <div style={{ display: 'flex', background: 'var(--color-surface)', padding: '3px', borderRadius: 'var(--radius-md)', gap: '3px', flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }}>
             <button
               type="button"
               onClick={() => setViewMode('table')}
               style={{
+                flex: 1,
                 padding: '6px 14px',
                 fontSize: '0.8125rem',
                 fontWeight: 600,
@@ -506,6 +525,7 @@ export default function InvestmentStatus() {
                 background: viewMode === 'table' ? 'var(--color-white)' : 'transparent',
                 color: viewMode === 'table' ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
                 boxShadow: viewMode === 'table' ? 'var(--shadow-sm)' : 'none',
+                whiteSpace: 'nowrap'
               }}
             >
               All Investments Table
@@ -514,6 +534,7 @@ export default function InvestmentStatus() {
               type="button"
               onClick={() => setViewMode('grouped')}
               style={{
+                flex: 1,
                 padding: '6px 14px',
                 fontSize: '0.8125rem',
                 fontWeight: 600,
@@ -523,20 +544,21 @@ export default function InvestmentStatus() {
                 background: viewMode === 'grouped' ? 'var(--color-white)' : 'transparent',
                 color: viewMode === 'grouped' ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
                 boxShadow: viewMode === 'grouped' ? 'var(--shadow-sm)' : 'none',
+                whiteSpace: 'nowrap'
               }}
             >
-              Grouped by Client (Multi-Project)
+              Grouped by Client
             </button>
           </div>
         </div>
       </div>
 
       {/* ═══ DEDICATED SEGMENT FILTER BAR ═══ */}
-      <div className="kfpl-table-container" style={{ padding: '14px 20px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+      <div className="kfpl-table-container kfpl-filter-chips" style={{ padding: '14px 20px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px', overflowX: 'auto' }}>
         <span className="text-xs text-muted font-bold" style={{ textTransform: 'uppercase', letterSpacing: '0.6px', flexShrink: 0 }}>
           Filter by Segment:
         </span>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
           {segmentFilters.map(seg => {
             const ss = getSegmentStyle(seg);
             const active = selectedSegment === seg;
@@ -680,7 +702,7 @@ export default function InvestmentStatus() {
               </div>
 
               {/* Rich Project Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
                 {g.projects.map(p => {
                   const bannerUrl = p.projectDetails?.bannerImage;
                   const bgStyle = bannerUrl ? `url(${bannerUrl})` : getSegmentGradient(p.segment);

@@ -274,11 +274,11 @@ export default function FAQManagement() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div style={{
+      <div className="kfpl-filter-bar-responsive" style={{
         display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'
       }}>
         {/* Left Side: Filter Tabs */}
-        <div style={{ display: 'flex', gap: '6px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', gap: '6px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', border: '1px solid #e2e8f0', overflowX: 'auto', maxWidth: '100%' }}>
           {['all', 'client', 'agent', 'both'].map(t => (
             <button
               key={t}
@@ -286,7 +286,7 @@ export default function FAQManagement() {
               style={{
                 padding: '8px 16px', borderRadius: '8px', border: 'none',
                 fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: 'Inter, sans-serif', flexShrink: 0,
                 background: filterTarget === t ? '#fff' : 'transparent',
                 color: filterTarget === t ? 'var(--color-navy)' : '#64748b',
                 boxShadow: filterTarget === t ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
@@ -370,9 +370,10 @@ export default function FAQManagement() {
               >
                 {/* Accordion Trigger Row */}
                 <div
+                  className="kfpl-faq-trigger-row"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '16px',
-                    padding: '18px 24px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+                    padding: '16px 20px', cursor: 'pointer',
                     userSelect: 'none'
                   }}
                   onClick={() => setExpandedId(isExpanded ? null : faq.id)}

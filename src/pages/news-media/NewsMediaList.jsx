@@ -108,7 +108,7 @@ export default function NewsMediaList() {
           <h1 className="kfpl-page-title">News & Media</h1>
           <p className="kfpl-page-subtitle">Manage articles, press releases, and company updates</p>
         </div>
-        <div className="kfpl-page-header-right">
+        <div className="kfpl-page-header-actions">
           <Link to="/news-media/add" className="kfpl-btn kfpl-btn--primary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>

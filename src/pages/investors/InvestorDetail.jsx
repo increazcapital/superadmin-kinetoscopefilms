@@ -953,7 +953,8 @@ export default function InvestorDetail() {
       return;
     }
     try {
-      await apiRequest(`/api/super-admin/clients/${clientProfileId}/roi-rate`, {
+      const targetId = clientProfileId || id || investor?._id || investor?.id;
+      await apiRequest(`/api/super-admin/clients/${targetId}/roi-rate`, {
         method: 'PATCH',
         body: JSON.stringify({ monthlyRoi: newRoi })
       });

@@ -530,6 +530,8 @@ export default function Dashboard() {
           agentChange: data.agentChange ?? data.stats?.agentChange ?? 0,
           pendingApprovals: data.pendingApprovals ?? data.stats?.pendingApprovals ?? data.pendingCount ?? 0,
           activeInvestments: finalActiveInvestments,
+          totalWithdrawals: data.totalWithdrawals !== undefined ? data.totalWithdrawals : (data.totalWithdrawalAmount ?? data.stats?.totalWithdrawals ?? 0),
+          totalWithdrawalAmount: data.totalWithdrawals !== undefined ? data.totalWithdrawals : (data.totalWithdrawalAmount ?? data.stats?.totalWithdrawals ?? 0),
         };
         setStats(freshStats);
 
@@ -729,7 +731,7 @@ export default function Dashboard() {
             </div>
             <Badge status="active">Live</Badge>
           </div>
-          <div className="kfpl-chart-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', width: '100%', padding: '10px 15px', flex: 1, overflow: 'hidden' }}>
+          <div className="kfpl-chart-body kfpl-chart-body-pie" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', width: '100%', padding: '10px 15px', flex: 1 }}>
             {(!Array.isArray(segments) || segments.length === 0 || segments.every(s => !s.amount && !s.value)) ? (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem', gap: '8px', padding: '40px 0' }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
@@ -828,7 +830,7 @@ export default function Dashboard() {
             </div>
             <Badge status="gold">{stats.activeInvestments} Total</Badge>
           </div>
-          <div className="kfpl-chart-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '20px', width: '100%', padding: '10px 0', flex: 1 }}>
+          <div className="kfpl-chart-body kfpl-chart-body-pie" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '20px', width: '100%', padding: '10px 0', flex: 1 }}>
             <PieChart data={Array.isArray(investmentStatus) ? investmentStatus : []} size={180} strokeWidth={24} />
             <div className="kfpl-chart-legend-side" style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto', paddingRight: '8px' }}>
               {(Array.isArray(investmentStatus) ? investmentStatus : []).map(seg => (

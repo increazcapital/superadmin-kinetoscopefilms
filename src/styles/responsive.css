@@ -57,6 +57,11 @@
     padding: 8px 10px;
   }
 
+  /* Responsive Page Container */
+  .kfpl-page-container {
+    padding: 20px !important;
+  }
+
   /* Portfolio responsiveness on tablet */
   .kfpl-portfolio-summary {
     grid-template-columns: repeat(2, 1fr);
@@ -68,63 +73,38 @@
     grid-template-columns: repeat(3, 1fr);
   }
   
-  /* News & Media responsiveness on tablet */
-  .kfpl-nm-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .kfpl-nm-form-layout {
-    grid-template-columns: 1fr;
+  /* Investment Status KPI Grid */
+  .kfpl-inv-status-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 
-  /* Detail View responsiveness on tablet */
-  .kfpl-detail-kpis-summary {
-    grid-template-columns: repeat(2, 1fr);
+  /* Header action buttons on tablet */
+  .kfpl-page-header-actions {
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
   }
 
-  .kfpl-detail-card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 20px;
-    gap: 16px;
+  /* Responsive Filter Controls */
+  .kfpl-filter-bar-responsive {
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
 
-  .kfpl-detail-profile {
-    width: 100%;
-  }
-
-  .kfpl-detail-actions {
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .kfpl-detail-actions .kfpl-btn {
-    flex: 1 1 auto;
-    justify-content: center;
-  }
-
-  .kfpl-table-container,
-  .kfpl-table-scroll {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .kfpl-tabs {
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
-  }
-
-  .kfpl-tab {
-    flex-shrink: 0;
+  .kfpl-filter-bar-responsive .kfpl-select,
+  .kfpl-filter-bar-responsive .kfpl-input {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
 
 /* ── Mobile (< 768px) ─────────────────────── */
 @media (max-width: 767px) {
+  .kfpl-page-container {
+    padding: 12px 14px !important;
+  }
+
   /* Sidebar — hidden by default, overlay on mobile */
   .kfpl-sidebar {
     width: var(--sidebar-width);
@@ -166,8 +146,6 @@
     display: inline-flex !important;
   }
 
-
-
   /* Main area */
   .kfpl-main-area {
     margin-left: 0;
@@ -200,7 +178,7 @@
   }
 
   .kfpl-content {
-    padding: 16px;
+    padding: 12px;
   }
 
   /* Dashboard */
@@ -249,14 +227,27 @@
   .kfpl-page-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
   }
 
   .kfpl-page-header-actions {
-    width: 100%;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
   }
 
   .kfpl-page-header-actions .kfpl-btn {
-    flex: 1;
+    flex: 1 1 calc(50% - 6px) !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 8px 10px !important;
+    font-size: 0.8125rem !important;
+  }
+
+  .kfpl-page-header-actions .kfpl-select {
+    flex: 1 1 100% !important;
+    width: 100% !important;
   }
 
   /* Form */
@@ -266,13 +257,14 @@
   }
 
   .kfpl-form-card {
-    padding: 20px;
+    padding: 16px;
   }
 
   /* Table */
   .kfpl-table-toolbar {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch !important;
+    gap: 12px !important;
   }
 
   .kfpl-search {
@@ -418,28 +410,8 @@
 
   .kfpl-modal {
     max-height: 90vh;
+    width: 100% !important;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  }
-
-  /* Detail */
-  .kfpl-detail-header {
-    flex-direction: column;
-  }
-
-  .kfpl-detail-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .kfpl-detail-kpis-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .kfpl-detail-actions {
-    width: 100%;
-  }
-
-  .kfpl-detail-actions .kfpl-btn {
-    flex: 1;
   }
 
   /* Toast */
@@ -464,6 +436,7 @@
     overflow-x: auto;
     flex-wrap: nowrap;
     padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .kfpl-filter-chip {
@@ -481,7 +454,7 @@
     grid-template-columns: 1fr;
   }
   .kfpl-portfolio-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
   .kfpl-portfolio-metrics {
     grid-template-columns: repeat(2, 1fr);
@@ -490,17 +463,32 @@
     grid-template-columns: 1fr;
   }
 
-  /* News & Media responsiveness on mobile */
-  .kfpl-nm-stats {
-    grid-template-columns: 1fr;
-  }
-  .kfpl-nm-form-layout {
-    grid-template-columns: 1fr;
+  /* Side Drawer Responsive */
+  .kfpl-portfolio-drawer {
+    width: 100% !important;
+    max-width: 100vw !important;
+    border-radius: 0 !important;
   }
 
-  /* Detail View responsiveness on mobile */
-  .kfpl-detail-kpis-summary {
-    grid-template-columns: 1fr;
+  /* Project Card 4 Action Buttons Grid on Mobile */
+  .kfpl-project-card-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .kfpl-project-card-actions .kfpl-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Investment Status KPI Grid on Mobile */
+  .kfpl-inv-status-kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 
   /* Verification Modal details responsiveness on mobile */
@@ -515,7 +503,163 @@
     grid-template-columns: 1fr;
   }
 
-  /* Tabs scroll on mobile */
+  /* Manage Segments Modal Responsive */
+  .kfpl-segments-manager-left {
+    border-right: 1px solid var(--color-border);
+    padding-right: 20px;
+  }
+
+  .kfpl-segments-manager-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .kfpl-segments-manager-left {
+    border-right: none !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    padding-right: 0 !important;
+    padding-bottom: 20px !important;
+  }
+
+  /* Modal Footers Responsiveness on Mobile */
+  .kfpl-modal-footer {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .kfpl-modal-footer-responsive {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .kfpl-modal-footer-responsive > button,
+  .kfpl-modal-footer-responsive > div {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .kfpl-modal-footer-responsive > div > button {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+
+  /* News & Media Filters & Form on Mobile */
+  .kfpl-nm-filters {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .kfpl-nm-filters .kfpl-select,
+  .kfpl-nm-search-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .kfpl-nm-form-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Perk Management Assigned Filters on Mobile */
+  .kfpl-assigned-filters {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .kfpl-assigned-search-wrap,
+  .kfpl-assigned-filter-select {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Email Notifications Composer Grid on Mobile/Tablet */
+  .kfpl-email-composer-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .kfpl-email-template-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Form Rows on Mobile */
+  .kfpl-form-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .kfpl-form-row > .kfpl-input-group {
+    width: 100% !important;
+  }
+
+  /* Settings & Sub Admin Grids on Mobile */
+  .kfpl-settings-support-grid,
+  .kfpl-subadmin-modal-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Perks & Recognition Stats on Mobile */
+  .kfpl-perks-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .kfpl-perks-stat {
+    padding: 10px 12px !important;
+    justify-content: center !important;
+  }
+
+  /* News & Media Stats on Mobile */
+  .kfpl-nm-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .kfpl-nm-stat-card {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+
+  /* Card Header Responsive (Title + Action Button on Mobile) */
+  .kfpl-card-header-responsive {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .kfpl-card-header-responsive > button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Email Notifications Composer Grid */
+  .kfpl-email-composer-grid {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 24px;
+  }
+
+  /* Dashboard Pie Charts Responsiveness on Mobile */
+  .kfpl-chart-body-pie {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 16px !important;
+    padding: 16px 10px !important;
+  }
+
+  .kfpl-chart-legend-side {
+    width: 100% !important;
+    max-height: none !important;
+    padding-right: 0 !important;
+  }
+
+  /* Tabs & Chips scroll on mobile */
   .kfpl-tabs {
     width: 100% !important;
     overflow-x: auto !important;
@@ -524,6 +668,13 @@
   }
   .kfpl-tab {
     flex-shrink: 0;
+  }
+}
+
+/* ── Tablet & Desktop Composer Layout (>= 992px) ─────────────────────── */
+@media (min-width: 992px) {
+  .kfpl-email-composer-grid {
+    grid-template-columns: 1fr 340px !important;
   }
 }
 
@@ -598,3 +749,4 @@
 }
 
 /* ============ END: responsive.css ============ */
+

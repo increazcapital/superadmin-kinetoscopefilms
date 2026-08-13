@@ -535,25 +535,25 @@ export default function CommissionConfig() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--color-border)', marginBottom: '24px', paddingBottom: '2px' }}>
+      <div className="kfpl-tabs" style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--color-border)', marginBottom: '24px', paddingBottom: '2px', overflowX: 'auto', maxWidth: '100%' }}>
         <button
           className={`kfpl-btn ${activeTab === 'one-time' ? 'kfpl-btn--primary' : 'kfpl-btn--ghost'}`}
           onClick={() => setActiveTab('one-time')}
-          style={{ borderRadius: '8px 8px 0 0', padding: '10px 20px', borderBottom: activeTab === 'one-time' ? 'none' : '' }}
+          style={{ borderRadius: '8px 8px 0 0', padding: '10px 20px', flexShrink: 0, borderBottom: activeTab === 'one-time' ? 'none' : '' }}
         >
           One-Time slabs
         </button>
         <button
           className={`kfpl-btn ${activeTab === 'monthly' ? 'kfpl-btn--primary' : 'kfpl-btn--ghost'}`}
           onClick={() => setActiveTab('monthly')}
-          style={{ borderRadius: '8px 8px 0 0', padding: '10px 20px', borderBottom: activeTab === 'monthly' ? 'none' : '' }}
+          style={{ borderRadius: '8px 8px 0 0', padding: '10px 20px', flexShrink: 0, borderBottom: activeTab === 'monthly' ? 'none' : '' }}
         >
           Monthly slabs
         </button>
         <button
           className={`kfpl-btn ${activeTab === 'overrides' ? 'kfpl-btn--primary' : 'kfpl-btn--ghost'}`}
           onClick={() => setActiveTab('overrides')}
-          style={{ borderRadius: '8px 8px 0 0', padding: '10px 20px', borderBottom: activeTab === 'overrides' ? 'none' : '' }}
+          style={{ borderRadius: '8px 8px 0 0', padding: '10px 20px', flexShrink: 0, borderBottom: activeTab === 'overrides' ? 'none' : '' }}
         >
           Special Overrides
         </button>
@@ -562,8 +562,8 @@ export default function CommissionConfig() {
       {/* Tab Panels */}
       {activeTab === 'one-time' && (
         <div className="kfpl-card animate-fade-slide-up">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-navy)' }}>One-Time Commission Slab Mapping</h3>
+          <div className="kfpl-card-header-responsive" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-navy)', margin: 0 }}>One-Time Commission Slab Mapping</h3>
             <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" onClick={handleOpenAddSlab}>
               + Add One-Time Slab
             </button>
@@ -612,8 +612,8 @@ export default function CommissionConfig() {
 
       {activeTab === 'monthly' && (
         <div className="kfpl-card animate-fade-slide-up">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-navy)' }}>Monthly Recurring Commission Slab Mapping</h3>
+          <div className="kfpl-card-header-responsive" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-navy)', margin: 0 }}>Monthly Recurring Commission Slab Mapping</h3>
             <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" onClick={handleOpenAddSlab}>
               + Add Monthly Slab
             </button>
@@ -662,8 +662,8 @@ export default function CommissionConfig() {
 
       {activeTab === 'overrides' && (
         <div className="kfpl-card animate-fade-slide-up">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-navy)' }}>Special Manual Commission Incentives</h3>
+          <div className="kfpl-card-header-responsive" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-navy)', margin: 0 }}>Special Manual Commission Incentives</h3>
             <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" onClick={handleOpenAddOverride}>
               + Add Special Incentive
             </button>

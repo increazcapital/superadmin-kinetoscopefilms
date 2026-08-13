@@ -487,7 +487,7 @@ export default function ServiceRequestsPage() {
           onClose={() => setShowDetailModal(false)}
           title={`Review Service Request - ${getDisplayId(selectedReq)}`}
           footer={
-            <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="kfpl-modal-footer-responsive" style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <button 
                 type="button"
                 className="kfpl-btn kfpl-btn--danger" 
@@ -497,7 +497,7 @@ export default function ServiceRequestsPage() {
               >
                 Delete Request
               </button>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button type="button" className="kfpl-btn kfpl-btn--ghost" onClick={() => setShowDetailModal(false)} disabled={saving}>Cancel</button>
                 <button type="button" className="kfpl-btn kfpl-btn--primary" onClick={handleSaveChanges} disabled={saving}>
                   {saving ? 'Saving...' : 'Save Changes'}

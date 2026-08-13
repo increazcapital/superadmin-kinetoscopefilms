@@ -366,12 +366,12 @@ export default function InvestmentList() {
           <h2 className="kfpl-page-title">Investments</h2>
           <p className="kfpl-page-subtitle">All investments across all clients & agents</p>
         </div>
-        <div className="kfpl-page-header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div className="kfpl-page-header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <select
             value={segmentFilter}
             onChange={e => setSegmentFilter(e.target.value)}
             className="kfpl-select"
-            style={{ width: '160px', padding: '8px 12px', fontSize: '0.875rem', borderRadius: '8px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+            style={{ padding: '8px 12px', fontSize: '0.875rem', borderRadius: '8px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', flex: '1 1 140px' }}
           >
             <option value="all">All Segments</option>
             {uniqueSegments.map(s => <option key={s} value={s}>{s}</option>)}
@@ -381,7 +381,7 @@ export default function InvestmentList() {
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
             className="kfpl-select"
-            style={{ width: '140px', padding: '8px 12px', fontSize: '0.875rem', borderRadius: '8px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+            style={{ padding: '8px 12px', fontSize: '0.875rem', borderRadius: '8px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', flex: '1 1 120px' }}
           >
             <option value="all">All Statuses</option>
             {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}

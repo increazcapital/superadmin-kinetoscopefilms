@@ -988,7 +988,7 @@ export default function Settings() {
         </p>
 
         <form onSubmit={handleSaveSupportConfig} className="kfpl-form">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+          <div className="kfpl-settings-support-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
             {/* Client Portal Support */}
             <div style={{ background: 'var(--color-surface-elevated)', padding: '16px', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
               <h4 style={{ fontSize: '0.9375rem', fontWeight: '700', marginBottom: '12px', color: 'var(--color-text-primary)' }}>

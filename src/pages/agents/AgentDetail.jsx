@@ -884,19 +884,29 @@ export default function AgentDetail() {
       return com.breakdown;
     }
 
-    // Construct fallback breakdown from single database payout record
-    const cid = com.clientId?._id || com.clientId?.id || com.clientId;
-    if (cid) {
-      const clientObj = agentClients.find(cl => cl.id === cid || cl.clientId === cid || cl._id === cid);
-      if (clientObj) {
-        let pct = 0;
+    // Construct breakdown from database commission & client record
+    const cidObj = typeof com.clientId === 'object' && com.clientId !== null ? com.clientId : null;
+    const cidStr = cidObj ? String(cidObj._id || cidObj.id) : String(com.clientId || '');
+    const clientCodeStr = cidObj ? cidObj.clientCode : '';
+
+    const clientObj = agentClients.find(cl => 
+      String(cl.id) === cidStr || 
+      String(cl._id) === cidStr || 
+      cl.clientId === cidStr || 
+      (clientCodeStr && cl.clientId === clientCodeStr)
+    );
+
+    if (clientObj || cidObj) {
+      let pct = com.slabPercentage;
+      if (pct === undefined || pct === null) {
         const typeNormalized = String(com.type || com.commissionType || '').toLowerCase().trim();
-        const totalInv = clientObj.totalInvestment || 0;
+        const totalInv = com.investmentAmount || (clientObj ? clientObj.totalInvestment : 0);
 
         const getSlabRateLocal = (typeNorm, amount) => {
           const typeSlabs = apiSlabs.filter(s => s.type === typeNorm);
           const fallbackSlabs = typeNorm === 'one-time' 
             ? [
+                { minAmount: 1000, maxAmount: 10000, percentage: 1 },
                 { minAmount: 500000, maxAmount: 2500000, percentage: 2 },
                 { minAmount: 2500000, maxAmount: 5000000, percentage: 3 },
                 { minAmount: 5000000, maxAmount: 10000000, percentage: 4 },
@@ -913,9 +923,9 @@ export default function AgentDetail() {
           const matched = activeSlabs.find(s => {
             const max = s.maxAmount === null || s.maxAmount === undefined || s.maxAmount === 999999999 ? 999999999 : s.maxAmount;
             const min = s.minAmount || 0;
-            return amount >= min && amount < max;
+            return amount >= min && amount <= max;
           });
-          return matched ? (matched.commissionPercentage !== undefined ? matched.commissionPercentage : (matched.percentage || 0)) : 0;
+          return matched ? (matched.commissionPercentage !== undefined ? matched.commissionPercentage : (matched.percentage || 0)) : 1;
         };
 
         if (typeNormalized === 'one-time' || typeNormalized === 'onetime' || typeNormalized === 'one time' || typeNormalized === 'one-time onboarding') {
@@ -924,17 +934,24 @@ export default function AgentDetail() {
           pct = getSlabRateLocal('monthly', totalInv);
         } else if (typeNormalized === 'special' || typeNormalized === 'override' || typeNormalized === 'special override') {
           pct = agent.commissionSpecial || 0;
+        } else {
+          pct = 1;
         }
-
-        return [{
-          clientName: clientObj.name,
-          clientId: clientObj.clientId,
-          investment: clientObj.totalInvestment || 0,
-          rate: pct,
-          amount: com.amount,
-          investmentDate: clientObj.joinDate || '—'
-        }];
       }
+
+      const clientName = clientObj ? clientObj.name : (cidObj ? cidObj.name : '—');
+      const clientIdVal = clientObj ? clientObj.clientId : (clientCodeStr || '—');
+      const invAmt = com.investmentAmount || (clientObj ? clientObj.totalInvestment : 0);
+      const dateStr = clientObj ? clientObj.joinDate : '—';
+
+      return [{
+        clientName: clientName,
+        clientId: clientIdVal,
+        investment: invAmt,
+        rate: pct,
+        amount: com.amount,
+        investmentDate: dateStr
+      }];
     }
     return [];
   };
@@ -1478,19 +1495,31 @@ export default function AgentDetail() {
                         }}
                         title="Click to view details"
                       >
-                        {com.month || ((com.date || com.paidAt || com.payoutDate) ? new Date(com.date || com.paidAt || com.payoutDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement')}
+                        {com.period || com.month || ((com.date || com.paidAt || com.payoutDate) ? new Date(com.date || com.paidAt || com.payoutDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement')}
                       </button>
                     </td>
-                    <td>{formatDateDMY(com.date || com.paidAt || com.payoutDate)}</td>
+                    <td>{String(com.status || '').toUpperCase() === 'PAID' ? formatDateDMY(com.paidAt || com.payoutDate || com.updatedAt || com.date) : '—'}</td>
                     <td>
                       {(() => {
                         const comType = String(com.type || com.commissionType || '').toLowerCase().trim();
                         const isOneTime = comType === 'one-time' || comType === 'onetime' || comType === 'one time' || comType === 'one-time onboarding';
                         const isSpecial = comType === 'special' || comType === 'override' || comType === 'special override';
                         return (
-                          <Badge status={isOneTime ? 'info' : isSpecial ? 'gold' : 'active'}>
-                            {isOneTime ? 'One Time' : isSpecial ? 'Special' : 'Monthly'}
-                          </Badge>
+                          <span 
+                            style={{ 
+                              display: 'inline-block',
+                              fontWeight: 700, 
+                              borderRadius: '20px', 
+                              padding: '4px 12px', 
+                              fontSize: '0.75rem',
+                              letterSpacing: '0.5px',
+                              background: isOneTime ? '#EEF2FF' : (isSpecial ? '#FEF3C7' : '#D1FAE5'),
+                              color: isOneTime ? '#4F46E5' : (isSpecial ? '#D97706' : '#065F46'),
+                              border: isOneTime ? '1px solid #C7D2FE' : (isSpecial ? '1px solid #FDE68A' : '1px solid #A7F3D0')
+                            }}
+                          >
+                            {isOneTime ? 'ONE TIME' : isSpecial ? 'SPECIAL' : 'MONTHLY'}
+                          </span>
                         );
                       })()}
                     </td>

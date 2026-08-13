@@ -295,6 +295,13 @@
   color: #991B1B;
 }
 
+.kfpl-badge--withdrawal {
+  background: #FFE4E6;
+  color: #9F1239;
+  border: 1px solid #FECDD3;
+  font-weight: 600;
+}
+
 /* ── Buttons ─────────────────────── */
 .kfpl-btn {
   display: inline-flex;

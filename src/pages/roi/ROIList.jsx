@@ -368,6 +368,8 @@ export default function ROIList() {
         clientId: r.recipientCode || r.clientId || r.subText || r.recipientId || '—',
         investorId: r.recipientId || r.investorId || r.idInternal || '',
         roiPercentage: r.roiPercentage || 7.7,
+        type: r.type || r.commissionType || `ROI (${r.roiPercentage || 7.7}%)`,
+        isWithdrawal: r.isWithdrawal || /withdrawal/i.test(r.type || r.commissionType || ''),
         month: r.month || r.period || '—',
         amount: Number(r.amount || 0),
         status: (r.status || 'pending').toLowerCase(),
@@ -381,7 +383,8 @@ export default function ROIList() {
         agentName: r.recipientName || r.agentName || r.name || '—',
         agentId: r.recipientCode || r.agentId || r.subText || r.recipientId || '—',
         idInternal: r.recipientId || r.idInternal || '',
-        type: r.commissionType || r.type || 'monthly',
+        type: r.type || r.commissionType || 'monthly',
+        isWithdrawal: r.isWithdrawal || /withdrawal/i.test(r.type || r.commissionType || ''),
         month: r.month || r.period || '—',
         amount: Number(r.amount || 0),
         status: (r.status || 'pending').toLowerCase(),
@@ -708,13 +711,16 @@ export default function ROIList() {
         ? (match.monthlyRoi ?? match.profile?.monthlyRoi ?? match.summaryCards?.monthlyRoi ?? 7.7)
         : (r.roiPercentage || 7.7);
 
-      let displayDetail = (r.type && String(r.type).startsWith('ROI') && String(r.type).includes('%') && !String(r.type).includes('0%'))
-        ? r.type
-        : `ROI (${resolvedRoi || 7.7}%)`;
+      const isWithdrawal = Boolean(r.isWithdrawal) || /withdrawal/i.test(r.type || r.payoutDetail || '');
+      let displayDetail = r.payoutDetail || r.type;
+      if (!displayDetail || displayDetail === 'Withdrawal') {
+        displayDetail = isWithdrawal ? `Withdrawal ROI (${resolvedRoi || 7.7}%)` : `Monthly ROI Return (${resolvedRoi || 7.7}%)`;
+      }
 
       return {
         ...r,
         recordType: 'Client',
+        isWithdrawal,
         name: resolvedName,
         subText: resolvedCode,
         payoutDetail: displayDetail
@@ -739,12 +745,19 @@ export default function ROIList() {
           : (match?.agentId || match?.profile?.agentId || match?.user?.clientCode || c.idInternal || '')
       );
 
+      const isWithdrawal = Boolean(c.isWithdrawal) || /withdrawal/i.test(c.type || c.payoutDetail || '');
+      let displayDetail = c.payoutDetail || c.type;
+      if (!displayDetail || displayDetail === 'Withdrawal') {
+        displayDetail = isWithdrawal ? 'Withdrawal Monthly Commission' : 'Monthly Slab Commission';
+      }
+
       return {
         ...c,
         recordType: 'Agent',
+        isWithdrawal,
         name: resolvedName,
         subText: resolvedCode,
-        payoutDetail: `Comm (${c.type})`
+        payoutDetail: displayDetail
       };
     })
   ].sort((a, b) => String(b.id || '').localeCompare(String(a.id || '')));
@@ -826,7 +839,7 @@ export default function ROIList() {
       </div>
 
       {/* Search and Filters */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
+      <div className="kfpl-filter-bar-responsive" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
         <div style={{ position: 'relative', maxWidth: '400px', flex: 1, minWidth: '240px' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--color-text-muted)' }}>
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -871,6 +884,7 @@ export default function ROIList() {
               <tr>
                 <th>Recipient</th>
                 <th>Type</th>
+                <th>Category</th>
                 <th>Month / Period</th>
                 <th>Payout Detail</th>
                 <th style={{ textAlign: 'right' }}>Amount</th>
@@ -882,7 +896,7 @@ export default function ROIList() {
             </thead>
             <tbody>
               {filteredRecords.length === 0 ? (
-                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>No records found</td></tr>
+                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>No records found</td></tr>
               ) : filteredRecords.map(rec => (
                 <tr key={`${rec.recordType}-${rec.id}`}>
                   <td>
@@ -893,6 +907,31 @@ export default function ROIList() {
                     <Badge status={rec.recordType === 'Client' ? 'silver' : 'gold'}>
                       {rec.recordType}
                     </Badge>
+                  </td>
+                  <td>
+                    {(() => {
+                      const isDivCredit = rec.type === 'DIVIDEND CREDIT' || rec.category === 'DIVIDEND CREDIT' || /dividend credit/i.test(rec.type || '');
+                      const isDivWithdrawal = rec.isWithdrawal && (/dividend/i.test(rec.payoutDetail || rec.type || ''));
+                      if (isDivCredit) {
+                        return (
+                          <span style={{ fontWeight: 700, borderRadius: '20px', padding: '3px 10px', fontSize: '0.72rem', background: '#DCFCE7', color: '#15803D', border: '1px solid #86EFAC' }}>
+                            DIVIDEND BONUS
+                          </span>
+                        );
+                      }
+                      if (isDivWithdrawal) {
+                        return (
+                          <span style={{ fontWeight: 700, borderRadius: '20px', padding: '3px 10px', fontSize: '0.72rem', background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A' }}>
+                            DIVIDEND WITHDRAWAL
+                          </span>
+                        );
+                      }
+                      return (
+                        <Badge status={rec.isWithdrawal ? 'withdrawal' : 'active'}>
+                          {rec.isWithdrawal ? 'WITHDRAWAL' : (rec.recordType === 'Client' ? 'ROI RETURN' : 'COMMISSION')}
+                        </Badge>
+                      );
+                    })()}
                   </td>
                   <td>{rec.month}</td>
                   <td>{rec.payoutDetail}</td>

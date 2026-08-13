@@ -1371,7 +1371,7 @@ export default function EmailNotifications() {
           </div>
 
           {/* STEP 2: Compose & Content (Full Width) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'start' }}>
+          <div className="kfpl-email-composer-grid">
             
             {/* Left Box: Mail Form */}
             <form className="kfpl-card" onSubmit={handleSendNotification} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
@@ -1380,7 +1380,7 @@ export default function EmailNotifications() {
               </div>
 
               {/* Template Selectors */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="kfpl-email-template-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 
                 {/* Built-in dropdown */}
                 <div className="kfpl-input-group">

@@ -252,7 +252,7 @@ function SubAdminModal({ mode, initial, onClose, onSaved }) {
         {/* Body */}
         <div className="kfpl-modal-body">
           {/* Basic info fields */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+          <div className="kfpl-subadmin-modal-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
             {/* Full Name */}
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Full Name</label>
@@ -497,18 +497,18 @@ export default function SubAdminPage() {
           <h2 className="kfpl-page-title">Sub Admins</h2>
           <p className="kfpl-page-subtitle">Manage team members with limited, role-based access to the KFPL portal.</p>
         </div>
-        <div className="kfpl-page-header-actions" style={{ flexWrap: 'nowrap' }}>
+        <div className="kfpl-page-header-actions" style={{ flexWrap: 'wrap', gap: '8px' }}>
           <select
             className="kfpl-select"
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            style={{ width: '140px', padding: '8px 12px', fontSize: '0.875rem', borderRadius: '8px', border: '1px solid var(--color-border)', marginRight: '8px' }}
+            style={{ width: '140px', padding: '8px 12px', fontSize: '0.875rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" onClick={fetchSubAdmins} style={{ marginRight: '8px' }}>
+          <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" onClick={fetchSubAdmins}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width="16" height="16">
               <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.41"/>
             </svg>
@@ -526,7 +526,7 @@ export default function SubAdminPage() {
       </div>
 
       {/* Stats Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 24 }}>
         {[
           {
             label: 'Total Sub Admins', value: subAdmins.length,
@@ -558,7 +558,8 @@ export default function SubAdminPage() {
 
       {/* Table */}
       <div className="kfpl-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+        <div className="kfpl-table-scroll">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
           <thead>
             <tr style={{ background: 'var(--color-surface)', borderBottom: '2px solid var(--color-border-light)' }}>
               {['Name', 'Email', 'Status', 'Permissions', 'Created On', 'Actions'].map(h => (
@@ -692,6 +693,7 @@ export default function SubAdminPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Modals */}

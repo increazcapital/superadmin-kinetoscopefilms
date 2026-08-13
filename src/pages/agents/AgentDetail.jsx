@@ -1663,6 +1663,9 @@ export default function AgentDetail() {
                             const comType = String(selectedCommission.type || selectedCommission.commissionType || '').toLowerCase().trim();
                             const isOneTime = comType === 'one-time' || comType === 'onetime' || comType === 'one time' || comType === 'one-time onboarding';
                             const isSpecial = comType === 'special' || comType === 'override' || comType === 'special override';
+                            const displayRate = (b.rate && parseFloat(b.rate) > 0)
+                               ? parseFloat(b.rate)
+                               : (b.investment > 0 ? parseFloat(((b.amount / b.investment) * 100).toFixed(1)) : 2);
                             return (
                               <tr key={i}>
                                 <td className="kfpl-table-cell-primary">{b.clientName}</td>
@@ -1674,7 +1677,7 @@ export default function AgentDetail() {
                                   </Badge>
                                 </td>
                                 <td style={{ textAlign: 'right' }}>{formatCurrency(b.investment)}</td>
-                                <td style={{ textAlign: 'right' }}>{b.rate}%</td>
+                                <td style={{ textAlign: 'right' }}>{displayRate}%</td>
                                 <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--color-success)' }}>{formatCurrency(b.amount)}</td>
                               </tr>
                             );

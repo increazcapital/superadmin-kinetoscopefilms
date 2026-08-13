@@ -46,7 +46,7 @@ const getSlabRate = (slabs, typeNorm, amount) => {
   const typeSlabs = slabs.filter(s => s.type === typeNorm);
   const fallbackSlabs = typeNorm === 'one-time'
     ? [
-      { minAmount: 500000, maxAmount: 2500000, percentage: 2 },
+      { minAmount: 0, maxAmount: 2500000, percentage: 2 },
       { minAmount: 2500000, maxAmount: 5000000, percentage: 3 },
       { minAmount: 5000000, maxAmount: 10000000, percentage: 4 },
       { minAmount: 10000000, maxAmount: 999999999, percentage: 5 }
@@ -64,7 +64,10 @@ const getSlabRate = (slabs, typeNorm, amount) => {
     const min = s.minAmount || 0;
     return amount >= min && amount < max;
   });
-  return matched ? (matched.commissionPercentage !== undefined ? matched.commissionPercentage : (matched.percentage || 0)) : 0;
+  if (matched) {
+    return matched.commissionPercentage !== undefined ? matched.commissionPercentage : (matched.percentage || (typeNorm === 'one-time' ? 2 : 0.5));
+  }
+  return typeNorm === 'one-time' ? 2 : 0.5;
 };
 
 export default function ROIList() {
@@ -367,8 +370,9 @@ export default function ROIList() {
         investorName: r.recipientName || r.investorName || r.name || '—',
         clientId: r.recipientCode || r.clientId || r.subText || r.recipientId || '—',
         investorId: r.recipientId || r.investorId || r.idInternal || '',
-        roiPercentage: r.roiPercentage || 7.7,
-        type: r.type || r.commissionType || `ROI (${r.roiPercentage || 7.7}%)`,
+        roiPercentage: r.roiPercentage && r.roiPercentage !== 7.7 ? r.roiPercentage : null,
+        type: r.type || r.commissionType,
+        payoutDetail: r.payoutDetail,
         isWithdrawal: r.isWithdrawal || /withdrawal/i.test(r.type || r.commissionType || ''),
         month: r.month || r.period || '—',
         amount: Number(r.amount || 0),
@@ -517,11 +521,78 @@ export default function ROIList() {
     }
   };
 
+  const updateAgentAmountCalculation = (agtId, relClientId, commType) => {
+    if (!agtId) {
+      setAmountPaid('');
+      return;
+    }
+
+    const typeStr = commType || commissionType || 'One-Time';
+
+    const targetClient = dbClients.find(c => {
+      const cid = c.user?._id || c.profile?.userId || c._id || c.id;
+      return String(cid) === String(relClientId);
+    }) || dbClients.find(c => {
+      const agObj = c.user?.assignedAgent || c.assignedAgent || c.profile?.assignedAgent;
+      const agId = agObj?._id || agObj?.id || agObj;
+      return agId && String(agId) === String(agtId);
+    }) || dbClients[0];
+
+    if (targetClient) {
+      const totalInv = Number(
+        targetClient.totalInvestment ||
+        (targetClient.profile && targetClient.profile.totalPortfolioValue) ||
+        (targetClient.summaryCards && targetClient.summaryCards.totalInvestment) ||
+        100000
+      );
+      const targetAgent = dbAgents.find(a => {
+        const aid = a.user?._id || a.profile?.userId || a._id || a.id;
+        return String(aid) === String(agtId);
+      });
+
+      const slabRate = getSlabRate(slabs, typeStr.toLowerCase().includes('one') ? 'one-time' : 'monthly', totalInv);
+
+      const agentPct = Number(
+        targetAgent?.profile?.oneTimeCommission ??
+        targetAgent?.commissionOverride ??
+        targetAgent?.commissionPercentage ??
+        (slabRate > 0 ? slabRate : (typeStr.toLowerCase().includes('one') ? 2.0 : 0.5))
+      );
+
+      if (typeStr.toLowerCase().includes('one')) {
+        const calculated = Math.round((totalInv * agentPct) / 100);
+        setAmountPaid(calculated > 0 ? calculated : 2000);
+      } else if (typeStr.toLowerCase().includes('month')) {
+        const roiPct = Number(targetClient.monthlyRoi ?? targetClient.profile?.monthlyRoi ?? 1.2);
+        const clientMonthlyRoi = Math.round((totalInv * roiPct) / 100);
+        const monthlyComm = Math.round((clientMonthlyRoi * (agentPct || 10.0)) / 100) || Math.round((totalInv * 0.5) / 100);
+        setAmountPaid(monthlyComm > 0 ? monthlyComm : 500);
+      } else {
+        setAmountPaid(2000);
+      }
+    } else {
+      setAmountPaid(2000);
+    }
+  };
+
   const handleAgentChange = (id) => {
     setSelectedAgentId(id);
-    setAmountPaid('');
-    setRelatedClientId('');
     setIsAmountEditable(false);
+
+    let assignedClients = dbClients.filter(c => {
+      const agObj = c.user?.assignedAgent || c.assignedAgent || c.profile?.assignedAgent;
+      const agId = agObj?._id || agObj?.id || agObj;
+      return agId && String(agId) === String(id);
+    });
+    if (assignedClients.length === 0) {
+      assignedClients = dbClients;
+    }
+
+    const firstClientId = assignedClients.length > 0
+      ? (assignedClients[0].user?._id || assignedClients[0].profile?.userId || assignedClients[0]._id || assignedClients[0].id)
+      : '';
+    setRelatedClientId(firstClientId);
+    updateAgentAmountCalculation(id, firstClientId, commissionType || 'One-Time');
   };
 
   const handleMarkPaidClick = (roiId, type = 'client') => {
@@ -707,14 +778,23 @@ export default function ROIList() {
           : (match?.clientCode || match?.profile?.clientCode || match?.clientId || r.investorId || '')
       );
 
-      const resolvedRoi = (match && (match.monthlyRoi !== undefined && match.monthlyRoi !== 0))
-        ? (match.monthlyRoi ?? match.profile?.monthlyRoi ?? match.summaryCards?.monthlyRoi ?? 7.7)
-        : (r.roiPercentage || 7.7);
+      const matchedRoiRate = match 
+        ? (match.monthlyRoi ?? match.roiPercent ?? match.roiPercentage ?? match.profile?.monthlyRoi ?? match.user?.monthlyRoi)
+        : null;
+
+      const resolvedRoi = (matchedRoiRate !== undefined && matchedRoiRate !== null && matchedRoiRate !== 0)
+        ? matchedRoiRate
+        : (r.roiPercentage && r.roiPercentage !== 7.7 ? r.roiPercentage : '');
 
       const isWithdrawal = Boolean(r.isWithdrawal) || /withdrawal/i.test(r.type || r.payoutDetail || '');
       let displayDetail = r.payoutDetail || r.type;
-      if (!displayDetail || displayDetail === 'Withdrawal') {
-        displayDetail = isWithdrawal ? `Withdrawal ROI (${resolvedRoi || 7.7}%)` : `Monthly ROI Return (${resolvedRoi || 7.7}%)`;
+
+      if (resolvedRoi) {
+        if (displayDetail && displayDetail.includes('7.7%')) {
+          displayDetail = displayDetail.replace('7.7%', `${resolvedRoi}%`);
+        } else if (!displayDetail || displayDetail === 'Withdrawal' || displayDetail === 'Monthly ROI Return') {
+          displayDetail = isWithdrawal ? `Withdrawal ROI (${resolvedRoi}%)` : `Monthly ROI Return (${resolvedRoi}%)`;
+        }
       }
 
       return {
@@ -1076,44 +1156,54 @@ export default function ROIList() {
               </div>
 
               {selectedAgentId && (() => {
-                const selectedAgentClients = dbClients.filter(c => {
-                  const assignedId = c.user?.assignedAgent?._id || c.user?.assignedAgent || c.assignedAgent?._id || c.assignedAgent;
-                  return assignedId && String(assignedId) === String(selectedAgentId);
+                let selectedAgentClients = dbClients.filter(c => {
+                  const agObj = c.user?.assignedAgent || c.assignedAgent || c.profile?.assignedAgent;
+                  const agId = agObj?._id || agObj?.id || agObj;
+                  return agId && String(agId) === String(selectedAgentId);
                 });
+                if (selectedAgentClients.length === 0) {
+                  selectedAgentClients = dbClients;
+                }
                 return (
-                  <div className="kfpl-form-row" style={selectedAgentClients.length === 0 ? { gridTemplateColumns: '1fr' } : {}}>
+                  <div className="kfpl-form-row">
                     <div className="kfpl-input-group">
                       <label className="kfpl-input-label">Commission Type <span className="required">*</span></label>
                       <select
                         className="kfpl-select"
                         value={commissionType}
-                        onChange={(e) => setCommissionType(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCommissionType(val);
+                          updateAgentAmountCalculation(selectedAgentId, relatedClientId, val);
+                        }}
                       >
                         <option value="One-Time">One-Time Slab</option>
                         <option value="Monthly">Monthly Slab</option>
                         <option value="Special">Special Incentive</option>
                       </select>
                     </div>
-                    {selectedAgentClients.length > 0 && (
-                      <div className="kfpl-input-group">
-                        <label className="kfpl-input-label">Related Client <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>(Optional)</span></label>
-                        <select
-                          className="kfpl-select"
-                          value={relatedClientId}
-                          onChange={(e) => setRelatedClientId(e.target.value)}
-                        >
-                          <option value="">Choose client</option>
-                          {selectedAgentClients.map(inv => {
-                            const name = inv.fullName || (inv.profile && inv.profile.fullName) || (inv.user && inv.user.name) || inv.name || 'Unknown Client';
-                            const id = inv.user?._id || inv.profile?.userId || inv._id || inv.id;
-                            const code = formatClientID(inv.clientCode || inv.clientId || (inv.profile && inv.profile.clientCode) || (inv.user && inv.user.clientCode) || '');
-                            return (
-                              <option key={id} value={id}>{name} {code ? `(${code})` : ''}</option>
-                            );
-                          })}
-                        </select>
-                      </div>
-                    )}
+                    <div className="kfpl-input-group">
+                      <label className="kfpl-input-label">Related Client <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>(Optional)</span></label>
+                      <select
+                        className="kfpl-select"
+                        value={relatedClientId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setRelatedClientId(val);
+                          updateAgentAmountCalculation(selectedAgentId, val, commissionType);
+                        }}
+                      >
+                        <option value="">Choose client</option>
+                        {selectedAgentClients.map(inv => {
+                          const name = inv.fullName || (inv.profile && inv.profile.fullName) || (inv.user && inv.user.name) || inv.name || 'Unknown Client';
+                          const id = inv.user?._id || inv.profile?.userId || inv._id || inv.id;
+                          const code = formatClientID(inv.clientCode || inv.clientId || (inv.profile && inv.profile.clientCode) || (inv.user && inv.user.clientCode) || '');
+                          return (
+                            <option key={id} value={id}>{name} {code ? `(${code})` : ''}</option>
+                          );
+                        })}
+                      </select>
+                    </div>
                   </div>
                 );
               })()}

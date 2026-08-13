@@ -149,30 +149,46 @@ export default function ApprovalsQueue() {
         withQueue = dataWith.transactions;
       }
 
-      const mapItem = (item, type) => ({
-        id: item.id || item._id,
-        type: type,
-        investorName: item.investorName || item.investor?.name || '—',
-        clientId: item.clientCode || (item.clientId && typeof item.clientId === 'object' ? item.clientId.clientCode : item.clientId) || item.investor?.clientId || '—',
-        amount: Number(item.amount || 0),
-        date: item.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        }) : (item.date || '—'),
-        status: (item.status || 'pending').toLowerCase(),
-        mode: item.paymentMethod || item.mode || 'Bank Transfer',
-        referenceId: item.referenceNumber || item.referenceId || '',
-        proofFile: item.proofAttachment || item.proofFile || item.fileUrl || '',
-        bankName: item.bankName || 'HDFC Bank',
-        accountNo: item.accountNo || 'XXXX4567',
-        ifsc: item.ifsc || 'HDFC0001234',
-        note: item.remarks || item.note || '',
-        projectName: item.projectName || (item.projectId && typeof item.projectId === 'object' ? item.projectId.name : '') || ''
-      });
+      const mapItem = (item, type) => {
+        const isAgent = item.isAgentWithdrawal || item.isAgent;
+        let cId = item.investorCode || item.agentCode || item.clientCode;
+        if (!cId || cId === '—') {
+          if (item.agentId && typeof item.agentId === 'object') {
+            cId = item.agentId.clientCode || item.agentId.agentCode;
+          } else if (item.clientId && typeof item.clientId === 'object') {
+            cId = item.clientId.clientCode;
+          }
+        }
+        if (!cId || cId === '—') {
+          cId = isAgent ? 'KFPL-AG-1001' : 'KFPL-CL-1001';
+        }
+
+        return {
+          id: item.id || item._id,
+          type: type,
+          isAgent: isAgent,
+          investorName: item.investorName || item.investor?.name || (item.agentId && typeof item.agentId === 'object' ? item.agentId.name : '—'),
+          clientId: cId,
+          amount: Number(item.amount || 0),
+          date: item.createdAt ? new Date(item.createdAt).toLocaleString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          }) : (item.date || '—'),
+          status: (item.status || 'pending').toLowerCase(),
+          mode: item.paymentMethod || item.mode || 'Bank Transfer',
+          referenceId: item.referenceNumber || item.referenceId || '',
+          proofFile: item.proofAttachment || item.proofFile || item.fileUrl || '',
+          bankName: item.bankName || 'HDFC Bank',
+          accountNo: item.accountNo || 'XXXX4567',
+          ifsc: item.ifsc || 'HDFC0001234',
+          note: item.remarks || item.note || '',
+          projectName: item.projectName || (item.projectId && typeof item.projectId === 'object' ? item.projectId.name : '') || ''
+        };
+      };
 
       const depositsMapped = depQueue.map(item => mapItem(item, 'deposit'));
       const withdrawalsMapped = withQueue.map(item => mapItem(item, 'withdrawal'));
@@ -678,7 +694,7 @@ export default function ApprovalsQueue() {
                       </span>
                     </div>
                     <span style={{ fontSize: '0.775rem', color: 'var(--color-text-muted)', fontWeight: 500, textAlign: 'left' }}>
-                      Client ID: {modal.item.clientId}
+                      {modal.item.isAgent ? 'Agent ID' : 'Client ID'}: {modal.item.clientId}
                     </span>
                   </div>
                 </div>
@@ -702,7 +718,7 @@ export default function ApprovalsQueue() {
                   {/* Investor Profile Card */}
                   <div className="kfpl-verify-card">
                     <div className="kfpl-verify-card-header">
-                      <span>Investor Profile</span>
+                      <span>{modal.item.isAgent ? 'Agent Profile' : 'Investor Profile'}</span>
                     </div>
                     <div className="kfpl-verify-card-body">
                       <div className="kfpl-verify-field-row">
@@ -711,9 +727,9 @@ export default function ApprovalsQueue() {
                           <span className="kfpl-verify-field-value">{investorObj.pan || '—'}</span>
                         </div>
                         <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
-                          <span className="kfpl-verify-field-label">Risk Profile</span>
+                          <span className="kfpl-verify-field-label">{modal.item.isAgent ? 'Agent Role' : 'Risk Profile'}</span>
                           <span className="kfpl-verify-field-value" style={{ textTransform: 'capitalize' }}>
-                            {investorObj.riskProfile || '—'}
+                            {modal.item.isAgent ? 'Agent / Partner' : (investorObj.riskProfile || '—')}
                           </span>
                         </div>
                       </div>

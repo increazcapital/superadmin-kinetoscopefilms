@@ -225,13 +225,24 @@ export default function InvestmentList() {
   // Filter out mock data from both local fallback and backend database seeded objects
   const cleanInvestments = useMemo(() => {
     const mockNames = ['John Doe', 'Sunil Verma', 'Kavita Reddy', 'Amit Joshi', 'Meera Iyer', 'Suresh Patel'];
-    return investments.filter(inv => {
-      const clientName = inv.clientName || 
-                         inv.investorName || 
-                         (inv.clientId && typeof inv.clientId === 'object' ? (inv.clientId.profile?.fullName || inv.clientId.userId?.name) : '') || 
-                         '';
-      return !mockNames.includes(clientName);
-    });
+    return investments
+      .filter(inv => {
+        const clientName = inv.clientName || 
+                           inv.investorName || 
+                           (inv.clientId && typeof inv.clientId === 'object' ? (inv.clientId.profile?.fullName || inv.clientId.name || inv.clientId.userId?.name) : '') || 
+                           '';
+        return !mockNames.includes(clientName);
+      })
+      .map(inv => {
+        const clientObj = inv.clientId && typeof inv.clientId === 'object' ? inv.clientId : null;
+        const name = inv.clientName || inv.investorName || clientObj?.profile?.fullName || clientObj?.name || clientObj?.userId?.name || '';
+        const code = inv.clientCode || clientObj?.clientCode || clientObj?.profile?.clientCode || clientObj?.userId?.clientCode || '';
+        return {
+          ...inv,
+          clientName: name,
+          clientCode: code
+        };
+      });
   }, [investments]);
 
   const rawDisplayData = cleanInvestments;

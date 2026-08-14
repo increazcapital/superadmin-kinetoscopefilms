@@ -15,12 +15,39 @@ export default function DataTable({ columns, data, onRowClick, searchPlaceholder
   const filtered = useMemo(() => {
     if (!search.trim()) return data;
     const term = search.toLowerCase();
-    return data.filter(row =>
-      columns.some(col => {
-        const val = col.accessor ? row[col.accessor] : '';
-        return String(val).toLowerCase().includes(term);
-      })
-    );
+
+    const searchObjValues = (obj, depth = 0) => {
+      if (!obj || depth > 5) return false;
+      if (typeof obj === 'string' || typeof obj === 'number') {
+        const str = String(obj);
+        if (str === '[object Object]') return false;
+        return str.toLowerCase().includes(term);
+      }
+      if (typeof obj === 'object') {
+        return Object.values(obj).some(v => searchObjValues(v, depth + 1));
+      }
+      return false;
+    };
+
+    return data.filter(row => {
+      // 1. Check columns with accessor or searchKey
+      const hasColumnMatch = columns.some(col => {
+        if (col.searchKey) {
+          const val = row[col.searchKey];
+          if (val !== undefined && val !== null && typeof val !== 'object' && String(val).toLowerCase().includes(term)) return true;
+        }
+        if (col.accessor) {
+          const val = row[col.accessor];
+          if (val !== undefined && val !== null && typeof val !== 'object' && String(val).toLowerCase().includes(term)) return true;
+        }
+        return false;
+      });
+
+      if (hasColumnMatch) return true;
+
+      // 2. Fallback: Search all values in row object recursively
+      return searchObjValues(row);
+    });
   }, [data, search, columns]);
 
   // Sort data

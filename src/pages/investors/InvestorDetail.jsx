@@ -959,18 +959,27 @@ export default function InvestorDetail() {
         body: JSON.stringify({ monthlyRoi: newRoi })
       });
       setLocalRoiPercentage(newRoi);
-      setInvestor(prev => prev ? { ...prev, roiPercentage: newRoi } : prev);
+      setInvestor(prev => prev ? {
+        ...prev,
+        monthlyRoi: newRoi,
+        roiPercentage: newRoi,
+        profile: prev.profile ? { ...prev.profile, monthlyRoi: newRoi } : { monthlyRoi: newRoi }
+      } : prev);
       try {
         const cachedData = getSWRCache(`sa_client_detail_${id}`);
         if (cachedData && cachedData.investor) {
           cachedData.investor.roiPercentage = newRoi;
+          cachedData.investor.monthlyRoi = newRoi;
+          if (cachedData.investor.profile) cachedData.investor.profile.monthlyRoi = newRoi;
           setSWRCache(`sa_client_detail_${id}`, cachedData);
         }
-        invalidateSWRCache(`sa_client_detail_${id}`);
       } catch (e) {}
       addToast(`Monthly ROI % updated to ${newRoi}%`, 'success', 'ROI Updated');
       setShowRoiEditModal(false);
       setRoiEditStep(1);
+      if (typeof loadClientDetails === 'function') {
+        loadClientDetails(true).catch(e => console.error('[BG Reload Client Error]:', e));
+      }
     } catch (err) {
       console.error('Failed to update ROI rate:', err);
       addToast(err.message || 'Failed to update ROI rate', 'error', 'Update Failed');

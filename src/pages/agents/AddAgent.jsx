@@ -10,6 +10,7 @@ import { COMMISSION_SLABS } from '../../data/mockData';
 import FileDropzone from '../../components/ui/FileDropzone';
 import { WORLD_COUNTRY_CODES } from '../../data/countryCodes';
 import { invalidateSWRCache } from '../../utils/swrHelper';
+import { apiRequest } from '../../config/apiHelper';
 
 export default function AddAgent() {
   const navigate = useNavigate();

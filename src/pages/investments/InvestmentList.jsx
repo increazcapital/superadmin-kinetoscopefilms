@@ -34,7 +34,7 @@ function calculateMonthsBetween(startStr, endStr) {
 function getDynamicEndDateAndMonths(row) {
   const clientObj = row.clientId && typeof row.clientId === 'object' ? row.clientId : null;
   const startDateStr = row.investmentDate || row.date || row.createdAt || row.contractStartDate || clientObj?.contractStartDate || clientObj?.profile?.contractStartDate;
-  
+
   const extDate = row.extendContractDate || row.contractExtendedDate || clientObj?.extendContractDate || clientObj?.profile?.extendContractDate;
 
   // 1. If explicitly extended, calculate from startDate to extDate
@@ -176,7 +176,7 @@ export default function InvestmentList() {
 
   const handleExtendContractToDate = async (investmentId, newEndDateStr) => {
     if (!newEndDateStr) return;
-    
+
     const targetEndDateISO = new Date(newEndDateStr).toISOString();
 
     // 1. Optimistic Local State Update (Instant UI response, zero refresh delay)
@@ -227,10 +227,10 @@ export default function InvestmentList() {
     const mockNames = ['John Doe', 'Sunil Verma', 'Kavita Reddy', 'Amit Joshi', 'Meera Iyer', 'Suresh Patel'];
     return investments
       .filter(inv => {
-        const clientName = inv.clientName || 
-                           inv.investorName || 
-                           (inv.clientId && typeof inv.clientId === 'object' ? (inv.clientId.profile?.fullName || inv.clientId.name || inv.clientId.userId?.name) : '') || 
-                           '';
+        const clientName = inv.clientName ||
+          inv.investorName ||
+          (inv.clientId && typeof inv.clientId === 'object' ? (inv.clientId.profile?.fullName || inv.clientId.name || inv.clientId.userId?.name) : '') ||
+          '';
         return !mockNames.includes(clientName);
       })
       .map(inv => {
@@ -270,19 +270,19 @@ export default function InvestmentList() {
       render: (row) => {
         const clientObj = row.clientId && typeof row.clientId === 'object' ? row.clientId : null;
         const clientRealId = clientObj ? (clientObj._id || clientObj.id) : (typeof row.clientId === 'string' && /^[0-9a-fA-F]{24}$/.test(row.clientId) ? row.clientId : null);
-        const clientName = row.clientName || 
-                           row.investorName || 
-                           clientObj?.profile?.fullName || 
-                           clientObj?.userId?.name || 
-                           (typeof row.clientId === 'string' && !/^[0-9a-fA-F]{24}$/.test(row.clientId) ? row.clientId : '') || 
-                           'N/A';
-        const clientCode = row.clientCode || 
-                           clientObj?.clientCode || 
-                           clientObj?.profile?.clientCode || 
-                           clientObj?.userId?.clientCode || 
-                           '';
+        const clientName = row.clientName ||
+          row.investorName ||
+          clientObj?.profile?.fullName ||
+          clientObj?.userId?.name ||
+          (typeof row.clientId === 'string' && !/^[0-9a-fA-F]{24}$/.test(row.clientId) ? row.clientId : '') ||
+          'N/A';
+        const clientCode = row.clientCode ||
+          clientObj?.clientCode ||
+          clientObj?.profile?.clientCode ||
+          clientObj?.userId?.clientCode ||
+          '';
         return (
-          <div 
+          <div
             style={{ cursor: clientRealId ? 'pointer' : 'default' }}
             onClick={() => {
               if (clientRealId) navigate(`/investors/${clientRealId}`);
@@ -296,18 +296,18 @@ export default function InvestmentList() {
         );
       },
     },
-    { 
-      header: 'Segment', 
-      accessor: 'segment', 
+    {
+      header: 'Segment',
+      accessor: 'segment',
       render: (row) => {
-        const rawSeg = row.segment || 
-                       (Array.isArray(row.segmentAllocation) && row.segmentAllocation.length > 0
-                         ? row.segmentAllocation.map(s => s.segmentName).join(', ')
-                         : 'Unallocated');
+        const rawSeg = row.segment ||
+          (Array.isArray(row.segmentAllocation) && row.segmentAllocation.length > 0
+            ? row.segmentAllocation.map(s => s.segmentName).join(', ')
+            : 'Unallocated');
         const isUnallocated = !rawSeg || rawSeg === 'Project Allocated' || rawSeg === 'General Capital Pool' || rawSeg === 'Capital Deposit' || rawSeg === 'Unallocated Pool';
         const segmentText = isUnallocated ? 'Unallocated' : rawSeg;
         return (
-          <span 
+          <span
             className="font-medium"
             style={{ cursor: 'pointer', color: 'var(--color-navy)', fontWeight: 600 }}
             onClick={() => navigate('/portfolio')}
@@ -315,20 +315,20 @@ export default function InvestmentList() {
             {segmentText}
           </span>
         );
-      } 
+      }
     },
     { header: 'Amount', accessor: 'investmentAmount', render: (row) => <span className="font-semibold">{formatCurrency(row.investmentAmount || row.amount || 0)}</span> },
     { header: 'ROI %', accessor: 'roiPercentage', render: (row) => `${row.roiPercentage || row.roi || 0}%` },
     { header: 'Risk %', accessor: 'riskPercentage', render: (row) => `${row.riskPercentage || row.risk || 0}%` },
-    { 
-      header: 'Contract Start', 
-      accessor: 'investmentDate', 
+    {
+      header: 'Contract Start',
+      accessor: 'investmentDate',
       render: (row) => (
         <div>
           <div style={{ fontWeight: 600 }}>{formatDateDMY(row.investmentDate || row.date || row.createdAt)}</div>
           <div className="kfpl-table-cell-secondary" style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>DD/MM/YYYY</div>
         </div>
-      ) 
+      )
     },
     {
       header: 'End Date',
@@ -342,10 +342,10 @@ export default function InvestmentList() {
         );
       }
     },
-    { 
-      header: 'Status', 
-      accessor: 'status', 
-      render: (row) => <Badge status={(row.status || 'active').toLowerCase()}>{(row.status || 'active').toUpperCase()}</Badge> 
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (row) => <Badge status={(row.status || 'active').toLowerCase()}>{(row.status || 'active').toUpperCase()}</Badge>
     },
     {
       header: 'Actions',
@@ -401,15 +401,15 @@ export default function InvestmentList() {
           {canCreate('manageInvestments') && (
             <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" onClick={() => navigate('/investments/assign')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width="16" height="16">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
               Assign Investment
             </button>
           )}
 
           {canDelete('manageInvestments') && (
-            <button 
-              className="kfpl-btn kfpl-btn--danger kfpl-btn--sm" 
+            <button
+              className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
               onClick={() => setShowClearAllModal(true)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
@@ -443,15 +443,15 @@ export default function InvestmentList() {
             <div className="kfpl-modal-header">
               <h3 className="kfpl-modal-title">Extend Contract</h3>
               <button className="kfpl-modal-close" onClick={() => setExtendingInvestment(null)} aria-label="Close modal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
             <div className="kfpl-modal-body" style={{ padding: '20px 24px' }}>
               {(() => {
                 const clientName = extendingInvestment.clientName ||
-                                   extendingInvestment.investorName ||
-                                   (extendingInvestment.clientId && typeof extendingInvestment.clientId === 'object' ? (extendingInvestment.clientId.profile?.fullName || extendingInvestment.clientId.userId?.name) : '') ||
-                                   'Client';
+                  extendingInvestment.investorName ||
+                  (extendingInvestment.clientId && typeof extendingInvestment.clientId === 'object' ? (extendingInvestment.clientId.profile?.fullName || extendingInvestment.clientId.userId?.name) : '') ||
+                  'Client';
                 const rawSeg = extendingInvestment.segment || 'Unallocated';
                 const isUnallocated = !rawSeg || rawSeg === 'Project Allocated' || rawSeg === 'General Capital Pool' || rawSeg === 'Capital Deposit' || rawSeg === 'Unallocated Pool';
                 const segmentText = isUnallocated ? 'Unallocated' : rawSeg;
@@ -529,7 +529,7 @@ export default function InvestmentList() {
                 setShowDeleteModal(false);
                 setDeleteInvestmentId(null);
               }} aria-label="Close modal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
             <div className="kfpl-modal-body" style={{ padding: '20px 24px' }}>
@@ -580,7 +580,7 @@ export default function InvestmentList() {
             <div className="kfpl-modal-header">
               <h3 className="kfpl-modal-title">Confirm Data Deletion</h3>
               <button className="kfpl-modal-close" onClick={() => setShowClearAllModal(false)} aria-label="Close modal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
             <div className="kfpl-modal-body" style={{ padding: '20px 24px' }}>

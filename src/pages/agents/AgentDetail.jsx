@@ -626,7 +626,45 @@ export default function AgentDetail() {
       };
       const dbComms = extractCommissions(commissionsRes);
 
-      setCommissionHistory(dbComms);
+      const groupedCommissionsMap = new Map();
+      dbComms.forEach(com => {
+        const periodKey = com.month || com.period || (com.date ? new Date(com.date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement');
+        const comTypeNorm = String(com.type || com.commissionType || '').toLowerCase().trim();
+        const typeLabel = (comTypeNorm === 'one-time' || comTypeNorm === 'onetime' || comTypeNorm === 'one time' || comTypeNorm === 'one-time onboarding')
+          ? 'one-time'
+          : (comTypeNorm === 'special' || comTypeNorm === 'override' || comTypeNorm === 'special override')
+            ? 'special'
+            : 'monthly';
+
+        const groupKey = `${periodKey}_${typeLabel}`;
+        const itemStatus = String(com.status || 'PENDING').toUpperCase();
+
+        if (groupedCommissionsMap.has(groupKey)) {
+          const existing = groupedCommissionsMap.get(groupKey);
+          existing.items.push(com);
+          existing.amount += Number(com.amount || 0);
+          if (itemStatus !== 'PAID' && itemStatus !== 'CREDITED') {
+            existing.status = 'PENDING';
+          }
+        } else {
+          groupedCommissionsMap.set(groupKey, {
+            id: `group_${groupKey}`,
+            period: periodKey,
+            month: periodKey,
+            date: com.date || com.createdAt || new Date(),
+            type: typeLabel === 'one-time' ? 'ONE TIME' : typeLabel === 'special' ? 'SPECIAL' : 'MONTHLY',
+            commissionType: com.commissionType || com.type,
+            amount: Number(com.amount || 0),
+            status: (itemStatus === 'PAID' || itemStatus === 'CREDITED') ? 'PAID' : 'PENDING',
+            clientName: com.clientName,
+            clientCode: com.clientCode,
+            clientId: com.clientId,
+            items: [com]
+          });
+        }
+      });
+
+      setCommissionHistory(Array.from(groupedCommissionsMap.values()));
 
     } catch (err) {
       console.error('Failed to fetch agent details:', err);
@@ -884,76 +922,37 @@ export default function AgentDetail() {
       return com.breakdown;
     }
 
-    // Construct breakdown from database commission & client record
-    const cidObj = typeof com.clientId === 'object' && com.clientId !== null ? com.clientId : null;
-    const cidStr = cidObj ? String(cidObj._id || cidObj.id) : String(com.clientId || '');
-    const clientCodeStr = cidObj ? cidObj.clientCode : '';
+    const items = (com.items && com.items.length > 0) ? com.items : [com];
 
-    const clientObj = agentClients.find(cl => 
-      String(cl.id) === cidStr || 
-      String(cl._id) === cidStr || 
-      cl.clientId === cidStr || 
-      (clientCodeStr && cl.clientId === clientCodeStr)
-    );
+    return items.map(c => {
+      const cidObj = typeof c.clientId === 'object' && c.clientId !== null ? c.clientId : null;
+      const cidStr = cidObj ? String(cidObj._id || cidObj.id) : String(c.clientId || '');
+      const clientCodeStr = cidObj ? cidObj.clientCode : '';
 
-    if (clientObj || cidObj) {
-      let pct = com.slabPercentage;
-      if (pct === undefined || pct === null) {
-        const typeNormalized = String(com.type || com.commissionType || '').toLowerCase().trim();
-        const totalInv = com.investmentAmount || (clientObj ? clientObj.totalInvestment : 0);
+      const clientObj = agentClients.find(cl => 
+        String(cl.id) === cidStr || 
+        String(cl._id) === cidStr || 
+        cl.clientId === cidStr || 
+        (clientCodeStr && cl.clientId === clientCodeStr)
+      );
 
-        const getSlabRateLocal = (typeNorm, amount) => {
-          const typeSlabs = apiSlabs.filter(s => s.type === typeNorm);
-          const fallbackSlabs = typeNorm === 'one-time' 
-            ? [
-                { minAmount: 1000, maxAmount: 10000, percentage: 1 },
-                { minAmount: 500000, maxAmount: 2500000, percentage: 2 },
-                { minAmount: 2500000, maxAmount: 5000000, percentage: 3 },
-                { minAmount: 5000000, maxAmount: 10000000, percentage: 4 },
-                { minAmount: 10000000, maxAmount: 999999999, percentage: 5 }
-              ]
-            : [
-                { minAmount: 0, maxAmount: 1500000, percentage: 0.5 },
-                { minAmount: 1500000, maxAmount: 2500000, percentage: 0.75 },
-                { minAmount: 2500000, maxAmount: 5000000, percentage: 1 },
-                { minAmount: 5000000, maxAmount: 10000000, percentage: 1.5 },
-                { minAmount: 10000000, maxAmount: 999999999, percentage: 2 }
-              ];
-          const activeSlabs = typeSlabs.length > 0 ? typeSlabs : fallbackSlabs;
-          const matched = activeSlabs.find(s => {
-            const max = s.maxAmount === null || s.maxAmount === undefined || s.maxAmount === 999999999 ? 999999999 : s.maxAmount;
-            const min = s.minAmount || 0;
-            return amount >= min && amount <= max;
-          });
-          return matched ? (matched.commissionPercentage !== undefined ? matched.commissionPercentage : (matched.percentage || 0)) : 1;
-        };
+      let pct = (c.slabPercentage !== undefined && c.slabPercentage !== '—' && parseFloat(c.slabPercentage) > 0)
+        ? parseFloat(c.slabPercentage)
+        : ((c.rate && parseFloat(c.rate) > 0) ? parseFloat(c.rate) : 1);
 
-        if (typeNormalized === 'one-time' || typeNormalized === 'onetime' || typeNormalized === 'one time' || typeNormalized === 'one-time onboarding') {
-          pct = getSlabRateLocal('one-time', totalInv);
-        } else if (typeNormalized === 'monthly' || typeNormalized === 'recurring' || typeNormalized === 'monthly recurring') {
-          pct = getSlabRateLocal('monthly', totalInv);
-        } else if (typeNormalized === 'special' || typeNormalized === 'override' || typeNormalized === 'special override') {
-          pct = agent.commissionSpecial || 0;
-        } else {
-          pct = 1;
-        }
-      }
+      let invAmt = (c.investmentAmount !== undefined && c.investmentAmount !== null && Number(c.investmentAmount) > 0)
+        ? Number(c.investmentAmount)
+        : (c.amount ? Math.round((Number(c.amount) * 100) / (pct || 1)) : 0);
 
-      const clientName = clientObj ? clientObj.name : (cidObj ? cidObj.name : '—');
-      const clientIdVal = clientObj ? clientObj.clientId : (clientCodeStr || '—');
-      const invAmt = com.investmentAmount || (clientObj ? clientObj.totalInvestment : 0);
-      const dateStr = clientObj ? clientObj.joinDate : '—';
-
-      return [{
-        clientName: clientName,
-        clientId: clientIdVal,
+      return {
+        clientName: c.clientName || (clientObj ? clientObj.name : (cidObj ? cidObj.name : '—')),
+        clientId: c.clientCode || (clientObj ? clientObj.clientId : (clientCodeStr || '—')),
         investment: invAmt,
         rate: pct,
-        amount: com.amount,
-        investmentDate: dateStr
-      }];
-    }
-    return [];
+        amount: c.amount || 0,
+        investmentDate: formatDateDMY(c.date || c.createdAt || c.investmentDate || (clientObj ? clientObj.joinDate : '—'))
+      };
+    });
   };
 
   const tabs = ['profile', 'clients', 'commission', 'documents'];

@@ -402,7 +402,7 @@ export default function EditInvestor() {
                 />
               </div>
               <div className="kfpl-input-group" style={{ flex: 1 }}>
-                <label className="kfpl-input-label">Contract End Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span></label>
+                <label className="kfpl-input-label">Contract End Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(Optional)</span></label>
                 <input 
                   type="date" 
                   className="kfpl-input" 
@@ -456,7 +456,7 @@ export default function EditInvestor() {
 
           {/* Nominee Details */}
           <div className="kfpl-form-section">
-            <div className="kfpl-form-section-title">Nominee Details</div>
+            <div className="kfpl-form-section-title">Nominee Details <span style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--color-text-muted)', textTransform: 'none' }}>(Optional)</span></div>
             <div className="kfpl-form-row">
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Nominee Full Name</label>
@@ -505,14 +505,14 @@ export default function EditInvestor() {
                 onDeleteExisting={() => handleDeleteDoc('aadhaarDocument')}
               />
               <FileDropzone
-                label="Bank Details Document"
+                label="Bank Details Document (Optional)"
                 multiple={false}
                 existingFileUrl={existingDocs.bankProofDocument}
                 onFilesChange={(files) => setBankProofDocFile(files[0] || null)}
                 onDeleteExisting={() => handleDeleteDoc('bankProofDocument')}
               />
               <FileDropzone
-                label="Signed Investment Agreement"
+                label="Signed Investment Agreement (Optional)"
                 multiple={false}
                 existingFileUrl={existingDocs.agreementDocument}
                 onFilesChange={(files) => setAgreementDocFile(files[0] || null)}
@@ -520,7 +520,7 @@ export default function EditInvestor() {
               />
               <div style={{ gridColumn: '1 / -1' }}>
                 <FileDropzone
-                  label="Nominee ID Proof Document"
+                  label="Nominee ID Proof Document (Optional)"
                   multiple={false}
                   existingFileUrl={existingDocs.nomineeProofDocument}
                   onFilesChange={(files) => setNomineeProofDocFile(files[0] || null)}

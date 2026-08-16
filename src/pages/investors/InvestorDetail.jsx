@@ -748,9 +748,18 @@ export default function InvestorDetail() {
           }
 
           clientRoiHistory = extractedPayouts.map(r => {
-            const rawRate = r.roiRate || r.roiPercentage || r.rate || localRoiPercentage || 0;
-            const cleanRate = String(rawRate).replace('%', '').replace(/ROI\s*\(?\s*/i, '').replace(/\)?\s*$/, '').trim();
-            const displayRate = cleanRate && cleanRate !== '0' ? `${cleanRate}%` : `${localRoiPercentage || 0}%`;
+            const rawRate = r.roiRate || r.roiPercentage || r.rate;
+            const cleanRate = rawRate ? String(rawRate).replace('%', '').replace(/ROI\s*\(?\s*/i, '').replace(/\)?\s*$/, '').trim() : '';
+            const isPaid = String(r.status || '').toUpperCase() === 'PAID' || String(r.status || '').toUpperCase() === 'APPROVED';
+            const totalClientInv = inv?.totalInvestment || (summary?.totalInvestment) || (profile?.totalPortfolioValue) || (investor?.totalInvestment) || (investor?.summaryCards?.totalInvestment) || 0;
+            let displayRate;
+            if (cleanRate && cleanRate !== '0') {
+              displayRate = `${cleanRate}%`;
+            } else if (isPaid && Number(r.amount) > 0 && totalClientInv > 0) {
+              displayRate = `${Math.round((Number(r.amount) / totalClientInv) * 100 * 10) / 10}%`;
+            } else {
+              displayRate = `${localRoiPercentage || 0}%`;
+            }
             return {
               ...r,
               _id: r.id || r._id,
@@ -849,9 +858,18 @@ export default function InvestorDetail() {
       }
 
       const clientRoiHistory = extractedPayouts.map(r => {
-        const rawRate = r.roiRate || r.roiPercentage || r.rate || localRoiPercentage || 0;
-        const cleanRate = String(rawRate).replace('%', '').replace(/ROI\s*\(?\s*/i, '').replace(/\)?\s*$/, '').trim();
-        const displayRate = cleanRate && cleanRate !== '0' ? `${cleanRate}%` : `${localRoiPercentage || 0}%`;
+        const rawRate = r.roiRate || r.roiPercentage || r.rate;
+        const cleanRate = rawRate ? String(rawRate).replace('%', '').replace(/ROI\s*\(?\s*/i, '').replace(/\)?\s*$/, '').trim() : '';
+        const isPaid = String(r.status || '').toUpperCase() === 'PAID' || String(r.status || '').toUpperCase() === 'APPROVED';
+        const totalClientInv = investor?.totalInvestment || (investor?.summaryCards && investor?.summaryCards?.totalInvestment) || (summaryData?.totalInvestment) || 0;
+        let displayRate;
+        if (cleanRate && cleanRate !== '0') {
+          displayRate = `${cleanRate}%`;
+        } else if (isPaid && Number(r.amount) > 0 && totalClientInv > 0) {
+          displayRate = `${Math.round((Number(r.amount) / totalClientInv) * 100 * 10) / 10}%`;
+        } else {
+          displayRate = `${localRoiPercentage || 0}%`;
+        }
         return {
           ...r,
           _id: r.id || r._id,
@@ -1030,9 +1048,18 @@ export default function InvestorDetail() {
   };
 
   const roiHistory = getRoiHistoryList(roiData).map(r => {
-    const rawRate = r.roiRate || r.roiPercentage || r.rate || localRoiPercentage || 0;
-    const cleanRate = String(rawRate).replace('%', '').trim();
-    const displayRate = cleanRate && cleanRate !== '0' ? `${cleanRate}%` : `${localRoiPercentage || 0}%`;
+    const rawRate = r.roiRate || r.roiPercentage || r.rate;
+    const cleanRate = rawRate ? String(rawRate).replace('%', '').trim() : '';
+    const isPaid = String(r.status || '').toUpperCase() === 'PAID' || String(r.status || '').toUpperCase() === 'APPROVED';
+    const totalClientInv = investor?.totalInvestment || (investor?.summaryCards && investor?.summaryCards?.totalInvestment) || 0;
+    let displayRate;
+    if (cleanRate && cleanRate !== '0') {
+      displayRate = `${cleanRate}%`;
+    } else if (isPaid && Number(r.amount) > 0 && totalClientInv > 0) {
+      displayRate = `${Math.round((Number(r.amount) / totalClientInv) * 100 * 10) / 10}%`;
+    } else {
+      displayRate = `${localRoiPercentage || 0}%`;
+    }
     return {
       ...r,
       _id: r.id || r._id,

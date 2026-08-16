@@ -506,14 +506,13 @@ export default function AssignInvestment() {
                 />
               </div>
               <div className="kfpl-input-group">
-                <label className="kfpl-input-label">Contract End Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span> <span className="required">*</span></label>
+                <label className="kfpl-input-label">Contract End Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(DD/MM/YYYY)</span> <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(Optional)</span></label>
                 <input
                   type="date"
                   className="kfpl-input"
                   name="contractEndDate"
                   value={form.contractEndDate}
                   onChange={handleChange}
-                  required
                 />
               </div>
               {form.extendContractDate && (

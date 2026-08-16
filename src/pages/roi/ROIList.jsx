@@ -43,31 +43,35 @@ const formatClientID = (rawId) => {
 };
 
 const getSlabRate = (slabs, typeNorm, amount) => {
-  const typeSlabs = slabs.filter(s => s.type === typeNorm);
-  const fallbackSlabs = typeNorm === 'one-time'
-    ? [
-      { minAmount: 0, maxAmount: 2500000, percentage: 2 },
-      { minAmount: 2500000, maxAmount: 5000000, percentage: 3 },
-      { minAmount: 5000000, maxAmount: 10000000, percentage: 4 },
-      { minAmount: 10000000, maxAmount: 999999999, percentage: 5 }
-    ]
-    : [
-      { minAmount: 0, maxAmount: 1500000, percentage: 0.5 },
-      { minAmount: 1500000, maxAmount: 2500000, percentage: 0.75 },
-      { minAmount: 2500000, maxAmount: 5000000, percentage: 1 },
-      { minAmount: 5000000, maxAmount: 10000000, percentage: 1.5 },
-      { minAmount: 10000000, maxAmount: 999999999, percentage: 2 }
-    ];
-  const activeSlabs = typeSlabs.length > 0 ? typeSlabs : fallbackSlabs;
-  const matched = activeSlabs.find(s => {
-    const max = s.maxAmount === null || s.maxAmount === undefined || s.maxAmount === 999999999 ? 999999999 : s.maxAmount;
-    const min = s.minAmount || 0;
-    return amount >= min && amount < max;
-  });
-  if (matched) {
-    return matched.commissionPercentage !== undefined ? matched.commissionPercentage : (matched.percentage || (typeNorm === 'one-time' ? 2 : 0.5));
+  const norm = String(typeNorm || '').toLowerCase().trim();
+  const isOneTime = norm.includes('one');
+  const typeKey = isOneTime ? 'one-time' : 'monthly';
+  const typeSlabs = (slabs || []).filter(s => s.type === typeKey);
+  if (typeSlabs.length > 0) {
+    const matched = typeSlabs.find(s => {
+      const max = s.maxAmount === null || s.maxAmount === undefined || s.maxAmount === 999999999 ? Infinity : s.maxAmount;
+      const min = s.minAmount || 0;
+      return amount >= min && amount <= max;
+    });
+    if (matched) {
+      return matched.commissionPercentage !== undefined ? matched.commissionPercentage : (matched.percentage || (isOneTime ? 1 : 0.5));
+    }
   }
-  return typeNorm === 'one-time' ? 2 : 0.5;
+
+  // Exact Standard Business Slabs (matching backend agent-management.controller.js)
+  if (isOneTime) {
+    if (amount <= 10000) return 1;
+    if (amount <= 2500000) return 2;
+    if (amount <= 5000000) return 3;
+    if (amount <= 10000000) return 4;
+    return 5;
+  } else {
+    if (amount <= 1500000) return 0.5;
+    if (amount <= 2500000) return 0.75;
+    if (amount <= 5000000) return 1;
+    if (amount <= 10000000) return 1.5;
+    return 2;
+  }
 };
 
 export default function ROIList() {
@@ -370,7 +374,7 @@ export default function ROIList() {
         investorName: r.recipientName || r.investorName || r.name || '—',
         clientId: r.recipientCode || r.clientId || r.subText || r.recipientId || '—',
         investorId: r.recipientId || r.investorId || r.idInternal || '',
-        roiPercentage: r.roiPercentage && r.roiPercentage !== 7.7 ? r.roiPercentage : null,
+        roiPercentage: (r.roiPercentage !== undefined && r.roiPercentage !== null) ? r.roiPercentage : null,
         type: r.type || r.commissionType,
         payoutDetail: r.payoutDetail,
         isWithdrawal: r.isWithdrawal || /withdrawal/i.test(r.type || r.commissionType || ''),
@@ -461,44 +465,150 @@ export default function ROIList() {
     fetchPayouts();
   }, [filter, recipientTypeFilter, searchQuery]);
 
+  const [agentCommissionsCache, setAgentCommissionsCache] = useState({});
+
+  const fetchAgentCommissionsData = async (agtId) => {
+    if (!agtId) return [];
+    if (agentCommissionsCache[agtId]) return agentCommissionsCache[agtId];
+    try {
+      const res = await apiRequest(`/api/super-admin/agents/${agtId}/commissions`);
+      const comms = res?.data?.commissions || res?.commissions || res?.data || [];
+      const list = Array.isArray(comms) ? comms : [];
+      setAgentCommissionsCache(prev => ({ ...prev, [agtId]: list }));
+      return list;
+    } catch (e) {
+      console.warn('Failed to fetch agent commissions for payout modal:', e);
+      return [];
+    }
+  };
+
+  const updateAgentAmountCalculation = async (agtId, relClientId, commType) => {
+    if (!agtId) {
+      setAmountPaid('');
+      return;
+    }
+
+    const typeStr = String(commType || commissionType || 'One-Time').trim();
+    const isOneTime = typeStr.toLowerCase().includes('one');
+    const isMonthly = typeStr.toLowerCase().includes('month');
+
+    // 1) First check actual stored commissions from backend API
+    let comms = agentCommissionsCache[agtId];
+    if (!comms || !Array.isArray(comms) || comms.length === 0) {
+      comms = await fetchAgentCommissionsData(agtId);
+    }
+
+    if (Array.isArray(comms) && comms.length > 0) {
+      const matchingComms = comms.filter(c => {
+        const cCid = c.clientId?._id ? String(c.clientId._id) : (c.clientId ? String(c.clientId) : '');
+        const cCode = String(c.clientCode || c.clientId?.clientCode || '').toUpperCase();
+        const slabTypeNorm = (c.slabType || (c.type === 'MONTHLY' ? 'monthly' : 'one-time')).toLowerCase();
+        const matchesType = isOneTime
+          ? (c.type === 'ONE TIME' || slabTypeNorm === 'one-time')
+          : (c.type === 'MONTHLY' || slabTypeNorm === 'monthly');
+
+        if (!matchesType) return false;
+        if (!relClientId) return true;
+
+        const targetClient = dbClients.find(cl => {
+          const idStr = String(cl._id || cl.id || cl.user?._id || cl.profile?.userId || '');
+          const codeStr = String(cl.clientId || cl.clientCode || cl.user?.clientCode || '').toUpperCase();
+          return idStr === String(relClientId) || codeStr === String(relClientId).toUpperCase();
+        });
+
+        const targetId = targetClient ? String(targetClient._id || targetClient.id || targetClient.user?._id || '') : String(relClientId);
+        const targetCode = targetClient ? String(targetClient.clientId || targetClient.clientCode || '').toUpperCase() : '';
+
+        return cCid === targetId || (targetCode && cCode === targetCode);
+      });
+
+      if (matchingComms.length > 0) {
+        const pendingComms = matchingComms.filter(c => String(c.status).toUpperCase() === 'PENDING');
+        const listToSum = pendingComms.length > 0 ? pendingComms : matchingComms;
+        const totalSum = listToSum.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+        if (totalSum > 0) {
+          setAmountPaid(totalSum);
+          return;
+        }
+      }
+    }
+
+    // 2) Dynamic calculation fallback
+    let targetClients = [];
+    if (relClientId) {
+      const found = dbClients.find(c => {
+        const cid = c.user?._id || c.profile?.userId || c._id || c.id;
+        const code = c.clientId || c.clientCode;
+        return String(cid) === String(relClientId) || String(code) === String(relClientId);
+      });
+      if (found) targetClients = [found];
+    }
+    if (targetClients.length === 0) {
+      targetClients = dbClients.filter(c => {
+        const agObj = c.user?.assignedAgent || c.assignedAgent || c.profile?.assignedAgent;
+        const agId = agObj?._id || agObj?.id || agObj;
+        return agId && String(agId) === String(agtId);
+      });
+    }
+    if (targetClients.length === 0 && dbClients.length > 0) {
+      targetClients = [dbClients[0]];
+    }
+
+    const targetAgent = dbAgents.find(a => {
+      const aid = a.user?._id || a.profile?.userId || a._id || a.id;
+      return String(aid) === String(agtId);
+    });
+
+    let totalCalculated = 0;
+    targetClients.forEach(cl => {
+      const totalInv = Number(
+        cl.totalInvestment ||
+        (cl.profile && cl.profile.totalPortfolioValue) ||
+        (cl.summaryCards && cl.summaryCards.totalInvestment) ||
+        0
+      );
+      if (totalInv <= 0) return;
+
+      const slabRate = getSlabRate(slabs, isOneTime ? 'one-time' : 'monthly', totalInv);
+      const agentPct = Number(
+        (isOneTime ? targetAgent?.profile?.oneTimeCommission : targetAgent?.profile?.monthlyCommission) ??
+        targetAgent?.commissionOverride ??
+        targetAgent?.commissionPercentage ??
+        (slabRate > 0 ? slabRate : (isOneTime ? 1.0 : 0.5))
+      );
+
+      if (isOneTime) {
+        totalCalculated += Math.round((totalInv * agentPct) / 100);
+      } else if (isMonthly) {
+        const monthlyComm = Math.round((totalInv * (agentPct || 0.5)) / 100);
+        totalCalculated += monthlyComm;
+      }
+    });
+
+    if (totalCalculated > 0) {
+      setAmountPaid(totalCalculated);
+    } else {
+      setAmountPaid('');
+    }
+  };
+
   // Auto-calculate agent commission when agent, type, or related client changes
   useEffect(() => {
     if (recipientType === 'agent' && !isAmountEditable) {
-      if (!selectedAgentId || !relatedClientId) {
+      if (selectedAgentId) {
+        updateAgentAmountCalculation(selectedAgentId, relatedClientId, commissionType);
+      } else {
         setAmountPaid('');
-        return;
-      }
-      const agent = dbAgents.find(a => {
-        const id = a.user?._id || a.profile?.userId || a._id || a.id;
-        return String(id) === String(selectedAgentId);
-      });
-      const client = dbClients.find(c => {
-        const id = c.user?._id || c.profile?.userId || c._id || c.id;
-        return String(id) === String(relatedClientId);
-      });
-      if (agent && client) {
-        const totalInv = client.totalInvestment || (client.profile && client.profile.totalPortfolioValue) || 0;
-        let pct = 0;
-        const typeNormalized = String(commissionType).toLowerCase().trim();
-        if (typeNormalized === 'one-time' || typeNormalized === 'onetime' || typeNormalized === 'one-time onboarding') {
-          pct = getSlabRate(slabs, 'one-time', totalInv);
-        } else if (typeNormalized === 'monthly' || typeNormalized === 'recurring' || typeNormalized === 'monthly recurring') {
-          pct = getSlabRate(slabs, 'monthly', totalInv);
-        } else if (typeNormalized === 'special' || typeNormalized === 'override' || typeNormalized === 'special override') {
-          pct = agent.profile?.specialCommission || agent.commissionSpecial || 0;
-        }
-        const calculated = Math.round((totalInv * parseFloat(pct)) / 100);
-        setAmountPaid(calculated || '');
       }
     }
-  }, [selectedAgentId, commissionType, relatedClientId, recipientType, dbAgents, dbClients, isAmountEditable]);
+  }, [selectedAgentId, commissionType, relatedClientId, recipientType, isAmountEditable, dbClients, dbAgents, slabs]);
 
   const handleRecipientTypeChange = (type) => {
     setRecipientType(type);
     setIsAmountEditable(false);
     setSelectedClientId('');
     setSelectedAgentId('');
-    setCommissionType('Monthly');
+    setCommissionType('One-Time');
     setRelatedClientId('');
     setAmountPaid('');
     setTransactionRef('');
@@ -521,61 +631,7 @@ export default function ROIList() {
     }
   };
 
-  const updateAgentAmountCalculation = (agtId, relClientId, commType) => {
-    if (!agtId) {
-      setAmountPaid('');
-      return;
-    }
-
-    const typeStr = commType || commissionType || 'One-Time';
-
-    const targetClient = dbClients.find(c => {
-      const cid = c.user?._id || c.profile?.userId || c._id || c.id;
-      return String(cid) === String(relClientId);
-    }) || dbClients.find(c => {
-      const agObj = c.user?.assignedAgent || c.assignedAgent || c.profile?.assignedAgent;
-      const agId = agObj?._id || agObj?.id || agObj;
-      return agId && String(agId) === String(agtId);
-    }) || dbClients[0];
-
-    if (targetClient) {
-      const totalInv = Number(
-        targetClient.totalInvestment ||
-        (targetClient.profile && targetClient.profile.totalPortfolioValue) ||
-        (targetClient.summaryCards && targetClient.summaryCards.totalInvestment) ||
-        100000
-      );
-      const targetAgent = dbAgents.find(a => {
-        const aid = a.user?._id || a.profile?.userId || a._id || a.id;
-        return String(aid) === String(agtId);
-      });
-
-      const slabRate = getSlabRate(slabs, typeStr.toLowerCase().includes('one') ? 'one-time' : 'monthly', totalInv);
-
-      const agentPct = Number(
-        targetAgent?.profile?.oneTimeCommission ??
-        targetAgent?.commissionOverride ??
-        targetAgent?.commissionPercentage ??
-        (slabRate > 0 ? slabRate : (typeStr.toLowerCase().includes('one') ? 2.0 : 0.5))
-      );
-
-      if (typeStr.toLowerCase().includes('one')) {
-        const calculated = Math.round((totalInv * agentPct) / 100);
-        setAmountPaid(calculated > 0 ? calculated : 2000);
-      } else if (typeStr.toLowerCase().includes('month')) {
-        const roiPct = Number(targetClient.monthlyRoi ?? targetClient.profile?.monthlyRoi ?? 1.2);
-        const clientMonthlyRoi = Math.round((totalInv * roiPct) / 100);
-        const monthlyComm = Math.round((clientMonthlyRoi * (agentPct || 10.0)) / 100) || Math.round((totalInv * 0.5) / 100);
-        setAmountPaid(monthlyComm > 0 ? monthlyComm : 500);
-      } else {
-        setAmountPaid(2000);
-      }
-    } else {
-      setAmountPaid(2000);
-    }
-  };
-
-  const handleAgentChange = (id) => {
+  const handleAgentChange = async (id) => {
     setSelectedAgentId(id);
     setIsAmountEditable(false);
 
@@ -594,6 +650,7 @@ export default function ROIList() {
     setRelatedClientId(firstClientId);
     updateAgentAmountCalculation(id, firstClientId, commissionType || 'One-Time');
   };
+
 
   const handleMarkPaidClick = (roiId, type = 'client') => {
     setMarkPaidItem({ id: roiId, type });
@@ -782,18 +839,20 @@ export default function ROIList() {
         ? (match.monthlyRoi ?? match.roiPercent ?? match.roiPercentage ?? match.profile?.monthlyRoi ?? match.user?.monthlyRoi)
         : null;
 
-      const resolvedRoi = (matchedRoiRate !== undefined && matchedRoiRate !== null && matchedRoiRate !== 0)
-        ? matchedRoiRate
-        : (r.roiPercentage && r.roiPercentage !== 7.7 ? r.roiPercentage : '');
+      // Extract existing snapshot ROI from record first to protect historical past records from changing when client ROI is edited
+      const recordRoiFromDetail = (typeof r.payoutDetail === 'string') ? r.payoutDetail.match(/ROI\s*\((\d+(\.\d+)?%?)\)/i)?.[1] : null;
+      const recordRoiFromType = (typeof r.type === 'string') ? r.type.match(/ROI\s*\((\d+(\.\d+)?%?)\)/i)?.[1] : null;
+      const resolvedRoi = (r.roiPercentage !== undefined && r.roiPercentage !== null && r.roiPercentage !== '')
+        ? r.roiPercentage
+        : (recordRoiFromDetail || recordRoiFromType || (matchedRoiRate !== undefined && matchedRoiRate !== null && matchedRoiRate !== 0 ? matchedRoiRate : ''));
 
       const isWithdrawal = Boolean(r.isWithdrawal) || /withdrawal/i.test(r.type || r.payoutDetail || '');
       let displayDetail = r.payoutDetail || r.type;
 
       if (resolvedRoi) {
-        if (displayDetail && displayDetail.includes('7.7%')) {
-          displayDetail = displayDetail.replace('7.7%', `${resolvedRoi}%`);
-        } else if (!displayDetail || displayDetail === 'Withdrawal' || displayDetail === 'Monthly ROI Return') {
-          displayDetail = isWithdrawal ? `Withdrawal ROI (${resolvedRoi}%)` : `Monthly ROI Return (${resolvedRoi}%)`;
+        const cleanRateStr = String(resolvedRoi).includes('%') ? resolvedRoi : `${resolvedRoi}%`;
+        if (!displayDetail || displayDetail === 'Withdrawal' || displayDetail === 'Monthly ROI Return' || displayDetail.toLowerCase() === 'roi return') {
+          displayDetail = isWithdrawal ? `Withdrawal ROI (${cleanRateStr})` : `Monthly ROI Return (${cleanRateStr})`;
         }
       }
 
@@ -1248,28 +1307,7 @@ export default function ROIList() {
                           }
                         } else if (recipientType === 'agent') {
                           if (selectedAgentId && relatedClientId) {
-                            const agent = dbAgents.find(a => {
-                              const id = a.user?._id || a.profile?.userId || a._id || a.id;
-                              return String(id) === String(selectedAgentId);
-                            });
-                            const client = dbClients.find(c => {
-                              const id = c.user?._id || c.profile?.userId || c._id || c.id;
-                              return String(id) === String(relatedClientId);
-                            });
-                            if (agent && client) {
-                              const totalInv = client.totalInvestment || (client.profile && client.profile.totalPortfolioValue) || 0;
-                              let pct = 0;
-                              const typeNormalized = String(commissionType).toLowerCase().trim();
-                              if (typeNormalized === 'one-time' || typeNormalized === 'onetime' || typeNormalized === 'one-time onboarding') {
-                                pct = getSlabRate(slabs, 'one-time', totalInv);
-                              } else if (typeNormalized === 'monthly' || typeNormalized === 'recurring' || typeNormalized === 'monthly recurring') {
-                                pct = getSlabRate(slabs, 'monthly', totalInv);
-                              } else if (typeNormalized === 'special' || typeNormalized === 'override' || typeNormalized === 'special override') {
-                                pct = agent.profile?.specialCommission || agent.commissionSpecial || 0;
-                              }
-                              const calculated = Math.round((totalInv * parseFloat(pct)) / 100);
-                              setAmountPaid(calculated || '');
-                            }
+                            updateAgentAmountCalculation(selectedAgentId, relatedClientId, commissionType);
                           } else {
                             setAmountPaid('');
                           }

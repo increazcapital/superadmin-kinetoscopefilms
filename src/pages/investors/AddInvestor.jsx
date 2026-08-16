@@ -357,7 +357,6 @@ export default function AddInvestor() {
               </div>
               <div style={{ flex: 1 }}></div>
             </div>
-
             <div className="kfpl-form-row" style={{ marginTop: '16px' }}>
               <div className="kfpl-input-group" style={{ flex: 1 }}>
                 <label className="kfpl-input-label">Contract Start Date <span className="required">*</span></label>
@@ -371,14 +370,13 @@ export default function AddInvestor() {
                 />
               </div>
               <div className="kfpl-input-group" style={{ flex: 1 }}>
-                <label className="kfpl-input-label">Contract End Date <span className="required">*</span></label>
+                <label className="kfpl-input-label">Contract End Date <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>(Optional)</span></label>
                 <input 
                   type="date" 
                   className="kfpl-input" 
                   name="contractEndDate" 
                   value={form.contractEndDate} 
                   onChange={handleChange} 
-                  required 
                 />
               </div>
             </div>
@@ -390,7 +388,7 @@ export default function AddInvestor() {
             <div className="kfpl-form-row">
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">
-                  {form.citizenship === 'International' ? 'Tax ID / SSN Number' : 'PAN Number'} <span className="required">*</span>
+                  {form.citizenship === 'International' ? 'Tax ID / SSN' : 'PAN Card Number'} <span className="required">*</span>
                 </label>
                 <input 
                   className="kfpl-input" 
@@ -459,14 +457,14 @@ export default function AddInvestor() {
             onFilesChange={(files) => setAadhaarDocument(files[0] || null)} 
           />
           <FileDropzone 
-            label="Bank Details Document (Cancelled Cheque / Bank Statement)" 
+            label="Bank Details Document (Cancelled Cheque / Bank Statement) (Optional)" 
             multiple={false} 
             onFilesChange={(files) => setBankProofDocument(files[0] || null)} 
           />
 
           {/* Nominee Details */}
           <div className="kfpl-form-section">
-            <div className="kfpl-form-section-title">Nominee Details</div>
+            <div className="kfpl-form-section-title">Nominee Details <span style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--color-text-muted)', textTransform: 'none' }}>(Optional)</span></div>
             <div className="kfpl-form-row">
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Nominee Name {(form.nomineeRelation || form.nomineeContact) && <span className="required">*</span>}</label>
@@ -510,14 +508,14 @@ export default function AddInvestor() {
 
           {/* Nominee ID Proof Upload */}
           <FileDropzone 
-            label={form.nomineeCitizenship === 'International' ? 'Nominee International Passport / National ID Card Upload' : 'Nominee ID Proof (Aadhaar / Driving License / Passport)'} 
+            label={form.nomineeCitizenship === 'International' ? 'Nominee International Passport / National ID Card Upload (Optional)' : 'Nominee ID Proof (Aadhaar / Driving License / Passport) (Optional)'} 
             multiple={false} 
             onFilesChange={(files) => setNomineeProofDocument(files[0] || null)} 
           />
 
           {/* Agreement Upload */}
           <FileDropzone 
-            label="Agreement Document" 
+            label="Agreement Document (Optional)" 
             multiple={false} 
             onFilesChange={(files) => setAgreementDocument(files[0] || null)} 
           />

@@ -639,10 +639,14 @@ export default function AgentDetail() {
         const groupKey = `${periodKey}_${typeLabel}`;
         const itemStatus = String(com.status || 'PENDING').toUpperCase();
 
+        const invAmt = Number(com.investmentAmount || 0);
+        const ratePct = Number(com.slabPercentage || 1);
+        const comAmount = (invAmt > 0 && ratePct > 0) ? Math.round((invAmt * ratePct) / 100) : Number(com.amount || 0);
+
         if (groupedCommissionsMap.has(groupKey)) {
           const existing = groupedCommissionsMap.get(groupKey);
-          existing.items.push(com);
-          existing.amount += Number(com.amount || 0);
+          existing.items.push({ ...com, amount: comAmount });
+          existing.amount += comAmount;
           if (itemStatus !== 'PAID' && itemStatus !== 'CREDITED') {
             existing.status = 'PENDING';
           }
@@ -654,12 +658,12 @@ export default function AgentDetail() {
             date: com.date || com.createdAt || new Date(),
             type: typeLabel === 'one-time' ? 'ONE TIME' : typeLabel === 'special' ? 'SPECIAL' : 'MONTHLY',
             commissionType: com.commissionType || com.type,
-            amount: Number(com.amount || 0),
+            amount: comAmount,
             status: (itemStatus === 'PAID' || itemStatus === 'CREDITED') ? 'PAID' : 'PENDING',
             clientName: com.clientName,
             clientCode: com.clientCode,
             clientId: com.clientId,
-            items: [com]
+            items: [{ ...com, amount: comAmount }]
           });
         }
       });
@@ -944,12 +948,16 @@ export default function AgentDetail() {
         ? Number(c.investmentAmount)
         : (c.amount ? Math.round((Number(c.amount) * 100) / (pct || 1)) : 0);
 
+      const calculatedAmt = (invAmt > 0 && pct > 0)
+        ? Math.round((invAmt * pct) / 100)
+        : (Number(c.amount) || 0);
+
       return {
         clientName: c.clientName || (clientObj ? clientObj.name : (cidObj ? cidObj.name : '—')),
         clientId: c.clientCode || (clientObj ? clientObj.clientId : (clientCodeStr || '—')),
         investment: invAmt,
         rate: pct,
-        amount: c.amount || 0,
+        amount: calculatedAmt,
         investmentDate: formatDateDMY(c.date || c.createdAt || c.investmentDate || (clientObj ? clientObj.joinDate : '—'))
       };
     });
@@ -1476,88 +1484,87 @@ export default function AgentDetail() {
           <div className="kfpl-table-scroll">
             <table className="kfpl-table">
               <thead>
-                <tr><th>Period</th><th>Date</th><th>Type</th><th>Amount</th><th>Status</th><th style={{ textAlign: 'center' }}>Download Statement</th></tr>
+                <tr>
+                  <th>CLIENT NAME &amp; CODE</th>
+                  <th>TYPE</th>
+                  <th>PERIOD</th>
+                  <th>DATE</th>
+                  <th style={{ textAlign: 'right' }}>COMMISSION AMOUNT</th>
+                  <th>STATUS</th>
+                  <th style={{ textAlign: 'center' }}>ACTION</th>
+                </tr>
               </thead>
               <tbody>
                 {filteredCommission.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>No commission records found</td></tr>
-                ) : filteredCommission.map((com, idx) => (
-                  <tr key={com._id || com.id || `com-${idx}`}>
-                    <td>
-                      <button
-                        onClick={() => setSelectedCommission(com)}
-                        style={{
-                          background: 'none', border: 'none', padding: '4px 8px',
-                          borderRadius: '6px', color: 'var(--color-gold-dark)',
-                          fontWeight: 600, cursor: 'pointer', textDecoration: 'underline',
-                          textUnderlineOffset: '3px', fontSize: '0.875rem',
-                        }}
-                        title="Click to view details"
-                      >
-                        {com.period || com.month || ((com.date || com.paidAt || com.payoutDate) ? new Date(com.date || com.paidAt || com.payoutDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement')}
-                      </button>
-                    </td>
-                    <td>{String(com.status || '').toUpperCase() === 'PAID' ? formatDateDMY(com.paidAt || com.payoutDate || com.updatedAt || com.date) : '—'}</td>
-                    <td>
-                      {(() => {
-                        const comType = String(com.type || com.commissionType || '').toLowerCase().trim();
-                        const isOneTime = comType === 'one-time' || comType === 'onetime' || comType === 'one time' || comType === 'one-time onboarding';
-                        const isSpecial = comType === 'special' || comType === 'override' || comType === 'special override';
-                        return (
-                          <span 
-                            style={{ 
-                              display: 'inline-block',
-                              fontWeight: 700, 
-                              borderRadius: '20px', 
-                              padding: '4px 12px', 
-                              fontSize: '0.75rem',
-                              letterSpacing: '0.5px',
-                              background: isOneTime ? '#EEF2FF' : (isSpecial ? '#FEF3C7' : '#D1FAE5'),
-                              color: isOneTime ? '#4F46E5' : (isSpecial ? '#D97706' : '#065F46'),
-                              border: isOneTime ? '1px solid #C7D2FE' : (isSpecial ? '1px solid #FDE68A' : '1px solid #A7F3D0')
-                            }}
-                          >
-                            {isOneTime ? 'ONE TIME' : isSpecial ? 'SPECIAL' : 'MONTHLY'}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    <td className="font-semibold">{formatCurrency(com.amount)}</td>
-                    <td><Badge status={com.status}>{com.status}</Badge></td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'center' }}>
-                        <button
-                          className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
-                          onClick={() => {
-                            downloadStatementCSV({ ...com, breakdown: getCommissionBreakdown(com) }, agent.name || agent.fullName);
-                            addToast(`Statement CSV downloaded for ${com.month}`, 'success', 'Downloaded');
+                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>No commission records found</td></tr>
+                ) : filteredCommission.map((com, idx) => {
+                  const comType = String(com.type || com.commissionType || '').toLowerCase().trim();
+                  const isOneTime = comType === 'one-time' || comType === 'onetime' || comType === 'one time' || comType === 'one-time onboarding';
+                  const isSpecial = comType === 'special' || comType === 'override' || comType === 'special override';
+                  const isPaid = String(com.status || '').toLowerCase() === 'paid';
+
+                  return (
+                    <tr key={com._id || com.id || `com-${idx}`} style={{ cursor: 'pointer' }} onClick={() => setSelectedCommission(com)}>
+                      <td>
+                        <div className="kfpl-table-cell-primary">{com.clientName || agentClients[0]?.name || 'Milind Ratan Saugat'}</div>
+                        <div className="kfpl-table-cell-secondary">{com.clientCode || agentClients[0]?.clientId || 'KFPL-CL-1001'}</div>
+                      </td>
+                      <td>
+                        <span 
+                          style={{ 
+                            display: 'inline-block',
+                            fontWeight: 700, 
+                            borderRadius: '20px', 
+                            padding: '4px 12px', 
+                            fontSize: '0.75rem',
+                            letterSpacing: '0.5px',
+                            background: isOneTime ? '#EEF2FF' : (isSpecial ? '#FEF3C7' : '#D1FAE5'),
+                            color: isOneTime ? '#4F46E5' : (isSpecial ? '#D97706' : '#065F46'),
+                            border: isOneTime ? '1px solid #C7D2FE' : (isSpecial ? '1px solid #FDE68A' : '1px solid #A7F3D0')
                           }}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', padding: '4px 8px' }}
-                          title="Download CSV"
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width="12" height="12">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/>
-                          </svg>
-                          CSV
-                        </button>
+                          {isOneTime ? 'ONE TIME' : isSpecial ? 'SPECIAL' : 'MONTHLY'}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 600, color: 'var(--color-emerald-dark, #065F46)' }}>
+                          {com.period || com.month || ((com.date) ? new Date(com.date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement')}
+                        </span>
+                      </td>
+                      <td>{isPaid ? formatDateDMY(com.paidAt || com.payoutDate || com.updatedAt || com.date) : '—'}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-emerald, #059669)' }}>
+                          {formatCurrency(com.amount)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`kfpl-badge kfpl-badge--${isPaid ? 'success' : 'warning'}`}>
+                          {String(com.status || 'PENDING').toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
                         <button
-                          className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
-                          onClick={() => {
-                            downloadStatementPDF({ ...com, breakdown: getCommissionBreakdown(com) }, agent.name || agent.fullName, agentClients);
-                            addToast(`Statement PDF generated for ${com.month}`, 'success', 'Downloaded');
+                          className="kfpl-btn kfpl-btn--primary kfpl-btn--sm"
+                          onClick={(e) => { e.stopPropagation(); setSelectedCommission(com); }}
+                          style={{
+                            borderRadius: '20px',
+                            padding: '5px 14px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            background: 'linear-gradient(135deg, #059669, #047857)',
+                            color: '#ffffff',
+                            border: 'none',
+                            boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease-in-out'
                           }}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', padding: '4px 8px' }}
-                          title="Download PDF"
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width="12" height="12">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/>
-                          </svg>
-                          PDF
+                          Statement
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1589,7 +1596,7 @@ export default function AgentDetail() {
 
               <div className="kfpl-modal-body">
                 <p style={{ margin: '0 0 16px', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                  {selectedCommission.month || ((selectedCommission.date || selectedCommission.paidAt || selectedCommission.payoutDate) ? new Date(selectedCommission.date || selectedCommission.paidAt || selectedCommission.payoutDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement')} — {agent.name || agent.fullName} ({agent.agentId})
+                  {selectedCommission.month || ((selectedCommission.date || selectedCommission.paidAt || selectedCommission.payoutDate) ? new Date(selectedCommission.date || selectedCommission.paidAt || selectedCommission.payoutDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement')} — {selectedCommission.clientName || agentClients[0]?.name || 'Milind Ratan Saugat'} ({selectedCommission.clientCode || agentClients[0]?.clientId || 'KFPL-CL-1001'})
                 </p>
 
                 <div style={{
@@ -1646,7 +1653,6 @@ export default function AgentDetail() {
                       <table className="kfpl-table" style={{ fontSize: '0.85rem' }}>
                         <thead>
                           <tr>
-                            <th>Client</th>
                             <th>Client ID</th>
                             <th style={{ textAlign: 'center' }}>Investment Date</th>
                             <th style={{ textAlign: 'center' }}>Type</th>
@@ -1664,16 +1670,15 @@ export default function AgentDetail() {
                             const isSpecial = comType === 'special' || comType === 'override' || comType === 'special override';
                             const displayRate = (b.rate && parseFloat(b.rate) > 0)
                                ? parseFloat(b.rate)
-                               : (b.investment > 0 ? parseFloat(((b.amount / b.investment) * 100).toFixed(1)) : 2);
+                               : (b.investment > 0 ? parseFloat(((b.amount / b.investment) * 100).toFixed(1)) : 1);
                             return (
                               <tr key={i}>
-                                <td className="kfpl-table-cell-primary">{b.clientName}</td>
                                 <td>{b.clientId}</td>
                                 <td style={{ textAlign: 'center' }}>{invDateStr}</td>
                                 <td style={{ textAlign: 'center' }}>
-                                  <Badge status={isOneTime ? 'info' : isSpecial ? 'gold' : 'active'}>
+                                  <span className={`kfpl-badge kfpl-badge--${isOneTime ? 'info' : isSpecial ? 'gold' : 'success'}`}>
                                     {isOneTime ? 'One Time' : isSpecial ? 'Special' : 'Monthly'}
-                                  </Badge>
+                                  </span>
                                 </td>
                                 <td style={{ textAlign: 'right' }}>{formatCurrency(b.investment)}</td>
                                 <td style={{ textAlign: 'right' }}>{displayRate}%</td>
@@ -1682,7 +1687,7 @@ export default function AgentDetail() {
                             );
                           })}
                           <tr style={{ background: 'var(--color-surface-alt, #f8fafc)', fontWeight: 700 }}>
-                            <td colSpan={6} style={{ textAlign: 'right' }}>Total</td>
+                            <td colSpan={5} style={{ textAlign: 'right' }}>Total</td>
                             <td style={{ textAlign: 'right', color: 'var(--color-gold-dark)' }}>{formatCurrency(filteredTotal)}</td>
                           </tr>
                         </tbody>
@@ -1692,11 +1697,7 @@ export default function AgentDetail() {
                 )}
               </div>
 
-              <div className="kfpl-modal-footer">
-                <button
-                  className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"
-                  onClick={() => setSelectedCommission(null)}
-                >Close</button>
+              <div className="kfpl-modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm"

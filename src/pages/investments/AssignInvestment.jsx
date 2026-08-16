@@ -385,6 +385,12 @@ export default function AssignInvestment() {
       return;
     }
 
+    if (selectedClientInfo && selectedClientInfo.depositAmount === 0) {
+      addToast('Cannot assign investment: This client has no approved capital deposited. Please approve a deposit first.', 'error', 'Action Blocked');
+      setLoading(false);
+      return;
+    }
+
     // Build segmentAllocation payload matching backend contract
     const segmentAllocation = selectedSegments.map(sid => ({
       segmentName: segments.find(s => s.id === sid)?.name || sid,
@@ -539,7 +545,8 @@ export default function AssignInvestment() {
                   onChange={handleChange} 
                   onWheel={(e) => e.target.blur()} 
                   placeholder={selectedClientInfo && selectedClientInfo.depositAmount === 0 ? "No capital deposited by client" : "Enter amount"} 
-                  style={selectedClientInfo && selectedClientInfo.depositAmount === 0 ? { borderColor: '#F59E0B', background: 'rgba(245, 158, 11, 0.05)' } : {}}
+                  style={selectedClientInfo && selectedClientInfo.depositAmount === 0 ? { borderColor: '#EF4444', background: 'rgba(239, 68, 68, 0.08)', cursor: 'not-allowed' } : {}}
+                  disabled={Boolean(selectedClientInfo && selectedClientInfo.depositAmount === 0)}
                   required 
                 />
                 {selectedClientInfo && (

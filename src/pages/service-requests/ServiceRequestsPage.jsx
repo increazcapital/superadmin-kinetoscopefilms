@@ -169,14 +169,14 @@ export default function ServiceRequestsPage() {
       setSelectedReq(detail);
       setEditStatus(detail.status || 'Open');
       setEditNote(detail.adminRemarks || detail.adminNote || '');
-      setSendEmail(false);
+      setSendEmail(true);
       setShowDetailModal(true);
     } catch (err) {
       console.error('Error fetching detail, falling back to list record:', err);
       setSelectedReq(req);
       setEditStatus(req.status || 'Open');
       setEditNote(req.adminRemarks || req.adminNote || '');
-      setSendEmail(false);
+      setSendEmail(true);
       setShowDetailModal(true);
     }
   };
@@ -500,7 +500,7 @@ export default function ServiceRequestsPage() {
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button type="button" className="kfpl-btn kfpl-btn--ghost" onClick={() => setShowDetailModal(false)} disabled={saving}>Cancel</button>
                 <button type="button" className="kfpl-btn kfpl-btn--primary" onClick={handleSaveChanges} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? 'Submitting...' : 'Submit Request'}
                 </button>
               </div>
             </div>

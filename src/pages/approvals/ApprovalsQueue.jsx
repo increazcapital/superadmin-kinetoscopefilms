@@ -163,6 +163,13 @@ export default function ApprovalsQueue() {
           cId = isAgent ? 'KFPL-AG-1001' : 'KFPL-CL-1001';
         }
 
+        const bDetails = item.bankDetails || {};
+        const bName = bDetails.bankName || item.bankName || '';
+        const accNo = bDetails.accountNumber || item.accountNumber || item.accountNo || '';
+        const ifsc = bDetails.ifscCode || item.ifscCode || item.ifsc || '';
+        const upi = bDetails.upiId || item.upiId || '';
+        const accHolder = bDetails.accountHolderName || item.accountHolderName || item.investorName || '';
+
         return {
           id: item.id || item._id,
           type: type,
@@ -182,9 +189,12 @@ export default function ApprovalsQueue() {
           mode: item.paymentMethod || item.mode || 'Bank Transfer',
           referenceId: item.referenceNumber || item.referenceId || '',
           proofFile: item.proofAttachment || item.proofFile || item.fileUrl || '',
-          bankName: item.bankName || 'HDFC Bank',
-          accountNo: item.accountNo || 'XXXX4567',
-          ifsc: item.ifsc || 'HDFC0001234',
+          bankDetails: bDetails,
+          bankName: bName || '',
+          accountNo: accNo || '',
+          ifsc: ifsc || '',
+          upiId: upi,
+          accountHolderName: accHolder,
           note: item.remarks || item.note || '',
           projectName: item.projectName || (item.projectId && typeof item.projectId === 'object' ? item.projectId.name : '') || ''
         };
@@ -665,9 +675,15 @@ export default function ApprovalsQueue() {
                 category: selectedRequestDetails.profile?.tier || 'silver',
               }
             : (investors.find(i => i.clientId === modal.item.clientId) || {});
-          const resolvedBankName = selectedRequestDetails?.profile?.bankName || selectedRequestDetails?.transaction?.bankName || modal.item.bankName || '—';
-          const resolvedAccountNo = selectedRequestDetails?.profile?.accountNumber || selectedRequestDetails?.profile?.accountNo || selectedRequestDetails?.transaction?.accountNo || modal.item.accountNo || '—';
-          const resolvedIfsc = selectedRequestDetails?.profile?.ifscCode || selectedRequestDetails?.profile?.ifsc || selectedRequestDetails?.transaction?.ifsc || modal.item.ifsc || '—';
+
+          const reqBankDetails = modal.item.bankDetails || selectedRequestDetails?.transaction?.bankDetails || {};
+          const profileBankDetails = selectedRequestDetails?.profile || {};
+          const resolvedAccountHolder = reqBankDetails.accountHolderName || profileBankDetails.accountHolderName || profileBankDetails.fullName || modal.item.accountHolderName || modal.item.investorName;
+          const resolvedBankName = reqBankDetails.bankName || profileBankDetails.bankName || modal.item.bankName || '—';
+          const resolvedAccountNo = reqBankDetails.accountNumber || profileBankDetails.accountNumber || profileBankDetails.accountNo || modal.item.accountNo || '—';
+          const resolvedIfsc = reqBankDetails.ifscCode || profileBankDetails.ifscCode || profileBankDetails.ifsc || modal.item.ifsc || '—';
+          const resolvedUpiId = reqBankDetails.upiId || profileBankDetails.upiId || modal.item.upiId || '';
+
           const tier = investorObj.category || 'silver';
           const initials = modal.item.investorName ? modal.item.investorName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'IN';
           
@@ -775,15 +791,33 @@ export default function ApprovalsQueue() {
                           </div>
                         </div>
                       ) : (
-                        <div className="kfpl-verify-field-row">
-                          <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
-                            <span className="kfpl-verify-field-label">Target Bank</span>
-                            <span className="kfpl-verify-field-value">{resolvedBankName}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div className="kfpl-verify-field-row">
+                            <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
+                              <span className="kfpl-verify-field-label">Payment Mode</span>
+                              <span className="kfpl-verify-field-value">{modal.item.mode || 'Bank Transfer'}</span>
+                            </div>
+                            <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
+                              <span className="kfpl-verify-field-label">Target Bank</span>
+                              <span className="kfpl-verify-field-value">{resolvedBankName}</span>
+                            </div>
                           </div>
-                          <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
-                            <span className="kfpl-verify-field-label">IFSC Code</span>
-                            <span className="kfpl-verify-field-value" style={{ fontFamily: 'monospace' }}>{resolvedIfsc}</span>
+                          <div className="kfpl-verify-field-row">
+                            <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
+                              <span className="kfpl-verify-field-label">Account Number</span>
+                              <span className="kfpl-verify-field-value" style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-text-primary)' }}>{resolvedAccountNo}</span>
+                            </div>
+                            <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
+                              <span className="kfpl-verify-field-label">IFSC Code</span>
+                              <span className="kfpl-verify-field-value" style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-text-primary)' }}>{resolvedIfsc}</span>
+                            </div>
                           </div>
+                          {resolvedUpiId && (
+                            <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
+                              <span className="kfpl-verify-field-label">UPI ID</span>
+                              <span className="kfpl-verify-field-value" style={{ fontFamily: 'monospace', color: 'var(--color-success)' }}>{resolvedUpiId}</span>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1089,34 +1123,78 @@ export default function ApprovalsQueue() {
                         <span>Destination Account Check</span>
                         <Badge status="approved">VERIFIED OWNER</Badge>
                       </div>
-                      <div className="kfpl-verify-card-body" style={{ gap: '16px' }}>
+                      <div className="kfpl-verify-card-body" style={{ gap: '14px' }}>
                         
                         {/* Premium Bank Card UI */}
-                        <div className="kfpl-verify-bank-card">
+                        <div className="kfpl-verify-bank-card" style={{ padding: '18px 20px', borderRadius: '12px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div style={{ textAlign: 'left' }}>
                               <span style={{ fontSize: '0.625rem', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.05em', fontWeight: 600 }}>Recipient Bank</span>
-                              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff', marginTop: '2px' }}>{resolvedBankName}</div>
+                              <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#ffffff', marginTop: '2px' }}>{resolvedBankName}</div>
                             </div>
                             <div className="kfpl-verify-bank-card-chip" />
                           </div>
                           
-                          <div className="kfpl-verify-bank-card-number">
-                            {resolvedAccountNo !== '—'
-                              ? resolvedAccountNo.replace(/\d(?=\d{4})/g, "•") 
-                              : "•••• •••• •••• ••••"}
+                          <div className="kfpl-verify-bank-card-number" style={{ letterSpacing: '2px', fontSize: '1.2rem', color: '#38BDF8', fontWeight: 800, fontFamily: 'monospace', margin: '14px 0 10px 0' }}>
+                            {resolvedAccountNo}
                           </div>
                           
                           <div className="kfpl-verify-bank-card-meta">
                             <div className="kfpl-verify-bank-card-info" style={{ textAlign: 'left' }}>
                               <span className="kfpl-verify-bank-card-lbl">Account Holder</span>
-                              <span className="kfpl-verify-bank-card-val">{modal.item.investorName}</span>
+                              <span className="kfpl-verify-bank-card-val">{resolvedAccountHolder}</span>
                             </div>
                             <div className="kfpl-verify-bank-card-info" style={{ textAlign: 'right' }}>
                               <span className="kfpl-verify-bank-card-lbl">IFSC Code</span>
-                              <span className="kfpl-verify-bank-card-val" style={{ fontFamily: 'monospace' }}>{resolvedIfsc}</span>
+                              <span className="kfpl-verify-bank-card-val" style={{ fontFamily: 'monospace', fontWeight: 700, color: '#FCD34D' }}>{resolvedIfsc}</span>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Quick Action Copy Buttons */}
+                        <div style={{ display: 'grid', gridTemplateColumns: resolvedUpiId ? '1fr 1fr 1fr' : '1fr 1fr', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', padding: '6px 10px' }}
+                            onClick={() => {
+                              if (resolvedAccountNo && resolvedAccountNo !== '—') {
+                                navigator.clipboard.writeText(resolvedAccountNo);
+                                addToast('success', 'Copied', 'Account number copied to clipboard!');
+                              }
+                            }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            Copy Account
+                          </button>
+                          <button
+                            type="button"
+                            className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', padding: '6px 10px' }}
+                            onClick={() => {
+                              if (resolvedIfsc && resolvedIfsc !== '—') {
+                                navigator.clipboard.writeText(resolvedIfsc);
+                                addToast('success', 'Copied', 'IFSC Code copied to clipboard!');
+                              }
+                            }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            Copy IFSC
+                          </button>
+                          {resolvedUpiId && (
+                            <button
+                              type="button"
+                              className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm"
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', padding: '6px 10px' }}
+                              onClick={() => {
+                                navigator.clipboard.writeText(resolvedUpiId);
+                                addToast('success', 'Copied', 'UPI ID copied to clipboard!');
+                              }}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                              Copy UPI
+                            </button>
+                          )}
                         </div>
 
                         {/* Security Notice */}
@@ -1129,7 +1207,7 @@ export default function ApprovalsQueue() {
                           </div>
                           <div className="kfpl-verify-security-text" style={{ textAlign: 'left' }}>
                             <div className="kfpl-verify-security-title">Strict Routing Enforcement</div>
-                            Funds are locked to this registered account only. Verification check against matched client PAN records completed successfully.
+                            Transfers must strictly route to the verified investor bank details above. Real time PAN & Account verification matched.
                           </div>
                         </div>
 

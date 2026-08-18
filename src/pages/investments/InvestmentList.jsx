@@ -443,19 +443,31 @@ export default function InvestmentList() {
       render: (row) => (
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <button
-            className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm"
-            style={{ padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-border)', color: 'var(--color-navy)', fontWeight: 600 }}
+            type="button"
+            className="kfpl-btn kfpl-btn--sm"
+            style={{
+              padding: '4px 10px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              background: '#ECFDF5',
+              border: '1px solid #10B981',
+              color: '#047857',
+              fontWeight: 600,
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/investments/assign?id=${row._id || row.id}`);
             }}
             title="Edit Investment & Segment Allocation"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#047857" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
-            Edit
+            <span>Edit</span>
           </button>
           <button
             className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"

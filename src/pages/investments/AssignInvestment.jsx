@@ -55,20 +55,29 @@ export default function AssignInvestment() {
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
 
+  // Fetch clients and projects from backend API on mount (+ real-time investment details if in Edit mode)
   useEffect(() => {
     const fetchData = async () => {
       setDataLoading(true);
       try {
-        const [clientsRes, projectsRes, segmentsRes] = await Promise.all([
+        const urlParams = new URLSearchParams(location.search || window.location.search);
+        const currentEditId = urlParams.get('id') || urlParams.get('editId') || editInvestmentId;
+
+        const [clientsRes, projectsRes, segmentsRes, editInvRes] = await Promise.all([
           apiRequest('/api/super-admin/clients').catch(() => null),
           apiRequest('/api/super-admin/projects').catch(() => null),
-          apiRequest('/api/super-admin/segments').catch(() => null)
+          apiRequest('/api/super-admin/segments').catch(() => null),
+          currentEditId ? apiRequest(`/api/super-admin/investments/${currentEditId}`).catch((err) => {
+            console.error('Failed to fetch investment details:', err);
+            return null;
+          }) : Promise.resolve(null)
         ]);
 
         let cList = [];
         let pList = [];
         let sList = [];
 
+        // Extract clients list
         if (clientsRes) {
           if (Array.isArray(clientsRes)) cList = clientsRes;
           else if (clientsRes.data?.clients) cList = clientsRes.data.clients;
@@ -84,6 +93,7 @@ export default function AssignInvestment() {
           setClients(cList);
         }
 
+        // Extract projects list
         if (projectsRes) {
           if (Array.isArray(projectsRes)) pList = projectsRes;
           else if (projectsRes.data?.projects) pList = projectsRes.data.projects;
@@ -95,21 +105,29 @@ export default function AssignInvestment() {
           setProjects(pList);
         }
 
+        // Extract segments list
         if (segmentsRes) {
           if (Array.isArray(segmentsRes)) sList = segmentsRes;
           else if (segmentsRes.data?.segments) sList = segmentsRes.data.segments;
           else if (segmentsRes.data && Array.isArray(segmentsRes.data)) sList = segmentsRes.data;
           else if (segmentsRes.segments) sList = segmentsRes.segments;
-          if (sList && sList.length > 0) {
-            const mapped = sList.map(s => ({
-              id: s._id || s.id || s.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-              name: s.name || '',
-              color: s.color || '#10B981'
-            }));
-            setSegments(mapped);
-          }
         }
 
+        const mappedSegments = (sList && sList.length > 0) ? sList.map(s => ({
+          id: s._id || s.id || s.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+          name: s.name || '',
+          color: s.color || '#10B981'
+        })) : [
+          { id: 'film-making', name: 'Film Making', color: '#10B981' },
+          { id: 'distribution', name: 'Distribution', color: '#10B981' },
+          { id: 'music', name: 'Music', color: '#10B981' },
+          { id: 'trading-&-syndication', name: 'Trading & Syndication', color: '#10B981' },
+          { id: 'content-ip-bank', name: 'Content IP Bank', color: '#10B981' },
+          { id: 'exhibition', name: 'Exhibition', color: '#10B981' },
+        ];
+        setSegments(mappedSegments);
+
+        // Fallback: if projects came back empty, try localStorage
         if (!projectsRes || (Array.isArray(projectsRes) && projectsRes.length === 0)) {
           const storedProjects = localStorage.getItem('kfpl_portfolio_projects');
           if (storedProjects) {
@@ -124,74 +142,95 @@ export default function AssignInvestment() {
           }
         }
 
-        if (editInvestmentId) {
-          try {
-            const invRes = await apiRequest(`/api/super-admin/investments/${editInvestmentId}`);
-            const invData = invRes.data || invRes.investment || invRes;
-            if (invData) {
-              const clientUserId = invData.clientId?._id || invData.clientId || '';
-              const startD = invData.investmentDate ? new Date(invData.investmentDate).toISOString().split('T')[0] : '';
-              const endD = invData.contractEndDate ? new Date(invData.contractEndDate).toISOString().split('T')[0] : '';
-              
-              setForm({
-                clientId: String(clientUserId),
-                amount: String(invData.investmentAmount || invData.amount || ''),
-                roi: String(invData.roiPercentage ?? invData.roi ?? ''),
-                riskPercentage: String(invData.riskPercentage ?? ''),
-                riskLevel: invData.riskLevel || 'Medium',
-                contractPeriod: String(invData.durationMonths || 18),
-                dateOfJoining: startD || new Date().toISOString().split('T')[0],
-                contractEndDate: endD || getCalculatedEndDateStr(startD, invData.durationMonths || 18),
-                extendContractDate: ''
+        // If in Edit Mode, prefill form with real-time investment data
+        if (editInvRes) {
+          const invData = editInvRes.data?.investment || editInvRes.data || editInvRes.investment || editInvRes;
+          if (invData && (invData._id || invData.investmentAmount !== undefined || invData.amount !== undefined)) {
+            const clientUserId = invData.clientId?._id || invData.clientId || '';
+            const startD = invData.investmentDate ? new Date(invData.investmentDate).toISOString().split('T')[0] : '';
+            const endD = invData.contractEndDate ? new Date(invData.contractEndDate).toISOString().split('T')[0] : '';
+
+            // Match client in cList
+            const matchedClient = cList.find(c => {
+              const cId = String(c.user?._id || c.user?.id || c.userId?._id || c.userId || c._id || c.id || '');
+              const cCode = String(c.clientCode || c.user?.clientCode || '').toLowerCase().trim();
+              const invCode = String(invData.clientCode || invData.clientId?.clientCode || '').toLowerCase().trim();
+              return cId === String(clientUserId) || (cCode && invCode && cCode === invCode);
+            });
+
+            const resolvedClientId = matchedClient 
+              ? String(matchedClient.user?._id || matchedClient.user?.id || matchedClient._id || matchedClient.id) 
+              : String(clientUserId);
+
+            setForm({
+              clientId: resolvedClientId,
+              amount: String(invData.investmentAmount !== undefined ? invData.investmentAmount : (invData.amount || '')),
+              roi: String(invData.roiPercentage !== undefined ? invData.roiPercentage : (invData.roi || '')),
+              riskPercentage: String(invData.riskPercentage !== undefined ? invData.riskPercentage : ''),
+              riskLevel: invData.riskLevel || 'Medium',
+              contractPeriod: String(invData.durationMonths || 18),
+              dateOfJoining: startD || new Date().toISOString().split('T')[0],
+              contractEndDate: endD || getCalculatedEndDateStr(startD, invData.durationMonths || 18),
+              extendContractDate: ''
+            });
+
+            const pId = invData.projectId?._id || invData.projectId || '';
+            if (pId) setSelectedProjectId(String(pId));
+
+            if (matchedClient) {
+              const totalDep = matchedClient.totalInvestment || matchedClient.totalPortfolioValue || invData.investmentAmount || 0;
+              setSelectedClientInfo({
+                name: matchedClient.name || matchedClient.user?.name || invData.clientName || invData.clientId?.name,
+                clientCode: matchedClient.clientCode || matchedClient.user?.clientCode || invData.clientCode || invData.clientId?.clientCode,
+                depositAmount: totalDep
+              });
+            } else {
+              setSelectedClientInfo({
+                name: invData.clientName || invData.clientId?.name || 'Client',
+                clientCode: invData.clientCode || invData.clientId?.clientCode || '—',
+                depositAmount: invData.investmentAmount || 0
+              });
+            }
+
+            // Map segment allocations
+            if (Array.isArray(invData.segmentAllocation) && invData.segmentAllocation.length > 0) {
+              const preSelected = [];
+              const preAlloc = {};
+              const preProjMap = {};
+
+              invData.segmentAllocation.forEach(alloc => {
+                const sName = String(alloc.segmentName || '').toLowerCase().trim();
+                const foundSeg = mappedSegments.find(s => 
+                  s.name.toLowerCase().trim() === sName || 
+                  s.id.toLowerCase().trim() === sName ||
+                  s.name.toLowerCase().replace(/[^a-z0-9]/g, '') === sName.replace(/[^a-z0-9]/g, '')
+                );
+                const segId = foundSeg ? foundSeg.id : alloc.segmentName;
+                if (segId) {
+                  preSelected.push(segId);
+                  preAlloc[segId] = String(alloc.allocationPercentage !== undefined ? alloc.allocationPercentage : '');
+                  if (alloc.projectId) {
+                    preProjMap[segId] = String(alloc.projectId?._id || alloc.projectId);
+                  }
+                }
               });
 
-              const pId = invData.projectId?._id || invData.projectId || '';
-              if (pId) setSelectedProjectId(String(pId));
-
-              const matchedClient = cList.find(c => String(c._id || c.id || c.user?._id) === String(clientUserId));
-              if (matchedClient) {
-                const totalDep = matchedClient.totalInvestment || matchedClient.totalPortfolioValue || 0;
-                setSelectedClientInfo({
-                  name: matchedClient.name || matchedClient.user?.name,
-                  clientCode: matchedClient.clientCode || matchedClient.user?.clientCode,
-                  depositAmount: totalDep
-                });
-              }
-
-              if (Array.isArray(invData.segmentAllocation) && invData.segmentAllocation.length > 0) {
-                const preSelected = [];
-                const preAlloc = {};
-                const preProjMap = {};
-
-                invData.segmentAllocation.forEach(alloc => {
-                  const sName = String(alloc.segmentName || '').toLowerCase().trim();
-                  const foundSeg = sList.find(s => s.name?.toLowerCase()?.trim() === sName || s.id === sName);
-                  const segId = foundSeg ? (foundSeg._id || foundSeg.id) : alloc.segmentName;
-                  if (segId) {
-                    preSelected.push(segId);
-                    preAlloc[segId] = String(alloc.allocationPercentage || '');
-                    if (alloc.projectId) {
-                      preProjMap[segId] = String(alloc.projectId?._id || alloc.projectId);
-                    }
-                  }
-                });
-
-                setSelectedSegments(preSelected);
-                setAllocations(preAlloc);
-                setSegmentProjectMap(preProjMap);
-              } else if (invData.segment) {
-                const foundSeg = sList.find(s => s.name?.toLowerCase()?.trim() === invData.segment?.toLowerCase()?.trim());
-                if (foundSeg) {
-                  const segId = foundSeg._id || foundSeg.id;
-                  setSelectedSegments([segId]);
-                  setAllocations({ [segId]: '100' });
-                  if (pId) setSegmentProjectMap({ [segId]: String(pId) });
-                }
+              setSelectedSegments(preSelected);
+              setAllocations(preAlloc);
+              setSegmentProjectMap(preProjMap);
+            } else if (invData.segment) {
+              const sName = String(invData.segment).toLowerCase().trim();
+              const foundSeg = mappedSegments.find(s => 
+                s.name.toLowerCase().trim() === sName || 
+                s.id.toLowerCase().trim() === sName
+              );
+              if (foundSeg) {
+                const segId = foundSeg.id;
+                setSelectedSegments([segId]);
+                setAllocations({ [segId]: '100' });
+                if (pId) setSegmentProjectMap({ [segId]: String(pId) });
               }
             }
-          } catch (invErr) {
-            console.error('Failed to load investment for editing:', invErr);
-            addToast('Could not load investment details for editing.', 'error');
           }
         }
       } catch (err) {
@@ -201,7 +240,7 @@ export default function AssignInvestment() {
       }
     };
     fetchData();
-  }, [editInvestmentId]);
+  }, [location.search, editInvestmentId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

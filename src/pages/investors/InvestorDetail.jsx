@@ -1075,6 +1075,7 @@ export default function InvestorDetail() {
 
   // Investments from API (expanded dynamically if multiple segment allocations exist)
   const rawInvestmentsList = investmentsData?.investments || [];
+  const expandedInvestmentsList = [];
   rawInvestmentsList.forEach((inv, invIdx) => {
     const baseAmt = Number(inv.investmentAmount || inv.amount || 0);
     const finalRoi = inv.roiPercentage || inv.roi || localRoiPercentage || 0;

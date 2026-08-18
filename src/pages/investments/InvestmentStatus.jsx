@@ -238,15 +238,15 @@ export default function InvestmentStatus() {
           ? inv.segmentAllocation.map(alloc => {
               const allocPct = Number(alloc.allocationPercentage || 0);
               const allocAmt = Math.round(amount * (allocPct / 100));
-              let segProjName = alloc.projectName || '';
+              let segProjName = alloc.projectName && alloc.projectName !== 'Unallocated' ? alloc.projectName : '';
               let segProjId = alloc.projectId ? (typeof alloc.projectId === 'object' ? (alloc.projectId._id || alloc.projectId.id) : alloc.projectId) : null;
               if (!segProjName && segProjId) {
                 const found = rawProjects.find(p => String(p._id || p.id) === String(segProjId));
-                segProjName = found ? found.name : (typeof alloc.projectId === 'object' ? alloc.projectId.name : '');
+                segProjName = found ? found.name : '';
               }
-              if (!segProjName && topProjName && inv.segment && inv.segment.toLowerCase().includes((alloc.segmentName || '').toLowerCase())) {
+              if (!segProjName && topProjName && projObj && (projObj.segment || '').trim().toLowerCase() === (alloc.segmentName || '').trim().toLowerCase()) {
                 segProjName = topProjName;
-                segProjId = projObj?._id;
+                segProjId = projObj._id;
               }
               const segProjObj = rawProjects.find(p => String(p._id || p.id) === String(segProjId)) || (segProjName && projObj?.name === segProjName ? projObj : null);
 
@@ -648,7 +648,7 @@ export default function InvestmentStatus() {
                                   🎬 {s.projectName}
                                 </span>
                               ) : (
-                                <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Unallocated</span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Unallocated</span>
                               )}
                             </div>
                           );
@@ -660,7 +660,18 @@ export default function InvestmentStatus() {
                   </td>
                   <td style={{ textAlign: 'right', fontWeight: 700 }}>{formatCurrency(inv.amount)}</td>
                   <td style={{ textAlign: 'center' }}>
-                    <button type="button" className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm" onClick={() => setDetailItem(inv)}>Details</button>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <button type="button" className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm" onClick={() => setDetailItem(inv)}>
+                        Details
+                      </button>
+                      <button
+                        type="button"
+                        className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
+                        onClick={() => handleDeleteInvestment(inv.id, inv.projectName || inv.clientName)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -695,8 +706,8 @@ export default function InvestmentStatus() {
                 </div>
               </div>
 
-              {/* Multi-Segment Cards Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '16px' }}>
+              {/* Multi-Segment Cards 2x2 Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: '20px' }}>
                 {g.segmentCards.map(p => {
                   const bannerUrl = p.projectDetails?.bannerImage;
                   const bgStyle = bannerUrl ? `url(${bannerUrl})` : getSegmentGradient(p.segment);

@@ -239,7 +239,9 @@ export default function InvestmentStatus() {
           agentName: agentObj?.name || ci.agentName || 'Direct / No Agent',
           agentCode: agentObj?.clientCode || agentObj?.agentCode || ci.agentCode || '—',
           projectName: projObj?.name || inv.projectName || 'Media Fund',
-          segment: projObj?.segment || inv.segment || 'General',
+          segment: (Array.isArray(inv.segmentAllocation) && inv.segmentAllocation.length > 0)
+            ? inv.segmentAllocation.map(s => `${s.segmentName} (${s.allocationPercentage}%)`).join(', ')
+            : (projObj?.segment || inv.segment || 'General'),
           amount,
           roiRate: `${roiNum}%`,
           monthlyReturn: (amount * roiNum) / 100,

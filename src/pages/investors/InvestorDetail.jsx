@@ -1073,9 +1073,45 @@ export default function InvestorDetail() {
   const totalPaidROI = roiHistory.filter(r => (r.status || '').toLowerCase() === 'paid').reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const totalPendingROI = roiHistory.filter(r => (r.status || '').toLowerCase() === 'pending').reduce((sum, r) => sum + Number(r.amount || 0), 0);
 
-  // Investments from API (only allocated investments)
-  const investmentsList = investmentsData?.investments || [];
-  const resolvedInvestments = investmentsList.filter(inv => inv.segment && inv.segment !== 'Unallocated');
+  // Investments from API (expanded dynamically if multiple segment allocations exist)
+  const rawInvestmentsList = investmentsData?.investments || [];
+  const expandedInvestmentsList = [];
+  rawInvestmentsList.forEach((inv, invIdx) => {
+    const baseAmt = Number(inv.investmentAmount || inv.amount || 0);
+    const finalRoi = inv.roiPercentage || inv.roi || localRoiPercentage || 0;
+    if (Array.isArray(inv.segmentAllocation) && inv.segmentAllocation.length > 0) {
+      inv.segmentAllocation.forEach((alloc, allocIdx) => {
+        const allocPct = Number(alloc.allocationPercentage || 0);
+        expandedInvestmentsList.push({
+          ...inv,
+          _id: `${inv._id || inv.id || invIdx}_seg_${allocIdx}`,
+          id: `${inv._id || inv.id || invIdx}_seg_${allocIdx}`,
+          segment: alloc.segmentName || inv.segment || 'Unallocated',
+          amount: Math.round(baseAmt * (allocPct / 100)),
+          investmentAmount: Math.round(baseAmt * (allocPct / 100)),
+          allocationPercentage: allocPct,
+          roiPercentage: finalRoi,
+          roi: finalRoi,
+          allocationDate: inv.allocationDate || inv.investmentDate || inv.date || inv.createdAt
+        });
+      });
+    } else {
+      expandedInvestmentsList.push({
+        ...inv,
+        amount: baseAmt,
+        investmentAmount: baseAmt,
+        roiPercentage: finalRoi,
+        roi: finalRoi,
+        allocationDate: inv.allocationDate || inv.investmentDate || inv.date || inv.createdAt
+      });
+    }
+  });
+
+  const investmentsList = expandedInvestmentsList;
+  const resolvedInvestments = investmentsList.filter(inv => {
+    const s = String(inv.segment || '').toLowerCase().trim();
+    return s && s !== 'unallocated' && s !== 'unallocated pool' && s !== 'general capital pool' && s !== 'capital deposit';
+  });
 
   // Perks from API
   const perksList = perksData?.perks || [];
@@ -1384,14 +1420,14 @@ export default function InvestorDetail() {
           <span className="kfpl-detail-kpi-summary-value">
             {(() => {
               const list = (investmentsList && investmentsList.length > 0)
-                ? investmentsList.filter(i => (i.status || '').toUpperCase() === 'ACTIVE')
+                ? investmentsList.filter(i => (i.status || 'active').toUpperCase() === 'ACTIVE')
                 : [];
               const allocated = list.filter(i => {
                 const seg = String(i.segment || i.projectName || i.name || '').toLowerCase().trim();
-                return seg && seg !== 'unallocated' && seg !== 'unallocated segment' && seg !== 'none' && seg !== '—' && seg !== '-';
+                return seg && seg !== 'unallocated' && seg !== 'unallocated segment' && seg !== 'none' && seg !== '—' && seg !== '-' && seg !== 'capital deposit' && seg !== 'general capital pool';
               });
               const uniqueSegs = new Set(allocated.map(i => String(i.segment || i.projectName || i.name).toLowerCase().trim()));
-              const count = investor.activeSegments !== undefined ? investor.activeSegments : uniqueSegs.size;
+              const count = uniqueSegs.size > 0 ? uniqueSegs.size : (investor.activeSegments || 0);
               return `${count} ${count === 1 ? 'Segment' : 'Segments'}`;
             })()}
           </span>

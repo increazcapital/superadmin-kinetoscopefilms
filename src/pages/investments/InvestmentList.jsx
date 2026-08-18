@@ -300,10 +300,36 @@ export default function InvestmentList() {
       header: 'Segment',
       accessor: 'segment',
       render: (row) => {
-        const rawSeg = row.segment ||
-          (Array.isArray(row.segmentAllocation) && row.segmentAllocation.length > 0
-            ? row.segmentAllocation.map(s => s.segmentName).join(', ')
-            : 'Unallocated');
+        const hasAlloc = Array.isArray(row.segmentAllocation) && row.segmentAllocation.length > 0;
+        if (hasAlloc) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {row.segmentAllocation.map((s, sIdx) => (
+                <div key={sIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span
+                    className="font-medium"
+                    style={{ cursor: 'pointer', color: 'var(--color-navy)', fontWeight: 600, fontSize: '0.8125rem' }}
+                    onClick={() => navigate('/portfolio')}
+                  >
+                    {s.segmentName}
+                  </span>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'var(--color-gold-dark, #059669)',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    border: '1px solid rgba(16, 185, 129, 0.2)'
+                  }}>
+                    {s.allocationPercentage}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          );
+        }
+        const rawSeg = row.segment || 'Unallocated';
         const isUnallocated = !rawSeg || rawSeg === 'Project Allocated' || rawSeg === 'General Capital Pool' || rawSeg === 'Capital Deposit' || rawSeg === 'Unallocated Pool';
         const segmentText = isUnallocated ? 'Unallocated' : rawSeg;
         return (

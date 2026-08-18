@@ -851,8 +851,11 @@ export default function ROIList() {
 
       if (resolvedRoi) {
         const cleanRateStr = String(resolvedRoi).includes('%') ? resolvedRoi : `${resolvedRoi}%`;
-        if (!displayDetail || displayDetail === 'Withdrawal' || displayDetail === 'Monthly ROI Return' || displayDetail.toLowerCase() === 'roi return') {
-          displayDetail = isWithdrawal ? `Withdrawal ROI (${cleanRateStr})` : `Monthly ROI Return (${cleanRateStr})`;
+        const isSpecificallyRoiWithdrawal = r.withdrawalType === 'roi' || (typeof r.type === 'string' && /roi/i.test(r.type)) || (typeof r.payoutDetail === 'string' && /roi/i.test(r.payoutDetail));
+        if (!displayDetail || displayDetail === 'Monthly ROI Return' || displayDetail.toLowerCase() === 'roi return') {
+          displayDetail = `Monthly ROI Return (${cleanRateStr})`;
+        } else if (isWithdrawal && isSpecificallyRoiWithdrawal) {
+          displayDetail = `Withdrawal ROI (${cleanRateStr})`;
         }
       }
 

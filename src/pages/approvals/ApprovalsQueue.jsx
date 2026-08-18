@@ -791,33 +791,35 @@ export default function ApprovalsQueue() {
                           </div>
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           <div className="kfpl-verify-field-row">
                             <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
                               <span className="kfpl-verify-field-label">Payment Mode</span>
-                              <span className="kfpl-verify-field-value">{modal.item.mode || 'Bank Transfer'}</span>
+                              <span className="kfpl-verify-field-value" style={{ fontWeight: 700, color: (modal.item.mode || '').includes('UPI') ? '#059669' : 'inherit' }}>
+                                {(modal.item.mode || '').includes('UPI') ? '⚡ UPI Transfer' : (modal.item.mode || 'Bank Transfer')}
+                              </span>
                             </div>
+                            <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
+                              <span className="kfpl-verify-field-label">Account Holder Name</span>
+                              <span className="kfpl-verify-field-value">{resolvedAccountHolder || modal.item.investorName}</span>
+                            </div>
+                          </div>
+
+                          <div className="kfpl-verify-field-row">
                             <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
                               <span className="kfpl-verify-field-label">Target Bank</span>
                               <span className="kfpl-verify-field-value">{resolvedBankName}</span>
-                            </div>
-                          </div>
-                          <div className="kfpl-verify-field-row">
-                            <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
-                              <span className="kfpl-verify-field-label">Account Number</span>
-                              <span className="kfpl-verify-field-value" style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-text-primary)' }}>{resolvedAccountNo}</span>
                             </div>
                             <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
                               <span className="kfpl-verify-field-label">IFSC Code</span>
                               <span className="kfpl-verify-field-value" style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-text-primary)' }}>{resolvedIfsc}</span>
                             </div>
                           </div>
-                          {resolvedUpiId && (
-                            <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
-                              <span className="kfpl-verify-field-label">UPI ID</span>
-                              <span className="kfpl-verify-field-value" style={{ fontFamily: 'monospace', color: 'var(--color-success)' }}>{resolvedUpiId}</span>
-                            </div>
-                          )}
+
+                          <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
+                            <span className="kfpl-verify-field-label">Bank Account Number</span>
+                            <span className="kfpl-verify-field-value" style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)' }}>{resolvedAccountNo}</span>
+                          </div>
                         </div>
                       )}
 
@@ -1119,12 +1121,71 @@ export default function ApprovalsQueue() {
                   ) : (
                     /* Withdrawal destination */
                     <div className="kfpl-verify-card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                      <div className="kfpl-verify-card-header">
-                        <span>Destination Account Check</span>
-                        <Badge status="approved">VERIFIED OWNER</Badge>
+                      <div className="kfpl-verify-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Payout Destination & Verification</span>
+                        <Badge status="approved">VERIFIED RECIPIENT</Badge>
                       </div>
                       <div className="kfpl-verify-card-body" style={{ gap: '14px' }}>
                         
+                        {/* Highlighted UPI Payout Destination Card if UPI ID is present */}
+                        {resolvedUpiId && (
+                          <div style={{
+                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.16) 100%)',
+                            border: '1.5px solid rgba(16, 185, 129, 0.45)',
+                            borderRadius: '14px',
+                            padding: '16px 18px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.12)'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#047857', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <span>⚡</span> Requested UPI ID / VPA
+                              </span>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: '12px' }}>
+                                DIRECT PAYOUT
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                              <div style={{
+                                fontFamily: 'monospace',
+                                fontSize: '1.15rem',
+                                fontWeight: 800,
+                                color: '#065F46',
+                                letterSpacing: '0.03em',
+                                wordBreak: 'break-all'
+                              }}>
+                                {resolvedUpiId}
+                              </div>
+                              <button
+                                type="button"
+                                className="kfpl-btn kfpl-btn--primary kfpl-btn--sm"
+                                style={{
+                                  padding: '6px 14px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 700,
+                                  flexShrink: 0,
+                                  background: '#059669',
+                                  color: '#ffffff',
+                                  borderRadius: '8px',
+                                  boxShadow: '0 2px 8px rgba(5, 150, 105, 0.3)'
+                                }}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(resolvedUpiId);
+                                  addToast('UPI ID copied to clipboard!', 'success');
+                                }}
+                              >
+                                Copy UPI ID
+                              </button>
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: '#047857', marginTop: '-2px' }}>
+                              ✓ Approved payouts can be transferred directly to this UPI address.
+                            </div>
+                          </div>
+                        )}
+
                         {/* Premium Bank Card UI */}
                         <div className="kfpl-verify-bank-card" style={{ padding: '18px 20px', borderRadius: '12px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1152,7 +1213,7 @@ export default function ApprovalsQueue() {
                         </div>
 
                         {/* Quick Action Copy Buttons */}
-                        <div style={{ display: 'grid', gridTemplateColumns: resolvedUpiId ? '1fr 1fr 1fr' : '1fr 1fr', gap: '8px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                           <button
                             type="button"
                             className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm"
@@ -1160,7 +1221,7 @@ export default function ApprovalsQueue() {
                             onClick={() => {
                               if (resolvedAccountNo && resolvedAccountNo !== '—') {
                                 navigator.clipboard.writeText(resolvedAccountNo);
-                                addToast('success', 'Copied', 'Account number copied to clipboard!');
+                                addToast('Account number copied to clipboard!', 'success');
                               }
                             }}
                           >
@@ -1174,27 +1235,13 @@ export default function ApprovalsQueue() {
                             onClick={() => {
                               if (resolvedIfsc && resolvedIfsc !== '—') {
                                 navigator.clipboard.writeText(resolvedIfsc);
-                                addToast('success', 'Copied', 'IFSC Code copied to clipboard!');
+                                addToast('IFSC Code copied to clipboard!', 'success');
                               }
                             }}
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                             Copy IFSC
                           </button>
-                          {resolvedUpiId && (
-                            <button
-                              type="button"
-                              className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm"
-                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.75rem', padding: '6px 10px' }}
-                              onClick={() => {
-                                navigator.clipboard.writeText(resolvedUpiId);
-                                addToast('success', 'Copied', 'UPI ID copied to clipboard!');
-                              }}
-                            >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                              Copy UPI
-                            </button>
-                          )}
                         </div>
 
                         {/* Security Notice */}
@@ -1207,7 +1254,7 @@ export default function ApprovalsQueue() {
                           </div>
                           <div className="kfpl-verify-security-text" style={{ textAlign: 'left' }}>
                             <div className="kfpl-verify-security-title">Strict Routing Enforcement</div>
-                            Transfers must strictly route to the verified investor bank details above. Real time PAN & Account verification matched.
+                            Transfers must strictly route to the verified recipient details above.
                           </div>
                         </div>
 

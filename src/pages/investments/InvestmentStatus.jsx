@@ -231,6 +231,83 @@ export default function InvestmentStatus() {
           commNum = computeSlabCommission(amount, activeSlabsList, 'one-time');
         }
 
+        const topProjName = projObj?.name || inv.projectName || '';
+
+        // Unroll per-segment allocations
+        const allocatedSegments = Array.isArray(inv.segmentAllocation) && inv.segmentAllocation.length > 0
+          ? inv.segmentAllocation.map(alloc => {
+              const allocPct = Number(alloc.allocationPercentage || 0);
+              const allocAmt = Math.round(amount * (allocPct / 100));
+              let segProjName = alloc.projectName || '';
+              let segProjId = alloc.projectId ? (typeof alloc.projectId === 'object' ? (alloc.projectId._id || alloc.projectId.id) : alloc.projectId) : null;
+              if (!segProjName && segProjId) {
+                const found = rawProjects.find(p => String(p._id || p.id) === String(segProjId));
+                segProjName = found ? found.name : (typeof alloc.projectId === 'object' ? alloc.projectId.name : '');
+              }
+              if (!segProjName && topProjName && inv.segment && inv.segment.toLowerCase().includes((alloc.segmentName || '').toLowerCase())) {
+                segProjName = topProjName;
+                segProjId = projObj?._id;
+              }
+              const segProjObj = rawProjects.find(p => String(p._id || p.id) === String(segProjId)) || (segProjName && projObj?.name === segProjName ? projObj : null);
+
+              return {
+                segmentName: alloc.segmentName,
+                allocationPercentage: allocPct,
+                amount: allocAmt,
+                projectName: segProjName || 'Unallocated',
+                projectId: segProjId,
+                projectDetails: segProjObj ? {
+                  id: segProjObj._id || segProjObj.id,
+                  name: segProjObj.name,
+                  segment: segProjObj.segment || alloc.segmentName,
+                  bannerImage: segProjObj.bannerImage || (Array.isArray(segProjObj.mediaFiles) && segProjObj.mediaFiles[0]) || '',
+                  mediaFiles: Array.isArray(segProjObj.mediaFiles) ? segProjObj.mediaFiles : [],
+                  summary: segProjObj.summary || '',
+                  currentUpdate: segProjObj.currentUpdate || '',
+                  allocationFocus: segProjObj.allocationFocus || '',
+                  minInvestment: segProjObj.minInvestment || 0,
+                  targetFunding: segProjObj.targetFunding || 0,
+                  fundedAmount: segProjObj.fundedAmount || 0,
+                  slotsAvailable: segProjObj.slotsAvailable || 0,
+                  totalSlots: segProjObj.totalSlots || 0,
+                  milestoneProgress: segProjObj.milestoneProgress || 0,
+                  riskLevel: segProjObj.riskLevel || 'Medium',
+                  health: segProjObj.health || 'On Track',
+                  horizon: segProjObj.horizon || '18 Months',
+                } : null,
+                monthlyReturn: (allocAmt * roiNum) / 100,
+                commPayout: (allocAmt * commNum) / 100
+              };
+            })
+          : [{
+              segmentName: projObj?.segment || inv.segment || 'General',
+              allocationPercentage: 100,
+              amount,
+              projectName: topProjName || 'Unallocated',
+              projectId: inv.projectId,
+              projectDetails: projObj ? {
+                id: projObj._id || projObj.id,
+                name: projObj.name,
+                segment: projObj.segment,
+                bannerImage: projObj.bannerImage || (Array.isArray(projObj.mediaFiles) && projObj.mediaFiles[0]) || '',
+                mediaFiles: Array.isArray(projObj.mediaFiles) ? projObj.mediaFiles : [],
+                summary: projObj.summary || '',
+                currentUpdate: projObj.currentUpdate || '',
+                allocationFocus: projObj.allocationFocus || '',
+                minInvestment: projObj.minInvestment || 0,
+                targetFunding: projObj.targetFunding || 0,
+                fundedAmount: projObj.fundedAmount || 0,
+                slotsAvailable: projObj.slotsAvailable || 0,
+                totalSlots: projObj.totalSlots || 0,
+                milestoneProgress: projObj.milestoneProgress || 0,
+                riskLevel: projObj.riskLevel || 'Medium',
+                health: projObj.health || 'On Track',
+                horizon: projObj.horizon || '18 Months',
+              } : null,
+              monthlyReturn: (amount * roiNum) / 100,
+              commPayout: (amount * commNum) / 100
+            }];
+
         return {
           id: inv._id || inv.id,
           clientName: inv.clientName || inv.clientId?.name || ci.name || 'Client',
@@ -238,9 +315,10 @@ export default function InvestmentStatus() {
           clientEmail: inv.clientId?.email || ci.email || '—',
           agentName: agentObj?.name || ci.agentName || 'Direct / No Agent',
           agentCode: agentObj?.clientCode || agentObj?.agentCode || ci.agentCode || '—',
-          projectName: projObj?.name || inv.projectName || 'Media Fund',
+          projectName: topProjName || 'Media Fund',
           segment: projObj?.segment || inv.segment || 'General',
           segmentAllocation: inv.segmentAllocation || [],
+          allocatedSegments,
           amount,
           roiRate: `${roiNum}%`,
           monthlyReturn: (amount * roiNum) / 100,
@@ -248,7 +326,7 @@ export default function InvestmentStatus() {
           commPayout: (amount * commNum) / 100,
           status: inv.status || 'active',
           date: (inv.investmentDate || inv.createdAt) ? new Date(inv.investmentDate || inv.createdAt).toLocaleDateString('en-IN') : '—',
-          durationMonths: inv.durationMonths || 24,
+          durationMonths: inv.durationMonths || 18,
           remarks: inv.remarks || 'Standard Portfolio Contract',
           projectDetails: projObj ? {
             id: projObj._id || projObj.id,
@@ -267,7 +345,7 @@ export default function InvestmentStatus() {
             milestoneProgress: projObj.milestoneProgress || 0,
             riskLevel: projObj.riskLevel || 'Medium',
             health: projObj.health || 'On Track',
-            horizon: projObj.horizon || '12 Months',
+            horizon: projObj.horizon || '18 Months',
           } : null,
         };
       });
@@ -364,12 +442,12 @@ export default function InvestmentStatus() {
           investmentAmount: Number(assignForm.investmentAmount),
           roiPercentage: Number(assignForm.roiPercentage || 1.5),
           agentCommission: assignForm.agentCommission || '1.5%',
-          durationMonths: Number(assignForm.durationMonths || 24),
+          durationMonths: Number(assignForm.durationMonths || 18),
         }),
       });
       addToast('Investment assigned successfully', 'success');
       setShowAssignModal(false);
-      setAssignForm({ clientId: '', projectId: '', investmentAmount: '', roiPercentage: '', agentCommission: '', durationMonths: '24' });
+      setAssignForm({ clientId: '', projectId: '', investmentAmount: '', roiPercentage: '', agentCommission: '', durationMonths: '18' });
       setSelectedClientInfo(null);
       setSelectedProjectInfo(null);
       loadData();
@@ -382,13 +460,9 @@ export default function InvestmentStatus() {
   const segmentFilters = useMemo(() => {
     const s = new Set(['All', ...dbSegments]);
     investments.forEach(i => {
-      if (Array.isArray(i.segmentAllocation) && i.segmentAllocation.length > 0) {
-        i.segmentAllocation.forEach(alloc => {
-          if (alloc.segmentName) s.add(alloc.segmentName);
-        });
-      } else if (i.segment && !i.segment.includes('(') && !i.segment.includes(',')) {
-        s.add(i.segment);
-      }
+      (i.allocatedSegments || []).forEach(seg => {
+        if (seg.segmentName) s.add(seg.segmentName);
+      });
     });
     return Array.from(s).filter(Boolean);
   }, [dbSegments, investments]);
@@ -401,11 +475,7 @@ export default function InvestmentStatus() {
       
       let matchSeg = selectedSegment === 'All';
       if (!matchSeg) {
-        if (Array.isArray(inv.segmentAllocation) && inv.segmentAllocation.length > 0) {
-          matchSeg = inv.segmentAllocation.some(alloc => alloc.segmentName === selectedSegment);
-        } else {
-          matchSeg = inv.segment === selectedSegment;
-        }
+        matchSeg = (inv.allocatedSegments || []).some(s => s.segmentName === selectedSegment);
       }
       return matchSearch && matchSeg;
     });
@@ -415,26 +485,64 @@ export default function InvestmentStatus() {
     const m = {};
     filtered.forEach(inv => {
       const key = inv.clientCode !== '—' ? inv.clientCode : inv.clientName;
-      if (!m[key]) m[key] = { clientName: inv.clientName, clientCode: inv.clientCode, agentName: inv.agentName, agentCode: inv.agentCode, total: 0, totalComm: 0, totalRoi: 0, projects: [] };
+      if (!m[key]) {
+        m[key] = {
+          clientName: inv.clientName,
+          clientCode: inv.clientCode,
+          agentName: inv.agentName,
+          agentCode: inv.agentCode,
+          total: 0,
+          totalComm: 0,
+          totalRoi: 0,
+          segmentCards: []
+        };
+      }
       m[key].total += inv.amount;
       m[key].totalComm += inv.commPayout;
       m[key].totalRoi += inv.monthlyReturn;
-      m[key].projects.push(inv);
+
+      // Filter segment cards matching selected segment
+      const cardsToInclude = (inv.allocatedSegments || []).filter(s => {
+        if (selectedSegment === 'All') return true;
+        return s.segmentName === selectedSegment;
+      });
+
+      cardsToInclude.forEach(segCard => {
+        m[key].segmentCards.push({
+          id: `${inv.id}_${segCard.segmentName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+          parentInvestmentId: inv.id,
+          clientName: inv.clientName,
+          clientCode: inv.clientCode,
+          agentName: inv.agentName,
+          agentCode: inv.agentCode,
+          segment: segCard.segmentName,
+          allocationPercentage: segCard.allocationPercentage,
+          projectName: segCard.projectName,
+          amount: segCard.amount,
+          roiRate: inv.roiRate,
+          monthlyReturn: segCard.monthlyReturn,
+          commRate: inv.commRate,
+          commPayout: segCard.commPayout,
+          status: inv.status,
+          date: inv.date,
+          durationMonths: inv.durationMonths,
+          projectDetails: segCard.projectDetails || {
+            name: segCard.projectName,
+            segment: segCard.segmentName,
+            riskLevel: 'Medium',
+            health: 'Active',
+            horizon: `${inv.durationMonths || 18} Months`
+          }
+        });
+      });
     });
-    return Object.values(m);
-  }, [filtered]);
+    return Object.values(m).filter(g => g.segmentCards.length > 0);
+  }, [filtered, selectedSegment]);
 
   const totalVol = useMemo(() => filtered.reduce((s, i) => s + i.amount, 0), [filtered]);
   const totalComm = useMemo(() => filtered.reduce((s, i) => s + i.commPayout, 0), [filtered]);
   const totalRoi = useMemo(() => filtered.reduce((s, i) => s + i.monthlyReturn, 0), [filtered]);
   const uniqueClients = useMemo(() => new Set(filtered.map(i => i.clientCode !== '—' ? i.clientCode : i.clientName)).size, [filtered]);
-
-  /* Computed preview in assign modal */
-  const previewAmount = Number(assignForm.investmentAmount) || 0;
-  const previewRoi = Number(assignForm.roiPercentage) || 0;
-  const previewCommPct = parseFloat(assignForm.agentCommission) || 0;
-  const previewMonthlyReturn = (previewAmount * previewRoi) / 100;
-  const previewCommAmt = (previewAmount * previewCommPct) / 100;
 
   return (
     <div className="kfpl-page-container" style={{ maxWidth: '1600px', margin: '0 auto' }}>
@@ -448,260 +556,118 @@ export default function InvestmentStatus() {
             Live tracking of client investments, assigned agents, ROI yields, and commissions
           </p>
         </div>
-        <div className="kfpl-page-header-actions" style={{ display: 'flex', gap: '10px' }}>
-          <button type="button" className="kfpl-btn kfpl-btn--secondary" onClick={loadData} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M23 4v6h-6" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-            </svg>
-            Refresh Data
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button type="button" className="kfpl-btn kfpl-btn--secondary" onClick={loadData}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            Refresh
           </button>
-          <button
-            type="button"
-            className="kfpl-btn kfpl-btn--primary"
-            onClick={() => {
-              setShowAssignModal(true);
-              setSelectedClientInfo(null);
-              setSelectedProjectInfo(null);
-              setAssignForm({ clientId: '', projectId: '', investmentAmount: '', roiPercentage: '', agentCommission: '', durationMonths: '24' });
-            }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Assign Investment
+          <button type="button" className="kfpl-btn kfpl-btn--primary" onClick={() => setShowAssignModal(true)}>
+            + Assign Investment
           </button>
         </div>
       </div>
 
-      {/* ═══ 4 KPI CARDS (RESPONSIVE GRID) ═══ */}
-      <div className="kfpl-dashboard-kpis kfpl-inv-status-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <KpiCard
-          title="Total Investment Volume"
-          value={formatCurrency(totalVol)}
-          trend="Total Investment Contracts"
-          trendDirection="up"
-          icon={kpiIcons.investment}
-          iconColor="gold"
-          variant="gold"
-        />
-        <KpiCard
-          title="Active Investors"
-          value={`${uniqueClients}`}
-          trend="Active Portfolio Investors"
-          trendDirection="up"
-          icon={kpiIcons.investors}
-          iconColor="navy"
-        />
-        <KpiCard
-          title="Agent Commission Volume"
-          value={formatCurrency(totalComm)}
-          trend="Total Commission Allocated"
-          trendDirection="up"
-          icon={kpiIcons.commission}
-          iconColor="amber"
-        />
-        <KpiCard
-          title="Monthly ROI Payout"
-          value={`${formatCurrency(totalRoi)} /mo`}
-          trend="Distributed Monthly Yield"
-          trendDirection="up"
-          icon={kpiIcons.roi}
-          iconColor="purple"
-        />
+      {/* ═══ KPI SUMMARY CARDS ═══ */}
+      <div className="kfpl-dashboard-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        <KpiCard title="Total Investment Volume" value={formatCurrency(totalVol)} trend="Total Investment Contracts" trendDirection="up" icon={kpiIcons.investment} iconColor="gold" />
+        <KpiCard title="Active Investors" value={uniqueClients} trend="Active Portfolio Investors" trendDirection="up" icon={kpiIcons.investors} iconColor="emerald" />
+        <KpiCard title="Agent Commission Volume" value={formatCurrency(totalComm)} trend="Total Commission Allocated" trendDirection="up" icon={kpiIcons.commission} iconColor="amber" />
+        <KpiCard title="Monthly ROI Payout" value={`${formatCurrency(totalRoi)} /mo`} trend="Distributed Monthly Yield" trendDirection="up" icon={kpiIcons.roi} iconColor="purple" />
       </div>
 
-      {/* ═══ SEARCH TOOLBAR ═══ */}
-      <div className="kfpl-table-container" style={{ marginBottom: '16px' }}>
-        <div className="kfpl-table-toolbar">
-          <div style={{ flex: 1, position: 'relative', width: '100%' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search client, agent, project, segment..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="kfpl-input"
-              style={{ paddingLeft: '36px', width: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', background: 'var(--color-surface)', padding: '3px', borderRadius: 'var(--radius-md)', gap: '3px', flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }}>
-            <button
-              type="button"
-              onClick={() => setViewMode('table')}
-              style={{
-                flex: 1,
-                padding: '6px 14px',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                borderRadius: 'var(--radius-sm)',
-                border: 'none',
-                cursor: 'pointer',
-                background: viewMode === 'table' ? 'var(--color-white)' : 'transparent',
-                color: viewMode === 'table' ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-                boxShadow: viewMode === 'table' ? 'var(--shadow-sm)' : 'none',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              All Investments Table
+      {/* ═══ SEARCH & FILTERS ═══ */}
+      <div className="kfpl-table-container" style={{ marginBottom: '24px', padding: '16px 20px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="kfpl-input" style={{ width: '100%' }} />
+        </div>
+        <div style={{ display: 'flex', gap: '4px', background: '#F3F4F6', padding: '4px', borderRadius: '8px' }}>
+          {['table', 'grouped'].map(m => (
+            <button key={m} onClick={() => setViewMode(m)} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: viewMode === m ? '#fff' : 'transparent', fontWeight: 600, fontSize: '0.81rem', cursor: 'pointer' }}>
+              {m === 'table' ? 'Table View' : 'Grouped View'}
             </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('grouped')}
-              style={{
-                flex: 1,
-                padding: '6px 14px',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                borderRadius: 'var(--radius-sm)',
-                border: 'none',
-                cursor: 'pointer',
-                background: viewMode === 'grouped' ? 'var(--color-white)' : 'transparent',
-                color: viewMode === 'grouped' ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-                boxShadow: viewMode === 'grouped' ? 'var(--shadow-sm)' : 'none',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              Grouped by Client
-            </button>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* ═══ DEDICATED SEGMENT FILTER BAR ═══ */}
-      <div className="kfpl-table-container kfpl-filter-chips" style={{ padding: '14px 20px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px', overflowX: 'auto' }}>
-        <span className="text-xs text-muted font-bold" style={{ textTransform: 'uppercase', letterSpacing: '0.6px', flexShrink: 0 }}>
-          Filter by Segment:
-        </span>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-          {segmentFilters.map(seg => {
-            const ss = getSegmentStyle(seg);
-            const active = selectedSegment === seg;
-            return (
-              <button
-                key={seg}
-                type="button"
-                onClick={() => setSelectedSegment(seg)}
-                style={{
-                  padding: '5px 16px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  borderRadius: 'var(--radius-full)',
-                  border: active ? `1.5px solid ${ss.color}` : '1px solid var(--color-border)',
-                  background: active ? ss.bg : 'var(--color-white)',
-                  color: active ? ss.color : 'var(--color-text-muted)',
-                  cursor: 'pointer',
-                  transition: 'var(--transition-fast)',
-                }}
-              >
-                {seg}
-              </button>
-            );
-          })}
-        </div>
+      {/* ═══ SEGMENT FILTER ═══ */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', overflowX: 'auto', paddingBottom: '8px' }}>
+        {segmentFilters.map(seg => (
+          <button key={seg} onClick={() => setSelectedSegment(seg)} style={{ padding: '6px 14px', borderRadius: '99px', border: selectedSegment === seg ? '1px solid var(--color-gold)' : '1px solid #ddd', background: selectedSegment === seg ? '#FFFBEB' : '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+            {seg}
+          </button>
+        ))}
       </div>
 
       {/* ═══ DATA VIEWS ═══ */}
       {loading ? (
-        <div className="kfpl-table-container" style={{ textAlign: 'center', padding: '80px 20px' }}>
-          <div style={{ width: 32, height: 32, border: '3px solid var(--color-border)', borderTopColor: 'var(--color-gold)', borderRadius: '50%', margin: '0 auto 14px', animation: 'spin 1s linear infinite' }} />
-          <span className="text-muted font-medium">Loading live investment records...</span>
-        </div>
+        <div className="kfpl-table-container" style={{ padding: '80px', textAlign: 'center' }}>Loading...</div>
       ) : filtered.length === 0 ? (
         <div className="kfpl-table-container" style={{ textAlign: 'center', padding: '60px 20px' }}>
           <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--color-border)" strokeWidth="1.5" style={{ display: 'block', margin: '0 auto 12px' }}>
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--color-text-primary)' }}>No Investment Records Found</h3>
-          <p className="text-muted text-sm" style={{ margin: '6px 0 16px' }}>No active investment contracts found in database.</p>
+          <p className="text-muted text-sm" style={{ margin: '6px 0 16px' }}>No active investment contracts found matching selected filter.</p>
           <button type="button" className="kfpl-btn kfpl-btn--primary" onClick={() => setShowAssignModal(true)}>+ Assign Investment</button>
         </div>
       ) : viewMode === 'table' ? (
-        /* ═══ 1. ALL INVESTMENTS TABLE VIEW (PORTAL STANDARD DATA TABLE) ═══ */
         <div className="kfpl-table-container">
-          <div className="kfpl-table-scroll">
-            <table className="kfpl-table">
-              <thead>
-                <tr>
-                  <th>Client</th>
-                  <th>Agent</th>
-                  <th>Project & Segment</th>
-                  <th style={{ textAlign: 'right' }}>Invested Amount</th>
-                  <th style={{ textAlign: 'right' }}>ROI Rate & Monthly Return</th>
-                  <th style={{ textAlign: 'right' }}>Agent Commission</th>
-                  <th style={{ textAlign: 'center' }}>Status</th>
-                  <th style={{ textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(inv => {
-                  const ss = getSegmentStyle(inv.segment);
-                  return (
-                    <tr key={inv.id}>
-                      <td>
-                        <div className="kfpl-table-cell-primary">{inv.clientName}</div>
-                        {inv.clientCode !== '—' && (
-                          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--color-info)', background: 'var(--color-info-bg)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', display: 'inline-block', marginTop: '2px' }}>
-                            {inv.clientCode}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="kfpl-table-cell-primary">{inv.agentName}</div>
-                        <span className="kfpl-table-cell-secondary">{inv.agentCode}</span>
-                      </td>
-                      <td>
-                        <div className="kfpl-table-cell-primary">{inv.projectName}</div>
-                        {Array.isArray(inv.segmentAllocation) && inv.segmentAllocation.length > 0 ? (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
-                            {inv.segmentAllocation.map((s, sIdx) => (
-                              <span key={sIdx} style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--color-gold-dark, #059669)', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '1px 6px', borderRadius: '4px' }}>
+          <table className="kfpl-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Agent</th>
+                <th>Project & Segment</th>
+                <th style={{ textAlign: 'right' }}>Amount</th>
+                <th style={{ textAlign: 'center' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(inv => (
+                <tr key={inv.id}>
+                  <td>
+                    <div className="kfpl-table-cell-primary">{inv.clientName}</div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-info)' }}>{inv.clientCode}</span>
+                  </td>
+                  <td>
+                    <div className="kfpl-table-cell-primary">{inv.agentName}</div>
+                    <span className="kfpl-table-cell-secondary">{inv.agentCode}</span>
+                  </td>
+                  <td>
+                    {Array.isArray(inv.allocatedSegments) && inv.allocatedSegments.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        {inv.allocatedSegments.map((s, sIdx) => {
+                          const ss = getSegmentStyle(s.segmentName);
+                          return (
+                            <div key={sIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: ss.color, background: ss.bg, padding: '1px 6px', borderRadius: '4px', border: `1px solid ${ss.color}30` }}>
                                 {s.segmentName} ({s.allocationPercentage}%)
                               </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: ss.color, background: ss.bg, padding: '2px 8px', borderRadius: 'var(--radius-sm)', display: 'inline-block', marginTop: '2px' }}>
-                            {inv.segment}
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text-primary)', fontSize: '0.9rem' }}>
-                        {formatCurrency(inv.amount)}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--color-success)' }}>{inv.roiRate} /mo</div>
-                        <div className="kfpl-table-cell-secondary">{formatCurrency(inv.monthlyReturn)} /mo</div>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--color-warning)' }}>{formatCurrency(inv.commPayout)}</div>
-                        <div className="kfpl-table-cell-secondary">({inv.commRate})</div>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <Badge variant={inv.status === 'active' ? 'success' : 'info'}>{inv.status.toUpperCase()}</Badge>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                          <button type="button" className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm" onClick={() => setDetailItem(inv)}>
-                            View Details
-                          </button>
-                          <button type="button" className="kfpl-btn kfpl-btn--danger kfpl-btn--sm" onClick={() => handleDeleteInvestment(inv.id, inv.projectName)}>
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                              {s.projectName && s.projectName !== 'Unallocated' ? (
+                                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#047857', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1px 5px', borderRadius: '4px' }}>
+                                  🎬 {s.projectName}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Unallocated</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="kfpl-table-cell-primary">{inv.projectName}</div>
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{formatCurrency(inv.amount)}</td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button type="button" className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm" onClick={() => setDetailItem(inv)}>Details</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
-        /* ═══ 2. GROUPED BY CLIENT (MULTI-PROJECT CARDS WITH BANNER IMAGE) ═══ */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {grouped.map(g => (
             <div key={g.clientCode || g.clientName} className="kfpl-table-container" style={{ padding: '20px 24px' }}>
@@ -715,7 +681,7 @@ export default function InvestmentStatus() {
                       </span>
                     )}
                     <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-success)', background: 'var(--color-success-bg)', padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
-                      {g.projects.length} Project Investment{g.projects.length > 1 ? 's' : ''}
+                      {g.segmentCards.length} Allocated Segment{g.segmentCards.length > 1 ? 's' : ''}
                     </span>
                   </div>
                   <div className="text-sm text-muted" style={{ marginTop: '4px' }}>
@@ -729,11 +695,12 @@ export default function InvestmentStatus() {
                 </div>
               </div>
 
-              {/* Rich Project Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                {g.projects.map(p => {
+              {/* Multi-Segment Cards Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '16px' }}>
+                {g.segmentCards.map(p => {
                   const bannerUrl = p.projectDetails?.bannerImage;
                   const bgStyle = bannerUrl ? `url(${bannerUrl})` : getSegmentGradient(p.segment);
+                  const isUnallocated = !p.projectName || p.projectName === 'Unallocated' || p.projectName === 'Media Fund';
 
                   return (
                     <div
@@ -749,10 +716,10 @@ export default function InvestmentStatus() {
                         boxShadow: 'var(--shadow-sm)',
                       }}
                     >
-                      {/* Banner Image / Cover Header */}
+                      {/* Banner Header with Segment & Project */}
                       <div
                         style={{
-                          height: '140px',
+                          height: '130px',
                           backgroundImage: bgStyle,
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
@@ -762,60 +729,42 @@ export default function InvestmentStatus() {
                           padding: '12px 14px',
                         }}
                       >
-                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(6,29,19,0.8) 100%)' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(6,29,19,0.85) 100%)' }} />
                         <div style={{ position: 'relative', zIndex: 2, color: '#fff', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                           <div>
-                            <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#E5ECE8', display: 'inline-block', marginBottom: '2px' }}>
-                              {p.segment}
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#A7F3D0', display: 'inline-block', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                              {p.segment} ({p.allocationPercentage}%)
                             </span>
                             <h3 style={{ color: '#ffffff', fontSize: '1.05rem', fontWeight: 700, margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                              {p.projectName}
+                              {isUnallocated ? 'Unallocated Project' : `🎬 ${p.projectName}`}
                             </h3>
                           </div>
                           <Badge variant={p.status === 'active' ? 'success' : 'info'}>{p.status.toUpperCase()}</Badge>
                         </div>
                       </div>
 
-                      {/* Card Content & Stats */}
+                      {/* Card Body with Proportional Capital & Yield */}
                       <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: 'var(--color-surface)', padding: '12px', borderRadius: 'var(--radius-md)', fontSize: '0.8125rem' }}>
                           <div>
-                            <span className="text-xs text-muted" style={{ display: 'block' }}>Invested Amount</span>
-                            <strong style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: '0.9rem' }}>{formatCurrency(p.amount)}</strong>
+                            <span className="text-xs text-muted" style={{ display: 'block' }}>Segment Capital</span>
+                            <strong style={{ fontWeight: 700, color: 'var(--color-success)', fontSize: '0.92rem' }}>{formatCurrency(p.amount)}</strong>
                           </div>
                           <div>
-                            <span className="text-xs text-muted" style={{ display: 'block' }}>Monthly ROI Yield</span>
-                            <strong style={{ fontWeight: 700, color: 'var(--color-success)', fontSize: '0.9rem' }}>{p.roiRate}</strong>
+                            <span className="text-xs text-muted" style={{ display: 'block' }}>Monthly Yield</span>
+                            <strong style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: '0.9rem' }}>{formatCurrency(p.monthlyReturn)}</strong>
                           </div>
                           <div>
-                            <span className="text-xs text-muted" style={{ display: 'block' }}>Agent Commission</span>
-                            <strong style={{ fontWeight: 700, color: 'var(--color-warning)' }}>{formatCurrency(p.commPayout)}</strong>
+                            <span className="text-xs text-muted" style={{ display: 'block' }}>Linked Project</span>
+                            <strong style={{ fontWeight: 600, color: isUnallocated ? 'var(--color-text-muted)' : '#047857', fontSize: '0.8rem' }}>
+                              {isUnallocated ? 'Unassigned' : p.projectName}
+                            </strong>
                           </div>
                           <div>
                             <span className="text-xs text-muted" style={{ display: 'block' }}>Contract Date</span>
                             <strong style={{ fontWeight: 600, color: 'var(--color-text-secondary)' }}>{p.date}</strong>
                           </div>
                         </div>
-
-                        {/* Segment Allocation Breakdown Box */}
-                        {Array.isArray(p.segmentAllocation) && p.segmentAllocation.length > 0 && (
-                          <div style={{ background: 'var(--color-gold-light, #ECFDF5)', border: '1px solid var(--color-border-light, #E2ECE7)', borderRadius: 'var(--radius-md)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-gold-dark, #059669)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Segment Allocation Breakdown
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              {p.segmentAllocation.map((alloc, aIdx) => {
-                                const allocAmt = Math.round(p.amount * (Number(alloc.allocationPercentage || 0) / 100));
-                                return (
-                                  <div key={aIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
-                                    <span style={{ color: 'var(--color-navy)', fontWeight: 600 }}>{alloc.segmentName} ({alloc.allocationPercentage}%)</span>
-                                    <span style={{ color: 'var(--color-gold-dark, #059669)', fontWeight: 700 }}>{formatCurrency(allocAmt)}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
 
                         <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                           <button
@@ -829,7 +778,7 @@ export default function InvestmentStatus() {
                           <button
                             type="button"
                             className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
-                            onClick={() => handleDeleteInvestment(p.id, p.projectName)}
+                            onClick={() => handleDeleteInvestment(p.parentInvestmentId || p.id, p.projectName)}
                             style={{ padding: '6px 12px' }}
                           >
                             Delete

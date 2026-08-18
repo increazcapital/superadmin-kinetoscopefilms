@@ -1723,21 +1723,29 @@ export default function InvestorDetail() {
       )}
 
       {activeTab === 'investments' && (
-        <div className="kfpl-table-container">
-          <div className="kfpl-table-toolbar">
-            <h3 className="kfpl-form-card-title" style={{ margin: 0 }}>Active Segment Distribution</h3>
+        <div className="kfpl-table-container" style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border-light)' }}>
+          <div className="kfpl-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--color-border-light)' }}>
+            <div>
+              <h3 className="kfpl-form-card-title" style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>Active Segment Distribution</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Proportional portfolio allocation across segments & linked media projects</p>
+            </div>
+            {resolvedInvestments.length > 0 && (
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: 'var(--radius-full)' }}>
+                {resolvedInvestments.length} Active Allocation{resolvedInvestments.length > 1 ? 's' : ''}
+              </span>
+            )}
           </div>
           <div className="kfpl-table-scroll">
             <table className="kfpl-table">
               <thead>
-                <tr>
-                  <th>Segment</th>
-                  <th>Linked Project</th>
-                  <th>Amount</th>
-                  <th>ROI Rate</th>
-                  <th>Risk Level</th>
-                  <th>Allocation Date</th>
-                  <th>Status</th>
+                <tr style={{ background: 'var(--color-surface, #F9FAFB)' }}>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Segment</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Linked Project</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Invested Amount</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>ROI Rate</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Risk Level</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700 }}>Allocation Date</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 700, textAlign: 'center' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -1756,35 +1764,41 @@ export default function InvestorDetail() {
                   const isUnallocated = !inv.segment || inv.segment === 'Project Allocated' || inv.segment === 'General Capital Pool' || inv.segment === 'Capital Deposit' || inv.segment === 'Unallocated Pool';
                   const segText = isUnallocated ? 'Unallocated' : inv.segment;
                   return (
-                    <tr key={inv._id || inv.id}>
-                      <td className="kfpl-table-cell-primary">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span>{segText}</span>
+                    <tr key={inv._id || inv.id} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                      <td className="kfpl-table-cell-primary" style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{segText}</span>
                           {inv.allocationPercentage && (
-                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#059669', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 5px', borderRadius: '4px' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#059669', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '4px' }}>
                               {inv.allocationPercentage}%
                             </span>
                           )}
                         </div>
                       </td>
-                      <td>
+                      <td style={{ padding: '14px 16px' }}>
                         {inv.projectName && inv.projectName !== '—' && inv.projectName !== 'Unallocated' ? (
-                          <span style={{ color: '#047857', fontWeight: 600, fontSize: '0.8125rem', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '2px 8px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ color: '#047857', fontWeight: 700, fontSize: '0.8125rem', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '3px 9px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '5px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
                             🎬 {inv.projectName}
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>—</span>
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>Unallocated</span>
                         )}
                       </td>
-                      <td className="font-semibold" style={{ color: '#10B981' }}>{formatCurrency(inv.investmentAmount || inv.amount || 0)}</td>
-                      <td>{inv.roiPercentage || inv.roi || localRoiPercentage}%</td>
-                      <td>
+                      <td className="font-semibold" style={{ padding: '14px 16px', color: '#10B981', fontSize: '0.92rem' }}>
+                        {formatCurrency(inv.investmentAmount || inv.amount || 0)}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontWeight: 600 }}>{inv.roiPercentage || inv.roi || localRoiPercentage}% /mo</td>
+                      <td style={{ padding: '14px 16px' }}>
                         <Badge status={inv.riskPercentage > 50 ? 'rejected' : inv.riskPercentage > 25 ? 'pending' : 'active'}>
                           {inv.riskPercentage > 50 ? 'High' : inv.riskPercentage > 25 ? 'Medium' : 'Low'}
                         </Badge>
                       </td>
-                      <td>{inv.allocationDate ? new Date(inv.allocationDate).toLocaleDateString('en-IN') : inv.investmentDate ? new Date(inv.investmentDate).toLocaleDateString('en-IN') : '—'}</td>
-                      <td><Badge status={(inv.status || 'active').toLowerCase()}>{inv.status || 'Active'}</Badge></td>
+                      <td style={{ padding: '14px 16px', color: 'var(--color-text-secondary)', fontSize: '0.84rem' }}>
+                        {inv.allocationDate ? new Date(inv.allocationDate).toLocaleDateString('en-IN') : inv.investmentDate ? new Date(inv.investmentDate).toLocaleDateString('en-IN') : '—'}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        <Badge status={(inv.status || 'active').toLowerCase()}>{inv.status || 'Active'}</Badge>
+                      </td>
                     </tr>
                   );
                 })}

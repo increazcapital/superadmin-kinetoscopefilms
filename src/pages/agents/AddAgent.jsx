@@ -33,6 +33,7 @@ export default function AddAgent() {
   // File Upload states
   const [panDocFile, setPanDocFile] = useState(null);
   const [idProofDocFile, setIdProofDocFile] = useState(null);
+  const [idProofBackDocFile, setIdProofBackDocFile] = useState(null);
   const [bankProofDocFile, setBankProofDocFile] = useState(null);
   const [nomineeProofDocFile, setNomineeProofDocFile] = useState(null);
 
@@ -184,6 +185,10 @@ export default function AddAgent() {
 
       if (panDocFile) formData.append('panDocument', panDocFile);
       if (idProofDocFile) formData.append('idProofDocument', idProofDocFile);
+      if (idProofBackDocFile) {
+        formData.append('idProofBackDocument', idProofBackDocFile);
+        formData.append('aadhaarBackDocument', idProofBackDocFile);
+      }
       if (bankProofDocFile) formData.append('bankProofDocument', bankProofDocFile);
       if (nomineeProofDocFile) formData.append('nomineeProofDocument', nomineeProofDocFile);
 
@@ -310,8 +315,9 @@ export default function AddAgent() {
 
           {/* KYC Document Uploads */}
           <FileDropzone label={form.citizenship === 'International' ? 'Tax ID Upload' : 'PAN Card Upload'} multiple={false} onFilesChange={(files) => setPanDocFile(files[0] || null)} />
-          <FileDropzone label={form.citizenship === 'International' ? 'International Passport / National ID Card Upload' : 'ID Proof Upload (Aadhaar / Driving License / Passport)'} multiple={false} onFilesChange={(files) => setIdProofDocFile(files[0] || null)} />
-          <FileDropzone label="Bank Details Document (Cancelled Cheque / Bank Statement)" multiple={false} onFilesChange={(files) => setBankProofDocFile(files[0] || null)} />
+          <FileDropzone label={form.citizenship === 'International' ? 'International Passport / National ID (Front Side) Upload *' : 'ID Proof Upload (Aadhaar Front / Passport / DL) *'} multiple={false} onFilesChange={(files) => setIdProofDocFile(files[0] || null)} />
+          <FileDropzone label={form.citizenship === 'International' ? 'National ID / Address Proof (Back Side) Upload *' : 'Aadhaar Card Back Side (Required for Address Proof) *'} multiple={false} onFilesChange={(files) => setIdProofBackDocFile(files[0] || null)} />
+          <FileDropzone label="Cancelled Cheque (Optional)" multiple={false} onFilesChange={(files) => setBankProofDocFile(files[0] || null)} />
 
           <div className="kfpl-form-section">
             <div className="kfpl-form-section-title">Commission Configuration</div>

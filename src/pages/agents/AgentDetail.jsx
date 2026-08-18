@@ -757,11 +757,13 @@ export default function AgentDetail() {
     const label = docLabel.toLowerCase();
     if (label.includes('nominee')) {
       fieldName = 'nomineeProofDocument';
+    } else if (label.includes('back') || label.includes('address')) {
+      fieldName = 'idProofBackDocument';
     } else if (label.includes('pan') || label.includes('tax id') || label.includes('tax')) {
       fieldName = 'panDocument';
     } else if (label.includes('aadhaar') || label.includes('id proof') || label.includes('identity') || label.includes('passport') || label.includes('id card') || label.includes('national id')) {
       fieldName = 'idProofDocument';
-    } else if (label.includes('bank') || label.includes('details')) {
+    } else if (label.includes('bank') || label.includes('details') || label.includes('cheque') || label.includes('check')) {
       fieldName = 'bankProofDocument';
     } else if (label.includes('agreement')) {
       fieldName = 'agreementDocument';

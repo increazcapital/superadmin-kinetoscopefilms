@@ -1210,11 +1210,13 @@ export default function InvestorDetail() {
     const label = docLabel.toLowerCase();
     if (label.includes('nominee')) {
       fieldName = 'nomineeProofDocument';
-    } else if (label.includes('pan')) {
+    } else if (label.includes('back') || label.includes('address')) {
+      fieldName = 'aadhaarBackDocument';
+    } else if (label.includes('pan') || label.includes('tax id')) {
       fieldName = 'panDocument';
-    } else if (label.includes('aadhaar') || label.includes('id proof')) {
+    } else if (label.includes('aadhaar') || label.includes('id proof') || label.includes('passport')) {
       fieldName = 'aadhaarDocument';
-    } else if (label.includes('bank') || label.includes('details')) {
+    } else if (label.includes('bank') || label.includes('cheque') || label.includes('check')) {
       fieldName = 'bankProofDocument';
     } else if (label.includes('agreement')) {
       fieldName = 'agreementDocument';

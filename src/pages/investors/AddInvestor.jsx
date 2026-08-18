@@ -79,6 +79,7 @@ export default function AddInvestor() {
   // Uploaded Files State
   const [panDocument, setPanDocument] = useState(null);
   const [aadhaarDocument, setAadhaarDocument] = useState(null);
+  const [aadhaarBackDocument, setAadhaarBackDocument] = useState(null);
   const [bankProofDocument, setBankProofDocument] = useState(null);
   const [nomineeProofDocument, setNomineeProofDocument] = useState(null);
   const [agreementDocument, setAgreementDocument] = useState(null);
@@ -212,6 +213,7 @@ export default function AddInvestor() {
       // Append files if selected
       if (panDocument) formData.append('panDocument', panDocument);
       if (aadhaarDocument) formData.append('aadhaarDocument', aadhaarDocument);
+      if (aadhaarBackDocument) formData.append('aadhaarBackDocument', aadhaarBackDocument);
       if (bankProofDocument) formData.append('bankProofDocument', bankProofDocument);
       if (nomineeProofDocument) formData.append('nomineeProofDocument', nomineeProofDocument);
       if (agreementDocument) formData.append('agreementDocument', agreementDocument);
@@ -452,12 +454,17 @@ export default function AddInvestor() {
             onFilesChange={(files) => setPanDocument(files[0] || null)} 
           />
           <FileDropzone 
-            label={form.citizenship === 'International' ? 'International Passport / National ID Card Upload' : 'Aadhaar Card Upload'} 
+            label={form.citizenship === 'International' ? 'International Passport / National ID (Front Side) Upload *' : 'Aadhaar Card (Front Side) Upload *'} 
             multiple={false} 
             onFilesChange={(files) => setAadhaarDocument(files[0] || null)} 
           />
           <FileDropzone 
-            label="Bank Details Document (Cancelled Cheque / Bank Statement) (Optional)" 
+            label={form.citizenship === 'International' ? 'National ID / Address Proof (Back Side) Upload *' : 'Aadhaar Card Back Side (Required for Address Proof) *'} 
+            multiple={false} 
+            onFilesChange={(files) => setAadhaarBackDocument(files[0] || null)} 
+          />
+          <FileDropzone 
+            label="Cancelled Cheque (Optional)" 
             multiple={false} 
             onFilesChange={(files) => setBankProofDocument(files[0] || null)} 
           />

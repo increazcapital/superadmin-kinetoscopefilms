@@ -37,6 +37,7 @@ export default function EditAgent() {
   const [deletedDocs, setDeletedDocs] = useState({});
   const [panDocFile, setPanDocFile] = useState(null);
   const [idProofDocFile, setIdProofDocFile] = useState(null);
+  const [idProofBackDocFile, setIdProofBackDocFile] = useState(null);
   const [bankProofDocFile, setBankProofDocFile] = useState(null);
   const [nomineeProofDocFile, setNomineeProofDocFile] = useState(null);
   const [agreementDocFile, setAgreementDocFile] = useState(null);
@@ -147,7 +148,8 @@ export default function EditAgent() {
 
         setExistingDocs({
           panDocument: profile.panDocument || '',
-          idProofDocument: profile.idProofDocument || '',
+          idProofDocument: profile.idProofDocument || profile.aadhaarDocument || '',
+          idProofBackDocument: profile.idProofBackDocument || profile.aadhaarBackDocument || '',
           bankProofDocument: profile.bankProofDocument || '',
           nomineeProofDocument: profile.nomineeProofDocument || '',
           agreementDocument: profile.agreementDocument || profile.signedAgreementUrl || '',
@@ -218,12 +220,17 @@ export default function EditAgent() {
       // Deletion flags
       if (deletedDocs.panDocument) formData.append('removePanDocument', 'true');
       if (deletedDocs.idProofDocument) formData.append('removeIdProofDocument', 'true');
+      if (deletedDocs.idProofBackDocument) formData.append('removeIdProofBackDocument', 'true');
       if (deletedDocs.bankProofDocument) formData.append('removeBankProofDocument', 'true');
       if (deletedDocs.nomineeProofDocument) formData.append('removeNomineeProofDocument', 'true');
       if (deletedDocs.agreementDocument) formData.append('removeAgreementDocument', 'true');
 
       if (panDocFile) formData.append('panDocument', panDocFile);
       if (idProofDocFile) formData.append('idProofDocument', idProofDocFile);
+      if (idProofBackDocFile) {
+        formData.append('idProofBackDocument', idProofBackDocFile);
+        formData.append('aadhaarBackDocument', idProofBackDocFile);
+      }
       if (bankProofDocFile) formData.append('bankProofDocument', bankProofDocFile);
       if (nomineeProofDocFile) formData.append('nomineeProofDocument', nomineeProofDocFile);
       if (agreementDocFile) formData.append('agreementDocument', agreementDocFile);
@@ -415,14 +422,21 @@ export default function EditAgent() {
                 onDeleteExisting={() => handleDeleteDoc('panDocument')}
               />
               <FileDropzone
-                label={form.citizenship === 'International' ? 'Passport / National ID' : 'ID Proof (Aadhaar / DL / Passport)'}
+                label={form.citizenship === 'International' ? 'Passport / National ID (Front Side) Upload *' : 'ID Proof Upload (Aadhaar Front / Passport / DL) *'}
                 multiple={false}
                 existingFileUrl={existingDocs.idProofDocument}
                 onFilesChange={(files) => setIdProofDocFile(files[0] || null)}
                 onDeleteExisting={() => handleDeleteDoc('idProofDocument')}
               />
               <FileDropzone
-                label="Bank Details Document"
+                label={form.citizenship === 'International' ? 'National ID / Address Proof (Back Side) Upload *' : 'Aadhaar Card Back Side (Required for Address Proof) *'}
+                multiple={false}
+                existingFileUrl={existingDocs.idProofBackDocument}
+                onFilesChange={(files) => setIdProofBackDocFile(files[0] || null)}
+                onDeleteExisting={() => handleDeleteDoc('idProofBackDocument')}
+              />
+              <FileDropzone
+                label="Cancelled Cheque (Optional)"
                 multiple={false}
                 existingFileUrl={existingDocs.bankProofDocument}
                 onFilesChange={(files) => setBankProofDocFile(files[0] || null)}

@@ -58,6 +58,7 @@ export default function EditInvestor() {
   const [deletedDocs, setDeletedDocs] = useState({});
   const [panDocFile, setPanDocFile] = useState(null);
   const [aadhaarDocFile, setAadhaarDocFile] = useState(null);
+  const [aadhaarBackDocFile, setAadhaarBackDocFile] = useState(null);
   const [bankProofDocFile, setBankProofDocFile] = useState(null);
   const [agreementDocFile, setAgreementDocFile] = useState(null);
   const [nomineeProofDocFile, setNomineeProofDocFile] = useState(null);
@@ -154,6 +155,7 @@ export default function EditInvestor() {
         setExistingDocs({
           panDocument: profile.panDocument || '',
           aadhaarDocument: profile.aadhaarDocument || '',
+          aadhaarBackDocument: profile.aadhaarBackDocument || '',
           bankProofDocument: profile.bankProofDocument || '',
           agreementDocument: profile.agreementDocument || '',
           nomineeProofDocument: profile.nomineeProofDocument || '',
@@ -223,12 +225,14 @@ export default function EditInvestor() {
       // Deletion flags
       if (deletedDocs.panDocument) formData.append('removePanDocument', 'true');
       if (deletedDocs.aadhaarDocument) formData.append('removeAadhaarDocument', 'true');
+      if (deletedDocs.aadhaarBackDocument) formData.append('removeAadhaarBackDocument', 'true');
       if (deletedDocs.bankProofDocument) formData.append('removeBankProofDocument', 'true');
       if (deletedDocs.agreementDocument) formData.append('removeAgreementDocument', 'true');
       if (deletedDocs.nomineeProofDocument) formData.append('removeNomineeProofDocument', 'true');
 
       if (panDocFile) formData.append('panDocument', panDocFile);
       if (aadhaarDocFile) formData.append('aadhaarDocument', aadhaarDocFile);
+      if (aadhaarBackDocFile) formData.append('aadhaarBackDocument', aadhaarBackDocFile);
       if (bankProofDocFile) formData.append('bankProofDocument', bankProofDocFile);
       if (agreementDocFile) formData.append('agreementDocument', agreementDocFile);
       if (nomineeProofDocFile) formData.append('nomineeProofDocument', nomineeProofDocFile);
@@ -498,14 +502,21 @@ export default function EditInvestor() {
                 onDeleteExisting={() => handleDeleteDoc('panDocument')}
               />
               <FileDropzone
-                label={form.citizenship === 'International' ? 'Passport / National ID Card Upload' : 'ID Proof Upload (Aadhaar / DL / Passport)'}
+                label={form.citizenship === 'International' ? 'Passport / National ID (Front Side) Upload *' : 'Aadhaar Card (Front Side) Upload *'}
                 multiple={false}
                 existingFileUrl={existingDocs.aadhaarDocument}
                 onFilesChange={(files) => setAadhaarDocFile(files[0] || null)}
                 onDeleteExisting={() => handleDeleteDoc('aadhaarDocument')}
               />
               <FileDropzone
-                label="Bank Details Document (Optional)"
+                label={form.citizenship === 'International' ? 'National ID / Address Proof (Back Side) Upload *' : 'Aadhaar Card Back Side (Required for Address Proof) *'}
+                multiple={false}
+                existingFileUrl={existingDocs.aadhaarBackDocument}
+                onFilesChange={(files) => setAadhaarBackDocFile(files[0] || null)}
+                onDeleteExisting={() => handleDeleteDoc('aadhaarBackDocument')}
+              />
+              <FileDropzone
+                label="Cancelled Cheque (Optional)"
                 multiple={false}
                 existingFileUrl={existingDocs.bankProofDocument}
                 onFilesChange={(files) => setBankProofDocFile(files[0] || null)}

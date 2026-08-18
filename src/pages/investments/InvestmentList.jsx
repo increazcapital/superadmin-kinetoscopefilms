@@ -300,35 +300,6 @@ export default function InvestmentList() {
       header: 'Segment',
       accessor: 'segment',
       render: (row) => {
-        const hasAlloc = Array.isArray(row.segmentAllocation) && row.segmentAllocation.length > 0;
-        if (hasAlloc) {
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {row.segmentAllocation.map((s, sIdx) => (
-                <div key={sIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span
-                    className="font-medium"
-                    style={{ cursor: 'pointer', color: 'var(--color-navy)', fontWeight: 600, fontSize: '0.8125rem' }}
-                    onClick={() => navigate('/portfolio')}
-                  >
-                    {s.segmentName}
-                  </span>
-                  <span style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    color: 'var(--color-gold-dark, #059669)',
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    border: '1px solid rgba(16, 185, 129, 0.2)'
-                  }}>
-                    {s.allocationPercentage}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          );
-        }
         const rawSeg = row.segment || 'Unallocated';
         const isUnallocated = !rawSeg || rawSeg === 'Project Allocated' || rawSeg === 'General Capital Pool' || rawSeg === 'Capital Deposit' || rawSeg === 'Unallocated Pool';
         const segmentText = isUnallocated ? 'Unallocated' : rawSeg;
@@ -341,6 +312,36 @@ export default function InvestmentList() {
             {segmentText}
           </span>
         );
+      }
+    },
+    {
+      header: 'Segment Allocation',
+      render: (row) => {
+        const hasAlloc = Array.isArray(row.segmentAllocation) && row.segmentAllocation.length > 0;
+        if (hasAlloc) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {row.segmentAllocation.map((s, sIdx) => (
+                <div key={sIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <span style={{ color: 'var(--color-navy)', fontSize: '0.8rem', fontWeight: 600 }}>{s.segmentName}</span>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'var(--color-gold-dark, #059669)',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {s.allocationPercentage}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          );
+        }
+        return <span style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>100% Primary</span>;
       }
     },
     { header: 'Amount', accessor: 'investmentAmount', render: (row) => <span className="font-semibold">{formatCurrency(row.investmentAmount || row.amount || 0)}</span> },

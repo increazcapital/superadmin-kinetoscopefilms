@@ -239,9 +239,8 @@ export default function InvestmentStatus() {
           agentName: agentObj?.name || ci.agentName || 'Direct / No Agent',
           agentCode: agentObj?.clientCode || agentObj?.agentCode || ci.agentCode || '—',
           projectName: projObj?.name || inv.projectName || 'Media Fund',
-          segment: (Array.isArray(inv.segmentAllocation) && inv.segmentAllocation.length > 0)
-            ? inv.segmentAllocation.map(s => `${s.segmentName} (${s.allocationPercentage}%)`).join(', ')
-            : (projObj?.segment || inv.segment || 'General'),
+          segment: projObj?.segment || inv.segment || 'General',
+          segmentAllocation: inv.segmentAllocation || [],
           amount,
           roiRate: `${roiNum}%`,
           monthlyReturn: (amount * roiNum) / 100,
@@ -381,7 +380,16 @@ export default function InvestmentStatus() {
 
   /* ── Computed Filters ─────────────────────── */
   const segmentFilters = useMemo(() => {
-    const s = new Set(['All', ...dbSegments, ...investments.map(i => i.segment)]);
+    const s = new Set(['All', ...dbSegments]);
+    investments.forEach(i => {
+      if (Array.isArray(i.segmentAllocation) && i.segmentAllocation.length > 0) {
+        i.segmentAllocation.forEach(alloc => {
+          if (alloc.segmentName) s.add(alloc.segmentName);
+        });
+      } else if (i.segment && !i.segment.includes('(') && !i.segment.includes(',')) {
+        s.add(i.segment);
+      }
+    });
     return Array.from(s).filter(Boolean);
   }, [dbSegments, investments]);
 
@@ -390,7 +398,15 @@ export default function InvestmentStatus() {
       const q = searchTerm.toLowerCase().trim();
       const matchSearch = !q || [inv.clientName, inv.clientCode, inv.agentName, inv.projectName, inv.segment]
         .some(f => (f || '').toLowerCase().includes(q));
-      const matchSeg = selectedSegment === 'All' || inv.segment === selectedSegment;
+      
+      let matchSeg = selectedSegment === 'All';
+      if (!matchSeg) {
+        if (Array.isArray(inv.segmentAllocation) && inv.segmentAllocation.length > 0) {
+          matchSeg = inv.segmentAllocation.some(alloc => alloc.segmentName === selectedSegment);
+        } else {
+          matchSeg = inv.segment === selectedSegment;
+        }
+      }
       return matchSearch && matchSeg;
     });
   }, [investments, searchTerm, selectedSegment]);
@@ -639,9 +655,19 @@ export default function InvestmentStatus() {
                       </td>
                       <td>
                         <div className="kfpl-table-cell-primary">{inv.projectName}</div>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: ss.color, background: ss.bg, padding: '2px 8px', borderRadius: 'var(--radius-sm)', display: 'inline-block', marginTop: '2px' }}>
-                          {inv.segment}
-                        </span>
+                        {Array.isArray(inv.segmentAllocation) && inv.segmentAllocation.length > 0 ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                            {inv.segmentAllocation.map((s, sIdx) => (
+                              <span key={sIdx} style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--color-gold-dark, #059669)', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '1px 6px', borderRadius: '4px' }}>
+                                {s.segmentName} ({s.allocationPercentage}%)
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: ss.color, background: ss.bg, padding: '2px 8px', borderRadius: 'var(--radius-sm)', display: 'inline-block', marginTop: '2px' }}>
+                            {inv.segment}
+                          </span>
+                        )}
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text-primary)', fontSize: '0.9rem' }}>
                         {formatCurrency(inv.amount)}
@@ -770,6 +796,26 @@ export default function InvestmentStatus() {
                             <strong style={{ fontWeight: 600, color: 'var(--color-text-secondary)' }}>{p.date}</strong>
                           </div>
                         </div>
+
+                        {/* Segment Allocation Breakdown Box */}
+                        {Array.isArray(p.segmentAllocation) && p.segmentAllocation.length > 0 && (
+                          <div style={{ background: 'var(--color-gold-light, #ECFDF5)', border: '1px solid var(--color-border-light, #E2ECE7)', borderRadius: 'var(--radius-md)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-gold-dark, #059669)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Segment Allocation Breakdown
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {p.segmentAllocation.map((alloc, aIdx) => {
+                                const allocAmt = Math.round(p.amount * (Number(alloc.allocationPercentage || 0) / 100));
+                                return (
+                                  <div key={aIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
+                                    <span style={{ color: 'var(--color-navy)', fontWeight: 600 }}>{alloc.segmentName} ({alloc.allocationPercentage}%)</span>
+                                    <span style={{ color: 'var(--color-gold-dark, #059669)', fontWeight: 700 }}>{formatCurrency(allocAmt)}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
 
                         <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                           <button

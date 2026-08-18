@@ -297,20 +297,28 @@ export default function InvestmentList() {
       },
     },
     {
-      header: 'Segment',
-      accessor: 'segment',
+      header: 'Project',
+      accessor: 'projectName',
       render: (row) => {
+        const rawProj = row.projectName || row.projectId?.name;
         const rawSeg = row.segment || 'Unallocated';
-        const isUnallocated = !rawSeg || rawSeg === 'Project Allocated' || rawSeg === 'General Capital Pool' || rawSeg === 'Capital Deposit' || rawSeg === 'Unallocated Pool';
-        const segmentText = isUnallocated ? 'Unallocated' : rawSeg;
+        const isUnallocated = !rawProj && (!rawSeg || rawSeg === 'Project Allocated' || rawSeg === 'General Capital Pool' || rawSeg === 'Capital Deposit' || rawSeg === 'Unallocated Pool');
+        const displayText = rawProj ? rawProj : (isUnallocated ? 'Unallocated' : rawSeg);
         return (
-          <span
-            className="font-medium"
-            style={{ cursor: 'pointer', color: 'var(--color-navy)', fontWeight: 600 }}
-            onClick={() => navigate('/portfolio')}
-          >
-            {segmentText}
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span
+              className="font-medium"
+              style={{ cursor: 'pointer', color: rawProj ? '#065F46' : 'var(--color-navy)', fontWeight: 700 }}
+              onClick={() => navigate('/portfolio')}
+            >
+              {rawProj ? `🎬 ${rawProj}` : displayText}
+            </span>
+            {rawProj && rawSeg && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                {rawSeg}
+              </span>
+            )}
+          </div>
         );
       }
     },

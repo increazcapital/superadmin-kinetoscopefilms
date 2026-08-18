@@ -197,6 +197,7 @@ export default function AssignInvestment() {
               const preSelected = [];
               const preAlloc = {};
               const preProjMap = {};
+              const topProjId = String(invData.projectId?._id || invData.projectId || '');
 
               invData.segmentAllocation.forEach(alloc => {
                 const sName = String(alloc.segmentName || '').toLowerCase().trim();
@@ -211,6 +212,12 @@ export default function AssignInvestment() {
                   preAlloc[segId] = String(alloc.allocationPercentage !== undefined ? alloc.allocationPercentage : '');
                   if (alloc.projectId) {
                     preProjMap[segId] = String(alloc.projectId?._id || alloc.projectId);
+                  } else if (topProjId) {
+                    const topProjObj = pList.find(p => String(p._id || p.id) === topProjId);
+                    const topProjSeg = (topProjObj?.segment || invData.segment || '').toLowerCase().trim();
+                    if (topProjSeg && (topProjSeg.includes(sName) || sName.includes(topProjSeg))) {
+                      preProjMap[segId] = topProjId;
+                    }
                   }
                 }
               });
@@ -372,6 +379,7 @@ export default function AssignInvestment() {
       // Clear auto-filled selections when project is deselected
       setSelectedSegments([]);
       setAllocations({});
+      setSegmentProjectMap({});
       return;
     }
 
@@ -399,10 +407,12 @@ export default function AssignInvestment() {
           const segId = matchingSeg.id;
           setSelectedSegments([segId]);
           setAllocations({ [segId]: '100' });
+          setSegmentProjectMap({ [segId]: pId });
         } else {
           // If no matching segment found, clear allocations so we don't inject bad IDs
           setSelectedSegments([]);
           setAllocations({});
+          setSegmentProjectMap({});
         }
       }
     }
@@ -412,6 +422,11 @@ export default function AssignInvestment() {
     if (selectedSegments.includes(segId)) {
       setSelectedSegments(prev => prev.filter(id => id !== segId));
       setAllocations(prev => {
+        const copy = { ...prev };
+        delete copy[segId];
+        return copy;
+      });
+      setSegmentProjectMap(prev => {
         const copy = { ...prev };
         delete copy[segId];
         return copy;
@@ -453,17 +468,33 @@ export default function AssignInvestment() {
       return;
     }
 
-    if (selectedClientInfo && selectedClientInfo.depositAmount === 0) {
+    const urlParams = new URLSearchParams(location.search || window.location.search);
+    const currentEditId = urlParams.get('id') || urlParams.get('editId') || editInvestmentId;
+    const isEditing = Boolean(currentEditId);
+
+    if (!isEditing && selectedClientInfo && selectedClientInfo.depositAmount === 0) {
       addToast('Cannot assign investment: This client has no approved capital deposited. Please approve a deposit first.', 'error', 'Action Blocked');
       setLoading(false);
       return;
     }
 
-    // Build segmentAllocation payload matching backend contract
-    const segmentAllocation = selectedSegments.map(sid => ({
-      segmentName: segments.find(s => s.id === sid)?.name || sid,
-      allocationPercentage: parseFloat(allocations[sid]) || 0
-    }));
+    // Build segmentAllocation payload matching backend contract with per-segment project links
+    const segmentAllocation = selectedSegments.map(sid => {
+      const segObj = segments.find(s => s.id === sid);
+      const sName = segObj?.name || sid;
+      const pId = segmentProjectMap[sid] || '';
+      const pObj = pId ? projects.find(p => String(p._id || p.id) === String(pId)) : null;
+      return {
+        segmentName: sName,
+        allocationPercentage: parseFloat(allocations[sid]) || 0,
+        projectId: pId || null,
+        projectName: pObj?.name || ''
+      };
+    });
+
+    const firstAllocWithProj = segmentAllocation.find(a => a.projectId);
+    const primaryProjId = selectedProjectId || firstAllocWithProj?.projectId || null;
+    const primaryProjObj = primaryProjId ? projects.find(p => String(p._id || p.id) === String(primaryProjId)) : null;
 
     const payload = {
       clientId: form.clientId,
@@ -471,26 +502,33 @@ export default function AssignInvestment() {
       roiPercentage: Number(form.roi),
       riskPercentage: Number(form.riskPercentage) || 0,
       riskLevel: form.riskLevel || 'Medium',
-      durationMonths: Number(form.contractPeriod) || 24,
-      segmentAllocation
+      durationMonths: Number(form.contractPeriod) || 18,
+      contractEndDate: form.contractEndDate,
+      investmentDate: form.dateOfJoining,
+      segmentAllocation,
+      projectId: primaryProjId,
+      projectName: primaryProjObj?.name || '',
+      segment: segmentAllocation.map(s => s.segmentName).join(', ')
     };
 
-    // Include projectId if a project was selected
-    if (selectedProjectId) {
-      payload.projectId = selectedProjectId;
-    }
-
     try {
-      await apiRequest('/api/super-admin/investments', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-
-      addToast('Investment assigned successfully!', 'success', 'Investment Created');
-      setTimeout(() => navigate('/investments'), 500);
+      if (isEditing) {
+        await apiRequest(`/api/super-admin/investments/${currentEditId}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload)
+        });
+        addToast('Investment updated successfully!', 'success', 'Investment Updated');
+      } else {
+        await apiRequest('/api/super-admin/investments', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        addToast('Investment assigned successfully!', 'success', 'Investment Created');
+      }
+      setTimeout(() => navigate('/investments'), 400);
     } catch (err) {
-      console.error('Failed to create investment:', err);
-      addToast(err.message || 'Failed to assign investment.', 'error', 'Error');
+      console.error('Failed to save investment:', err);
+      addToast(err.message || 'Failed to save investment.', 'error', 'Error');
     } finally {
       setLoading(false);
     }

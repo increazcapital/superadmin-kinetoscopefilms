@@ -318,30 +318,94 @@ export default function InvestmentList() {
       header: 'Segment Allocation',
       render: (row) => {
         const hasAlloc = Array.isArray(row.segmentAllocation) && row.segmentAllocation.length > 0;
+        const rowProjName = row.projectName || row.projectId?.name || '';
+
         if (hasAlloc) {
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {row.segmentAllocation.map((s, sIdx) => (
-                <div key={sIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                  <span style={{ color: 'var(--color-navy)', fontSize: '0.8rem', fontWeight: 600 }}>{s.segmentName}</span>
-                  <span style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    color: 'var(--color-gold-dark, #059669)',
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    border: '1px solid rgba(16, 185, 129, 0.25)',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {s.allocationPercentage}%
-                  </span>
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              {row.segmentAllocation.map((s, sIdx) => {
+                const segProj = s.projectName || s.projectId?.name || (sIdx === 0 ? rowProjName : '');
+                return (
+                  <div key={sIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                      <span style={{ color: 'var(--color-navy)', fontSize: '0.8rem', fontWeight: 600 }}>{s.segmentName}</span>
+                      {segProj ? (
+                        <span
+                          className="kfpl-project-ticker"
+                          title={`Linked Project: ${segProj}`}
+                          style={{
+                            display: 'inline-block',
+                            maxWidth: '120px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            color: '#047857',
+                            background: '#F0FDF4',
+                            border: '1px solid #BBF7D0',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            verticalAlign: 'middle',
+                            cursor: 'default'
+                          }}
+                        >
+                          🎬 {segProj}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>—</span>
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      color: 'var(--color-gold-dark, #059669)',
+                      background: 'rgba(16, 185, 129, 0.1)',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      border: '1px solid rgba(16, 185, 129, 0.25)',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {s.allocationPercentage}%
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           );
         }
-        return <span style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>100% Primary</span>;
+
+        // Single segment fallback: show project name
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {rowProjName ? (
+              <span
+                className="kfpl-project-ticker"
+                title={`Project: ${rowProjName}`}
+                style={{
+                  display: 'inline-block',
+                  maxWidth: '140px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  color: '#047857',
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  verticalAlign: 'middle',
+                  cursor: 'default'
+                }}
+              >
+                🎬 {rowProjName}
+              </span>
+            ) : (
+              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>Unallocated Project</span>
+            )}
+          </div>
+        );
       }
     },
     { header: 'Amount', accessor: 'investmentAmount', render: (row) => <span className="font-semibold">{formatCurrency(row.investmentAmount || row.amount || 0)}</span> },
@@ -377,7 +441,22 @@ export default function InvestmentList() {
     {
       header: 'Actions',
       render: (row) => (
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <button
+            className="kfpl-btn kfpl-btn--secondary kfpl-btn--sm"
+            style={{ padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-border)', color: 'var(--color-navy)', fontWeight: 600 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/investments/assign?id=${row._id || row.id}`);
+            }}
+            title="Edit Investment & Segment Allocation"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+            Edit
+          </button>
           <button
             className="kfpl-btn kfpl-btn--danger kfpl-btn--sm"
             style={{ padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--color-danger)' }}
@@ -641,6 +720,20 @@ export default function InvestmentList() {
         </div>,
         document.body
       )}
+
+      <style>{`
+        .kfpl-project-ticker {
+          transition: all 0.2s ease-in-out;
+        }
+        .kfpl-project-ticker:hover {
+          max-width: 240px !important;
+          background-color: #DCFCE7 !important;
+          color: #065F46 !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+          position: relative;
+          z-index: 5;
+        }
+      `}</style>
     </div>
   );
 }

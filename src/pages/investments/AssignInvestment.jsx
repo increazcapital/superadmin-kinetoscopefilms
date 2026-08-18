@@ -1,10 +1,5 @@
-/* ============================================================
-   Page: AssignInvestment.jsx
-   Description: Form to assign investment to a client
-   ============================================================ */
-
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
 import { INVESTMENT_SEGMENTS as MOCK_INVESTMENT_SEGMENTS } from '../../data/mockData';
 import { apiRequest } from '../../config/apiHelper';
@@ -12,7 +7,12 @@ import { formatClientID } from '../../utils/formatters';
 
 export default function AssignInvestment() {
   const navigate = useNavigate();
+  const location = useLocation();
   const addToast = useToast();
+
+  const searchParams = new URLSearchParams(location.search);
+  const editInvestmentId = searchParams.get('id') || searchParams.get('editId') || '';
+  const isEditMode = Boolean(editInvestmentId);
   
   function getCalculatedEndDateStr(startDateStr, periodMonths) {
     if (!startDateStr) return '';
@@ -50,11 +50,11 @@ export default function AssignInvestment() {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedSegments, setSelectedSegments] = useState([]);
   const [allocations, setAllocations] = useState({});
+  const [segmentProjectMap, setSegmentProjectMap] = useState({});
   const [selectedClientInfo, setSelectedClientInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
 
-  // Fetch clients and projects from backend API on mount
   useEffect(() => {
     const fetchData = async () => {
       setDataLoading(true);
@@ -65,18 +65,15 @@ export default function AssignInvestment() {
           apiRequest('/api/super-admin/segments').catch(() => null)
         ]);
 
-        // Extract clients list and sort sequentially by Client ID (KFPL-CL-1001, KFPL-CL-1002...)
+        let cList = [];
+        let pList = [];
+        let sList = [];
+
         if (clientsRes) {
-          let cList = [];
-          if (Array.isArray(clientsRes)) {
-            cList = clientsRes;
-          } else if (clientsRes.data?.clients) {
-            cList = clientsRes.data.clients;
-          } else if (clientsRes.data && Array.isArray(clientsRes.data)) {
-            cList = clientsRes.data;
-          } else if (clientsRes.clients) {
-            cList = clientsRes.clients;
-          }
+          if (Array.isArray(clientsRes)) cList = clientsRes;
+          else if (clientsRes.data?.clients) cList = clientsRes.data.clients;
+          else if (clientsRes.data && Array.isArray(clientsRes.data)) cList = clientsRes.data;
+          else if (clientsRes.clients) cList = clientsRes.clients;
           if (cList && cList.length > 0) {
             cList.sort((a, b) => {
               const codeA = formatClientID(a.user?.clientCode || a.clientCode || a.clientId || '');
@@ -87,36 +84,22 @@ export default function AssignInvestment() {
           setClients(cList);
         }
 
-        // Extract projects list and filter out dummy projects (__KFPL_DUMMY__)
         if (projectsRes) {
-          let pList = [];
-          if (Array.isArray(projectsRes)) {
-            pList = projectsRes;
-          } else if (projectsRes.data?.projects) {
-            pList = projectsRes.data.projects;
-          } else if (projectsRes.data && Array.isArray(projectsRes.data)) {
-            pList = projectsRes.data;
-          } else if (projectsRes.projects) {
-            pList = projectsRes.projects;
-          }
+          if (Array.isArray(projectsRes)) pList = projectsRes;
+          else if (projectsRes.data?.projects) pList = projectsRes.data.projects;
+          else if (projectsRes.data && Array.isArray(projectsRes.data)) pList = projectsRes.data;
+          else if (projectsRes.projects) pList = projectsRes.projects;
           if (pList && pList.length > 0) {
             pList = pList.filter(p => p.name && !p.name.includes('__KFPL_DUMMY__') && !p.name.toUpperCase().includes('DUMMY'));
           }
           setProjects(pList);
         }
 
-        // Extract segments list
         if (segmentsRes) {
-          let sList = [];
-          if (Array.isArray(segmentsRes)) {
-            sList = segmentsRes;
-          } else if (segmentsRes.data?.segments) {
-            sList = segmentsRes.data.segments;
-          } else if (segmentsRes.data && Array.isArray(segmentsRes.data)) {
-            sList = segmentsRes.data;
-          } else if (segmentsRes.segments) {
-            sList = segmentsRes.segments;
-          }
+          if (Array.isArray(segmentsRes)) sList = segmentsRes;
+          else if (segmentsRes.data?.segments) sList = segmentsRes.data.segments;
+          else if (segmentsRes.data && Array.isArray(segmentsRes.data)) sList = segmentsRes.data;
+          else if (segmentsRes.segments) sList = segmentsRes.segments;
           if (sList && sList.length > 0) {
             const mapped = sList.map(s => ({
               id: s._id || s.id || s.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
@@ -127,7 +110,6 @@ export default function AssignInvestment() {
           }
         }
 
-        // Fallback: if projects came back empty, try localStorage
         if (!projectsRes || (Array.isArray(projectsRes) && projectsRes.length === 0)) {
           const storedProjects = localStorage.getItem('kfpl_portfolio_projects');
           if (storedProjects) {
@@ -136,61 +118,108 @@ export default function AssignInvestment() {
               if (Array.isArray(parsed)) {
                 const filtered = parsed.filter(p => p.name && !p.name.includes('__KFPL_DUMMY__') && !p.name.toUpperCase().includes('DUMMY'));
                 setProjects(filtered);
+                pList = filtered;
               }
             } catch (e) { /* ignore */ }
           }
         }
+
+        if (editInvestmentId) {
+          try {
+            const invRes = await apiRequest(`/api/super-admin/investments/${editInvestmentId}`);
+            const invData = invRes.data || invRes.investment || invRes;
+            if (invData) {
+              const clientUserId = invData.clientId?._id || invData.clientId || '';
+              const startD = invData.investmentDate ? new Date(invData.investmentDate).toISOString().split('T')[0] : '';
+              const endD = invData.contractEndDate ? new Date(invData.contractEndDate).toISOString().split('T')[0] : '';
+              
+              setForm({
+                clientId: String(clientUserId),
+                amount: String(invData.investmentAmount || invData.amount || ''),
+                roi: String(invData.roiPercentage ?? invData.roi ?? ''),
+                riskPercentage: String(invData.riskPercentage ?? ''),
+                riskLevel: invData.riskLevel || 'Medium',
+                contractPeriod: String(invData.durationMonths || 18),
+                dateOfJoining: startD || new Date().toISOString().split('T')[0],
+                contractEndDate: endD || getCalculatedEndDateStr(startD, invData.durationMonths || 18),
+                extendContractDate: ''
+              });
+
+              const pId = invData.projectId?._id || invData.projectId || '';
+              if (pId) setSelectedProjectId(String(pId));
+
+              const matchedClient = cList.find(c => String(c._id || c.id || c.user?._id) === String(clientUserId));
+              if (matchedClient) {
+                const totalDep = matchedClient.totalInvestment || matchedClient.totalPortfolioValue || 0;
+                setSelectedClientInfo({
+                  name: matchedClient.name || matchedClient.user?.name,
+                  clientCode: matchedClient.clientCode || matchedClient.user?.clientCode,
+                  depositAmount: totalDep
+                });
+              }
+
+              if (Array.isArray(invData.segmentAllocation) && invData.segmentAllocation.length > 0) {
+                const preSelected = [];
+                const preAlloc = {};
+                const preProjMap = {};
+
+                invData.segmentAllocation.forEach(alloc => {
+                  const sName = String(alloc.segmentName || '').toLowerCase().trim();
+                  const foundSeg = sList.find(s => s.name?.toLowerCase()?.trim() === sName || s.id === sName);
+                  const segId = foundSeg ? (foundSeg._id || foundSeg.id) : alloc.segmentName;
+                  if (segId) {
+                    preSelected.push(segId);
+                    preAlloc[segId] = String(alloc.allocationPercentage || '');
+                    if (alloc.projectId) {
+                      preProjMap[segId] = String(alloc.projectId?._id || alloc.projectId);
+                    }
+                  }
+                });
+
+                setSelectedSegments(preSelected);
+                setAllocations(preAlloc);
+                setSegmentProjectMap(preProjMap);
+              } else if (invData.segment) {
+                const foundSeg = sList.find(s => s.name?.toLowerCase()?.trim() === invData.segment?.toLowerCase()?.trim());
+                if (foundSeg) {
+                  const segId = foundSeg._id || foundSeg.id;
+                  setSelectedSegments([segId]);
+                  setAllocations({ [segId]: '100' });
+                  if (pId) setSegmentProjectMap({ [segId]: String(pId) });
+                }
+              }
+            }
+          } catch (invErr) {
+            console.error('Failed to load investment for editing:', invErr);
+            addToast('Could not load investment details for editing.', 'error');
+          }
+        }
       } catch (err) {
-        console.error('Failed to fetch clients/projects:', err);
+        console.error('Failed to fetch data:', err);
       } finally {
         setDataLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [editInvestmentId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     if (name === 'dateOfJoining' || name === 'contractPeriod') {
       const newStart = name === 'dateOfJoining' ? value : form.dateOfJoining;
       const newPeriod = name === 'contractPeriod' ? value : form.contractPeriod;
-      const autoCalculatedEnd = getCalculatedEndDateStr(newStart, newPeriod);
-      setForm(prev => ({
-        ...prev,
-        [name]: value,
-        contractEndDate: autoCalculatedEnd
-      }));
+      setForm(prev => ({ ...prev, [name]: value, contractEndDate: getCalculatedEndDateStr(newStart, newPeriod) }));
       return;
     }
-
-    if (name === 'contractEndDate') {
-      const startStr = form.dateOfJoining;
-      const targetEnd = form.extendContractDate || value;
-      const calcPeriod = calculateMonthsBetweenDates(startStr, targetEnd);
-      setForm(prev => ({
-        ...prev,
-        contractEndDate: value,
-        contractPeriod: String(calcPeriod)
-      }));
-      return;
-    }
-
-    if (name === 'extendContractDate') {
+    if (name === 'contractEndDate' || name === 'extendContractDate') {
       const startStr = form.dateOfJoining;
       const targetEnd = value || form.contractEndDate;
       const calcPeriod = calculateMonthsBetweenDates(startStr, targetEnd);
-      setForm(prev => ({
-        ...prev,
-        extendContractDate: value,
-        contractPeriod: String(calcPeriod)
-      }));
+      setForm(prev => ({ ...prev, [name]: value, contractPeriod: String(calcPeriod) }));
       return;
     }
-
     setForm(prev => ({ ...prev, [name]: value }));
 
-    // Auto-fill ROI and Contract Dates when client is selected
     if (name === 'clientId' && value) {
       const selectedClient = clients.find(c => {
         const cId = c.user?._id || c.user?.id || c._id || c.id;
@@ -631,20 +660,55 @@ export default function AssignInvestment() {
                       </label>
 
                       {isSelected && (
-                        <div className="kfpl-input-group" style={{ margin: 0 }}>
-                          <label className="kfpl-input-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Allocation (%)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            className="kfpl-input"
-                            value={allocations[seg.id] ?? ''}
-                            onChange={(e) => handleAllocationChange(seg.id, e.target.value)}
-                            onWheel={(e) => e.target.blur()}
-                            placeholder="e.g. 25"
-                            style={{ padding: '6px 10px', height: '36px' }}
-                            required
-                          />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+                          <div className="kfpl-input-group" style={{ margin: 0 }}>
+                            <label className="kfpl-input-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>
+                              Allocation (%)
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="kfpl-input"
+                              value={allocations[seg.id] ?? ''}
+                              onChange={(e) => handleAllocationChange(seg.id, e.target.value)}
+                              onWheel={(e) => e.target.blur()}
+                              placeholder="e.g. 25"
+                              style={{ padding: '6px 10px', height: '36px' }}
+                              required
+                            />
+                          </div>
+
+                          <div className="kfpl-input-group" style={{ margin: 0 }}>
+                            <label className="kfpl-input-label" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>
+                              Select Project (Optional)
+                            </label>
+                            {(() => {
+                              const segProjects = projects.filter(p => {
+                                const pSeg = (p.segment || p.category || '').toLowerCase().trim();
+                                const sName = (seg.name || '').toLowerCase().trim();
+                                return pSeg === sName;
+                              });
+
+                              return (
+                                <select
+                                  className="kfpl-select"
+                                  value={segmentProjectMap[seg.id] || ''}
+                                  onChange={(e) => setSegmentProjectMap(prev => ({ ...prev, [seg.id]: e.target.value }))}
+                                  style={{ padding: '6px 10px', height: '36px', fontSize: '0.8125rem' }}
+                                >
+                                  <option value="">
+                                    {segProjects.length > 0 ? '-- No Project (Segment-Only Allocation) --' : '-- No Projects In This Segment --'}
+                                  </option>
+                                  {segProjects.map(p => (
+                                    <option key={p._id || p.id} value={p._id || p.id}>
+                                      {p.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              );
+                            })()}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -656,7 +720,7 @@ export default function AssignInvestment() {
             <div className="kfpl-form-actions">
               <button type="button" className="kfpl-btn kfpl-btn--ghost" onClick={() => navigate('/investments')} disabled={loading}>Cancel</button>
               <button type="submit" className="kfpl-btn kfpl-btn--primary" disabled={loading || totalAllocation !== 100}>
-                {loading ? 'Assigning...' : 'Assign Investment'}
+                {loading ? (isEditMode ? 'Updating...' : 'Assigning...') : (isEditMode ? 'Update Investment' : 'Assign Investment')}
               </button>
             </div>
           </div>

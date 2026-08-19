@@ -1190,8 +1190,9 @@ export default function InvestorDetail() {
 
   const handleConfirmDelete = async () => {
     setDeleteLoading(true);
+    const targetDeleteId = investor?._id || clientProfileId || id;
     try {
-      await apiRequest(`/api/super-admin/clients/${id}`, {
+      await apiRequest(`/api/super-admin/clients/${targetDeleteId}`, {
         method: 'DELETE'
       });
       addToast('Client profile deleted successfully!', 'success', 'Client Deleted');

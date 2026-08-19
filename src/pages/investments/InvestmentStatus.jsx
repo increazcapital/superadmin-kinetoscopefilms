@@ -561,9 +561,7 @@ export default function InvestmentStatus() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
             Refresh
           </button>
-          <button type="button" className="kfpl-btn kfpl-btn--primary" onClick={() => setShowAssignModal(true)}>
-            + Assign Investment
-          </button>
+
         </div>
       </div>
 
@@ -608,7 +606,7 @@ export default function InvestmentStatus() {
           </svg>
           <h3 style={{ margin: 0, fontWeight: 600, color: 'var(--color-text-primary)' }}>No Investment Records Found</h3>
           <p className="text-muted text-sm" style={{ margin: '6px 0 16px' }}>No active investment contracts found matching selected filter.</p>
-          <button type="button" className="kfpl-btn kfpl-btn--primary" onClick={() => setShowAssignModal(true)}>+ Assign Investment</button>
+
         </div>
       ) : viewMode === 'table' ? (
         <div className="kfpl-table-container">
@@ -1078,128 +1076,7 @@ export default function InvestmentStatus() {
         </Modal>
       )}
 
-      {/* ═══ ASSIGN INVESTMENT MODAL ═══ */}
-      {showAssignModal && (
-        <Modal isOpen onClose={() => setShowAssignModal(false)} title="Assign Investment to Client">
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div>
-              <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '4px' }}>
-                Select Client <span style={{ color: 'var(--color-danger)' }}>*</span>
-              </label>
-              <select
-                className="kfpl-select"
-                value={assignForm.clientId}
-                onChange={e => handleClientSelect(e.target.value)}
-                required
-                style={{ width: '100%', padding: '9px' }}
-              >
-                <option value="">-- Choose Client --</option>
-                {clientsList.map(c => (
-                  <option key={c._id || c.id} value={c._id || c.id}>
-                    {c.name} ({c.clientId || c.clientCode || '—'})
-                  </option>
-                ))}
-              </select>
-            </div>
 
-            {selectedClientInfo && (
-              <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-light)', borderRadius: 'var(--radius-md)', padding: '12px 16px' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-success)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                  Client Data Auto-Fetched
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8125rem' }}>
-                  <div><span className="text-xs text-muted" style={{ display: 'block' }}>Name</span><strong>{selectedClientInfo.name}</strong></div>
-                  <div><span className="text-xs text-muted" style={{ display: 'block' }}>Code</span><strong>{selectedClientInfo.code}</strong></div>
-                  <div><span className="text-xs text-muted" style={{ display: 'block' }}>Assigned Agent</span><strong>{selectedClientInfo.agentName}</strong></div>
-                  <div><span className="text-xs text-muted" style={{ display: 'block' }}>Existing Capital</span><strong style={{ color: 'var(--color-success)' }}>{formatCurrency(selectedClientInfo.totalInvestment)}</strong></div>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '4px' }}>Select Target Project</label>
-              <select
-                className="kfpl-select"
-                value={assignForm.projectId}
-                onChange={e => handleProjectSelect(e.target.value)}
-                style={{ width: '100%', padding: '9px' }}
-              >
-                <option value="">-- Choose Target Project --</option>
-                {projectsList.map(p => (
-                  <option key={p._id || p.id} value={p._id || p.id}>
-                    {p.name} [{p.segment}]
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '4px' }}>
-                Investment Amount (₹) <span style={{ color: 'var(--color-danger)' }}>*</span>
-              </label>
-              <input
-                type="number"
-                placeholder="e.g. 500000"
-                value={assignForm.investmentAmount}
-                onChange={e => handleAmountChange(e.target.value)}
-                required
-                className="kfpl-input"
-                style={{ width: '100%', padding: '9px' }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '4px' }}>Monthly ROI (%)</label>
-                <input
-                  type="text"
-                  placeholder="Auto from project"
-                  value={assignForm.roiPercentage}
-                  onChange={e => setAssignForm(p => ({ ...p, roiPercentage: e.target.value }))}
-                  className="kfpl-input"
-                  style={{ width: '100%', padding: '9px' }}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '4px' }}>Agent Commission (%)</label>
-                <input
-                  type="text"
-                  placeholder="Auto from slab"
-                  value={assignForm.agentCommission}
-                  readOnly
-                  className="kfpl-input"
-                  style={{ width: '100%', padding: '9px', background: 'var(--color-surface)', cursor: 'not-allowed' }}
-                />
-              </div>
-            </div>
-
-            {previewAmount > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', padding: '12px', background: 'var(--color-gold-glow)', border: '1px dashed var(--color-gold)', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase' }}>Monthly Return</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-success)' }}>{formatCurrency(previewMonthlyReturn)}</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase' }}>Agent Payout</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-warning)' }}>{formatCurrency(previewCommAmt)}</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase' }}>Slab Rate</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-info)' }}>{assignForm.agentCommission || '—'}</div>
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '12px', borderTop: '1px solid var(--color-border-light)' }}>
-              <button type="button" className="kfpl-btn kfpl-btn--secondary" onClick={() => setShowAssignModal(false)}>Cancel</button>
-              <button type="submit" className="kfpl-btn kfpl-btn--primary" disabled={submitting}>
-                {submitting ? 'Assigning...' : 'Assign Investment'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
     </div>
   );
 }

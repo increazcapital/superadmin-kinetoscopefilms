@@ -566,7 +566,7 @@ export default function InvestmentStatus() {
       </div>
 
       {/* ═══ KPI SUMMARY CARDS ═══ */}
-      <div className="kfpl-dashboard-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div className="kfpl-dashboard-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px', minWidth: 0 }}>
         <KpiCard title="Total Investment Volume" value={formatCurrency(totalVol)} trend="Total Investment Contracts" trendDirection="up" icon={kpiIcons.investment} iconColor="gold" />
         <KpiCard title="Active Investors" value={uniqueClients} trend="Active Portfolio Investors" trendDirection="up" icon={kpiIcons.investors} iconColor="emerald" />
         <KpiCard title="Agent Commission Volume" value={formatCurrency(totalComm)} trend="Total Commission Allocated" trendDirection="up" icon={kpiIcons.commission} iconColor="amber" />
@@ -590,7 +590,7 @@ export default function InvestmentStatus() {
       {/* ═══ SEGMENT FILTER ═══ */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', overflowX: 'auto', paddingBottom: '8px' }}>
         {segmentFilters.map(seg => (
-          <button key={seg} onClick={() => setSelectedSegment(seg)} style={{ padding: '6px 14px', borderRadius: '99px', border: selectedSegment === seg ? '1px solid var(--color-gold)' : '1px solid #ddd', background: selectedSegment === seg ? '#FFFBEB' : '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+          <button key={seg} onClick={() => setSelectedSegment(seg)} style={{ padding: '6px 14px', borderRadius: '99px', border: selectedSegment === seg ? '1px solid var(--color-gold)' : '1px solid #ddd', background: selectedSegment === seg ? '#FFFBEB' : '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
             {seg}
           </button>
         ))}
@@ -705,7 +705,7 @@ export default function InvestmentStatus() {
               </div>
 
               {/* Multi-Segment Cards 2x2 Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
                 {g.segmentCards.map(p => {
                   const bannerUrl = p.projectDetails?.bannerImage;
                   const bgStyle = bannerUrl ? `url(${bannerUrl})` : getSegmentGradient(p.segment);

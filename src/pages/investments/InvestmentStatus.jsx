@@ -566,7 +566,7 @@ export default function InvestmentStatus() {
       </div>
 
       {/* ═══ KPI SUMMARY CARDS ═══ */}
-      <div className="kfpl-dashboard-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px', minWidth: 0 }}>
+      <div className="kfpl-dashboard-kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <KpiCard title="Total Investment Volume" value={formatCurrency(totalVol)} trend="Total Investment Contracts" trendDirection="up" icon={kpiIcons.investment} iconColor="gold" />
         <KpiCard title="Active Investors" value={uniqueClients} trend="Active Portfolio Investors" trendDirection="up" icon={kpiIcons.investors} iconColor="emerald" />
         <KpiCard title="Agent Commission Volume" value={formatCurrency(totalComm)} trend="Total Commission Allocated" trendDirection="up" icon={kpiIcons.commission} iconColor="amber" />
@@ -705,7 +705,7 @@ export default function InvestmentStatus() {
               </div>
 
               {/* Multi-Segment Cards 2x2 Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                 {g.segmentCards.map(p => {
                   const bannerUrl = p.projectDetails?.bannerImage;
                   const bgStyle = bannerUrl ? `url(${bannerUrl})` : getSegmentGradient(p.segment);

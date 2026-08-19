@@ -197,6 +197,7 @@ export default function PortfolioManagement() {
         fundedAmount: p.fundedAmount !== undefined ? p.fundedAmount : 0,
         totalSlots: p.totalSlots !== undefined ? p.totalSlots : 20,
         slotsAvailable: p.slotsAvailable !== undefined ? p.slotsAvailable : 20,
+        bookedSlots: p.bookedSlots !== undefined ? p.bookedSlots : Math.max(0, (p.totalSlots || 20) - (p.slotsAvailable || 20)),
         summary: p.summary || '',
         risk: p.riskLevel || p.risk || 'Medium',
         horizon: p.horizon || '',
@@ -1114,6 +1115,15 @@ export default function PortfolioManagement() {
             <div>
               <span>Funded Amount</span>
               <strong style={{ color: 'var(--color-success)' }}>{formatCurrency(drawerProject.fundedAmount || 0)}</strong>
+            </div>
+            <div>
+              <span>Available Slots</span>
+              <strong style={{ color: 'var(--color-text-primary)' }}>
+                {drawerProject.slotsAvailable ?? 20} / {drawerProject.totalSlots ?? 20} Slots
+              </strong>
+              <small style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: '0.7rem', marginTop: '2px' }}>
+                {Math.max(0, (drawerProject.totalSlots ?? 20) - (drawerProject.slotsAvailable ?? 20))} Booked • {drawerProject.slotsAvailable ?? 20} Remaining
+              </small>
             </div>
             <div>
               <span>Status</span>

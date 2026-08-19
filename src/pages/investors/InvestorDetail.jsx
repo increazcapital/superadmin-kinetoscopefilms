@@ -116,7 +116,7 @@ function downloadClientROISinglePDF(roi, client) {
 
   const rowsHtml = investments.map(inv => {
     const amt = inv.investmentAmount || inv.amount || 0;
-    const rate = inv.roiPercentage || inv.roi || client.roiPercent || client.roiPercentage || 0;
+    const rate = (inv.roiPercentage !== undefined && inv.roiPercentage !== null) ? Number(inv.roiPercentage) : (client.roiPercent ?? client.roiPercentage ?? 0);
     const monthlyROI = Math.round((amt * rate) / 100);
     
     const startDate = formatDateStr(inv.allocationDate || inv.investmentDate || client.contractStartDate);
@@ -1078,7 +1078,7 @@ export default function InvestorDetail() {
   const expandedInvestmentsList = [];
   rawInvestmentsList.forEach((inv, invIdx) => {
     const baseAmt = Number(inv.investmentAmount || inv.amount || 0);
-    const finalRoi = inv.roiPercentage || inv.roi || localRoiPercentage || 0;
+    const finalRoi = (inv.roiPercentage !== undefined && inv.roiPercentage !== null) ? Number(inv.roiPercentage) : (localRoiPercentage ?? 0);
     const topProjName = inv.projectName || (typeof inv.projectId === 'object' ? inv.projectId?.name : '') || '';
 
     if (Array.isArray(inv.segmentAllocation) && inv.segmentAllocation.length > 0) {

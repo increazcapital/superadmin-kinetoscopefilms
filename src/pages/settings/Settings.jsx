@@ -137,6 +137,17 @@ export default function Settings() {
   const [faviconFile, setFaviconFile] = useState(null);
   const [savingBranding, setSavingBranding] = useState(false);
 
+  // Deposit Bank Details State
+  const [bankConfig, setBankConfig] = useState({
+    bankAccountName: 'YIELDIQ',
+    bankAccountNumber: '7049743035',
+    bankIfscCode: 'KKBK0001401',
+    bankName: 'Kotak Mahindra Bank',
+    bankBranch: 'Lokhandwala Andheri W, Mumbai',
+    bankUpiId: '',
+  });
+  const [savingBank, setSavingBank] = useState(false);
+
   useEffect(() => {
     const fetchSupportSettings = async () => {
       try {
@@ -189,7 +200,82 @@ export default function Settings() {
       }
     };
     fetchBrandingSettings();
+
+    // Fetch deposit bank details
+    const fetchBankDetails = async () => {
+      try {
+        const token = getToken();
+        if (!token) return;
+        const res = await fetch(getApiUrl('/api/super-admin/settings/bank-details'), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data) {
+            setBankConfig({
+              bankAccountName: data.data.bankAccountName || 'YIELDIQ',
+              bankAccountNumber: data.data.bankAccountNumber || '7049743035',
+              bankIfscCode: data.data.bankIfscCode || 'KKBK0001401',
+              bankName: data.data.bankName || 'Kotak Mahindra Bank',
+              bankBranch: data.data.bankBranch || 'Lokhandwala Andheri W, Mumbai',
+              bankUpiId: data.data.bankUpiId || '',
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch bank details:', err);
+      }
+    };
+    fetchBankDetails();
   }, []);
+
+  const handleSaveBankConfig = async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) {
+      addToast('Authentication token not found.', 'error', 'Error');
+      return;
+    }
+
+    setSavingBank(true);
+    try {
+      const res = await fetch(getApiUrl('/api/super-admin/settings/bank-details'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bankConfig),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const updatedBank = data.data || bankConfig;
+        addToast('Company deposit bank account details updated successfully!', 'success', 'Bank Details Saved');
+
+        // ── Instant Real-time Live Sync across all portals & open tabs (No refresh needed) ──
+        try {
+          localStorage.setItem('yieldiq_bank_details', JSON.stringify(updatedBank));
+          localStorage.setItem('yieldiq_bank_details_updated', Date.now().toString());
+          window.dispatchEvent(new CustomEvent('yieldiq_bank_details_updated', { detail: updatedBank }));
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('yieldiq_bank_channel');
+            bc.postMessage({ type: 'BANK_UPDATED', data: updatedBank });
+            bc.close();
+          }
+        } catch (bErr) {
+          console.error('Live bank broadcast failed:', bErr);
+        }
+      } else {
+        const data = await res.json();
+        addToast(data.message || 'Failed to update bank details.', 'error', 'Error');
+      }
+    } catch (err) {
+      addToast('Unable to connect to server.', 'error', 'Error');
+    } finally {
+      setSavingBank(false);
+    }
+  };
 
   const handleSaveSupportConfig = async (e) => {
     e.preventDefault();
@@ -826,6 +912,94 @@ export default function Settings() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
             <button type="submit" className="kfpl-btn kfpl-btn--primary" disabled={savingBranding}>
               {savingBranding ? 'Saving...' : 'Save Branding'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* ─── Company Deposit Bank Account Details Card ─────────────────────── */}
+      <div className="kfpl-detail-info-card" style={{ marginBottom: '24px' }}>
+        <div className="kfpl-detail-info-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-gold)" strokeWidth="2" style={{ width: 18, height: 18 }}>
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+            <line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+          Deposit Bank Account Details (Client Portal)
+        </div>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
+          These bank account details are dynamically displayed to all clients on their Payments &amp; Deposit screen. Changes saved here reflect immediately on the Client Portal without any hardcoded fallbacks.
+        </p>
+
+        <form onSubmit={handleSaveBankConfig} className="kfpl-form" style={{ gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Account Holder / Company Name *</label>
+              <input
+                className="kfpl-input"
+                required
+                value={bankConfig.bankAccountName}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, bankAccountName: e.target.value }))}
+                placeholder="e.g. YIELDIQ"
+              />
+            </div>
+
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Bank Name *</label>
+              <input
+                className="kfpl-input"
+                required
+                value={bankConfig.bankName}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, bankName: e.target.value }))}
+                placeholder="e.g. Kotak Mahindra Bank"
+              />
+            </div>
+
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Account Number *</label>
+              <input
+                className="kfpl-input"
+                required
+                value={bankConfig.bankAccountNumber}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, bankAccountNumber: e.target.value }))}
+                placeholder="e.g. 7049743035"
+              />
+            </div>
+
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">IFSC Code *</label>
+              <input
+                className="kfpl-input"
+                required
+                value={bankConfig.bankIfscCode}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, bankIfscCode: e.target.value.toUpperCase() }))}
+                placeholder="e.g. KKBK0001401"
+              />
+            </div>
+
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Branch Name &amp; City</label>
+              <input
+                className="kfpl-input"
+                value={bankConfig.bankBranch}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, bankBranch: e.target.value }))}
+                placeholder="e.g. Lokhandwala Andheri W, Mumbai"
+              />
+            </div>
+
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">UPI ID / VPA (Optional)</label>
+              <input
+                className="kfpl-input"
+                value={bankConfig.bankUpiId}
+                onChange={(e) => setBankConfig(prev => ({ ...prev, bankUpiId: e.target.value }))}
+                placeholder="e.g. yieldiq@kotak"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+            <button type="submit" className="kfpl-btn kfpl-btn--primary" disabled={savingBank}>
+              {savingBank ? 'Saving Bank Details...' : 'Save Bank Details'}
             </button>
           </div>
         </form>

@@ -33,12 +33,12 @@ export default function SensitiveValueToggle({ value, maskLength = 4, style = {}
         }}
         title={show ? 'Hide sensitive information' : 'Show full unmasked sensitive information'}
         style={{
-          background: show ? '#FEF3C7' : '#ECFDF5',
-          border: show ? '1px solid #F59E0B' : '1px solid #10B981',
+          background: show ? '#FEF3C7' : '#FFF8E7',
+          border: show ? '1px solid #F59E0B' : '1px solid #F5A800',
           borderRadius: '6px',
           padding: '3px 10px',
           cursor: 'pointer',
-          color: show ? '#D97706' : '#047857',
+          color: show ? '#D97706' : '#D48F00',
           display: 'inline-flex',
           alignItems: 'center',
           gap: '5px',

@@ -33,16 +33,16 @@ export default function InvestorList() {
   const [tierFilter, setTierFilter] = useState('all');
 
   const formatClientID = (rawId) => {
-    if (!rawId || rawId === '—') return 'KFPL-CL-1001';
+    if (!rawId || rawId === '—') return 'YLDIQ-CL-1001';
     const str = String(rawId).trim();
-    if (str.toUpperCase().startsWith('KFPL-CL-')) return str.toUpperCase();
+    // Normalize KFPL / YIQ to dynamic YLDIQ prefix
     const digits = str.match(/\d+/);
     if (digits) {
       let val = parseInt(digits[0], 10);
       if (val < 1000) val += 1000;
-      return `KFPL-CL-${val}`;
+      return `YLDIQ-CL-${val}`;
     }
-    return 'KFPL-CL-1001';
+    return 'YLDIQ-CL-1001';
   };
 
   const [clients, setClients] = useState([]);
@@ -388,7 +388,7 @@ export default function InvestorList() {
         const monthlyAmt = totalInv > 0 ? (totalInv * (roiPct / 100)) : 0;
         return (
           <div>
-            <span style={{ fontWeight: 700, color: '#10b981' }}>{roiPct}%</span>
+            <span style={{ fontWeight: 700, color: '#F5A800' }}>{roiPct}%</span>
             {monthlyAmt > 0 && (
               <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '6px' }}>
                 ({formatCurrency(monthlyAmt)}/mo)
@@ -436,8 +436,8 @@ export default function InvestorList() {
             borderRadius: '20px',
             fontSize: '0.75rem',
             fontWeight: 700,
-            background: '#D1FAE5',
-            color: '#065F46'
+            background: '#FFF8E7',
+            color: '#B45309'
           }}>{comm}</span>
         );
       }

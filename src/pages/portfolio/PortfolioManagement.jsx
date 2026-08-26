@@ -24,31 +24,30 @@ const SEGMENT_ABBR = {
 };
 
 const SEGMENT_COLORS = {
-  'Film Making': '#10B981', Distribution: '#1565C0', Music: '#7C3AED',
-  'Trading & Syndication': '#F59E0B', 'Content IP Bank': '#0F766E', 'Film Exhibition': '#0891B2',
+  'Film Making': '#F5A800', Distribution: '#1565C0', Music: '#7C3AED',
+  'Trading & Syndication': '#F59E0B', 'Content IP Bank': '#123A78', 'Film Exhibition': '#0891B2',
 };
 
 const LS_KEY = 'kfpl_portfolio_projects';
 
 const formatClientID = (rawId) => {
-  if (!rawId || rawId === '—') return '—';
+  if (!rawId || rawId === '—' || rawId === 'undefined' || rawId === 'null') return 'YLDIQ-CL-1001';
   const str = String(rawId).trim();
-  if (/^[0-9a-fA-F]{24}$/.test(str)) {
-    return 'KFPL-CL-1001';
+  const m = str.match(/(?:CL[-_ ]*)+(\d+)/i) || str.match(/(\d+)/);
+  if (m && m[1]) {
+    let val = parseInt(m[1], 10);
+    if (val < 1000) val += 1000;
+    return `YLDIQ-CL-${val}`;
   }
-  if (/^KFPL-CL-\d+$/i.test(str)) {
-    return str.toUpperCase();
-  }
-  const digitsMatch = str.match(/\d+/);
-  if (digitsMatch) {
-    let val = parseInt(digitsMatch[0], 10);
-    if (val < 1000) val = 1000 + val;
-    return `KFPL-CL-${val}`;
-  }
-  return 'KFPL-CL-1001';
+  return 'YLDIQ-CL-1001';
 };
 
 export default function PortfolioManagement() {
+  const [expandedCards, setExpandedCards] = useState({});
+  const toggleCardExpand = (id, e) => {
+    if (e) e.stopPropagation();
+    setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+  };
   const { addToast } = useToast();
   const { canCreate, canEdit, canDelete } = usePermissions();
   const fileInputRef = useRef(null);
@@ -1085,7 +1084,7 @@ export default function PortfolioManagement() {
         {/* Body */}
         <div className="kfpl-drawer-body kfpl-portfolio-drawer-body">
           <div className="kfpl-portfolio-drawer-visual" style={{
-            backgroundImage: drawerProject.bannerImg ? `linear-gradient(rgba(6, 29, 19, 0.5), rgba(6, 29, 19, 0.8)), url(${drawerProject.bannerImg})` : undefined,
+            backgroundImage: drawerProject.bannerImg ? `url(${drawerProject.bannerImg})` : undefined,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             position: 'relative'
@@ -1155,7 +1154,7 @@ export default function PortfolioManagement() {
           <div className="kfpl-portfolio-drawer-section">
             <h3>Latest Operational Update</h3>
             {drawerProject.update ? (
-              <div style={{ padding: '12px 14px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '8px' }}>
+              <div style={{ padding: '12px 14px', background: 'rgba(245, 168, 0, 0.08)', border: '1px solid rgba(245, 168, 0, 0.25)', borderRadius: '8px' }}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-success)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
@@ -1555,7 +1554,7 @@ export default function PortfolioManagement() {
       <div className="kfpl-page-header">
         <div className="kfpl-page-header-left">
           <h2 className="kfpl-page-title">Portfolio Management</h2>
-          <p className="kfpl-page-subtitle">Manage projects, segments, and media across the Kinetoscope portfolio</p>
+          <p className="kfpl-page-subtitle">Manage projects, segments, and media across the YieldIQ portfolio</p>
         </div>
         <div className="kfpl-page-header-actions" style={{ display: 'flex', gap: '8px' }}>
           <button className="kfpl-btn kfpl-btn--ghost kfpl-btn--sm" onClick={openSegmentsManager}>
@@ -1655,14 +1654,14 @@ export default function PortfolioManagement() {
                 No projects found in this segment
               </div>
             ) : filteredProjects.map(project => {
-              const accent = SEGMENT_COLORS[project.segment] || '#10B981';
+              const accent = SEGMENT_COLORS[project.segment] || '#F5A800';
               const initials = SEGMENT_ABBR[project.segment] || project.name.slice(0, 2).toUpperCase();
               return (
                 <div className="kfpl-portfolio-card" key={project.id} style={{ '--portfolio-accent': accent, cursor: 'pointer' }}
                   onClick={() => setDrawerProject(project)}
                 >
                   <div className="kfpl-portfolio-card-media" style={{
-                    backgroundImage: project.bannerImg ? `linear-gradient(rgba(6, 29, 19, 0.4), rgba(6, 29, 19, 0.8)), url(${project.bannerImg})` : undefined,
+                    backgroundImage: project.bannerImg ? `url(${project.bannerImg})` : undefined,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                   }}>
@@ -1684,7 +1683,20 @@ export default function PortfolioManagement() {
                     </div>
 
                     <h2>{project.name}</h2>
-                    <p>{project.summary}</p>
+                    <div className="kfpl-portfolio-card-desc-wrap">
+                      <p className={`kfpl-portfolio-card-desc ${expandedCards[project.id] ? 'expanded' : 'collapsed'}`}>
+                        {project.summary}
+                      </p>
+                      {project.summary && project.summary.length > 90 && (
+                        <button
+                          type="button"
+                          className="kfpl-accordion-toggle"
+                          onClick={(e) => toggleCardExpand(project.id, e)}
+                        >
+                          {expandedCards[project.id] ? '▲ Show Less' : '▼ Read More & Details'}
+                        </button>
+                      )}
+                    </div>
 
                     <div className="kfpl-portfolio-metrics">
                       <div>
@@ -1711,7 +1723,7 @@ export default function PortfolioManagement() {
 
                     {/* Latest Status Update Note */}
                     {project.update && (
-                      <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '8px' }}>
+                      <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(245, 168, 0, 0.08)', border: '1px solid rgba(245, 168, 0, 0.25)', borderRadius: '8px' }}>
                         <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 12, height: 12 }}>
                             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
@@ -2406,10 +2418,10 @@ export default function PortfolioManagement() {
                           alignItems: 'center',
                           gap: '6px',
                           padding: '4px 10px',
-                          background: 'rgba(16, 185, 129, 0.1)',
-                          border: '1px solid rgba(16, 185, 129, 0.25)',
+                          background: 'rgba(245, 168, 0, 0.12)',
+                          border: '1px solid rgba(245, 168, 0, 0.25)',
                           borderRadius: '16px',
-                          color: '#10B981',
+                          color: '#F5A800',
                           fontSize: '0.75rem',
                           fontWeight: 600
                         }}>

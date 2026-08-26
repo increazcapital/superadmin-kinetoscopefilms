@@ -116,7 +116,7 @@
 .kfpl-kpi-suffix {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #0F766E; /* Teal accent */
+  color: #123A78; /* Teal accent */
   background: rgba(15, 118, 110, 0.08); /* Soft teal tint */
   border: 1px solid rgba(15, 118, 110, 0.15);
   padding: 2px 6px;
@@ -182,7 +182,7 @@
 }
 
 .kfpl-kpi-icon.navy {
-  background: rgba(6, 29, 19, 0.08);
+  background: rgba(11, 31, 77, 0.08);
   color: var(--color-navy);
 }
 
@@ -213,12 +213,12 @@
 
 /* Gold variant KPI card */
 .kfpl-card--gold {
-  background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+  background: linear-gradient(135deg, #FFF8E7 0%, #FFE7A3 100%);
   border-color: var(--color-gold-light);
 }
 
 .kfpl-card--gold::before {
-  background: linear-gradient(90deg, var(--color-gold) 0%, #34D399 50%, var(--color-gold) 100%);
+  background: linear-gradient(90deg, var(--color-gold) 0%, #FFC83D 50%, var(--color-gold) 100%);
   opacity: 1;
 }
 
@@ -239,8 +239,8 @@
 .kfpl-badge--active,
 .kfpl-badge--approved,
 .kfpl-badge--paid {
-  background: #D1FAE5;
-  color: #065F46;
+  background: #FFF8E7;
+  color: #B45309;
 }
 
 .kfpl-badge--pending {
@@ -281,8 +281,8 @@
 }
 
 .kfpl-badge--conservative {
-  background: rgba(16, 185, 129, 0.1);
-  color: #065F46;
+  background: rgba(245, 168, 0, 0.12);
+  color: #B45309;
 }
 
 .kfpl-badge--moderate {
@@ -362,7 +362,7 @@
 
 .kfpl-btn--secondary:hover:not(:disabled) {
   background: var(--color-navy-light);
-  box-shadow: 0 4px 16px rgba(6, 29, 19, 0.25);
+  box-shadow: 0 4px 16px rgba(11, 31, 77, 0.25);
 }
 
 /* Ghost — Outlined */
@@ -375,7 +375,7 @@
 .kfpl-btn--ghost:hover:not(:disabled) {
   border-color: var(--color-navy);
   color: var(--color-navy);
-  background: rgba(6, 29, 19, 0.04);
+  background: rgba(11, 31, 77, 0.04);
 }
 
 /* Danger */
@@ -737,7 +737,7 @@
 .kfpl-tab.active {
   color: var(--color-white);
   background: var(--color-navy-light);
-  box-shadow: 0 4px 12px rgba(6, 29, 19, 0.15);
+  box-shadow: 0 4px 12px rgba(11, 31, 77, 0.15);
 }
 
 .kfpl-tab svg {
@@ -1055,7 +1055,7 @@
 .kfpl-status-card:hover {
   transform: translateY(-4px) scale(1.002);
   box-shadow: var(--shadow-card-hover);
-  border-color: rgba(6, 29, 19, 0.1);
+  border-color: rgba(11, 31, 77, 0.1);
 }
 
 /* Card Header Section */
@@ -1164,7 +1164,7 @@
   gap: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.6);
   border-right: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: inset 0 1px 2px rgba(6, 29, 19, 0.02);
+  box-shadow: inset 0 1px 2px rgba(11, 31, 77, 0.02);
 }
 
 .kfpl-status-bubble-header {
@@ -1281,14 +1281,14 @@
 
 .kfpl-media-card:hover {
   transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 4px 12px rgba(6, 29, 19, 0.08);
+  box-shadow: 0 4px 12px rgba(11, 31, 77, 0.08);
   border-color: var(--accent-color, var(--color-gold));
 }
 
 .kfpl-media-card-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(6, 29, 19, 0.4);
+  background: rgba(11, 31, 77, 0.4);
   opacity: 0;
   display: flex;
   align-items: center;

@@ -160,7 +160,7 @@ export default function ApprovalsQueue() {
           }
         }
         if (!cId || cId === '—') {
-          cId = isAgent ? 'KFPL-AG-1001' : 'KFPL-CL-1001';
+          cId = isAgent ? 'YLDIQ-AG-1001' : 'YLDIQ-CL-1001';
         }
 
         const bDetails = item.bankDetails || {};
@@ -543,7 +543,7 @@ export default function ApprovalsQueue() {
       {/* Queue Items */}
       {currentItems.length === 0 ? (
         <div className="kfpl-empty" style={{ background: '#fff', borderRadius: '12px', padding: '48px', border: '1px solid var(--color-border-light)' }}>
-          <div className="kfpl-empty-icon" style={{ background: 'rgba(16, 185, 129, 0.08)', color: 'var(--color-success)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+          <div className="kfpl-empty-icon" style={{ background: 'rgba(245, 168, 0, 0.08)', color: 'var(--color-success)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
             {icons.check}
           </div>
           <h3 className="kfpl-empty-title" style={{ fontSize: '1.1rem', fontWeight: '700' }}>All caught up!</h3>
@@ -795,7 +795,7 @@ export default function ApprovalsQueue() {
                           <div className="kfpl-verify-field-row">
                             <div className="kfpl-verify-field" style={{ textAlign: 'left' }}>
                               <span className="kfpl-verify-field-label">Payment Mode</span>
-                              <span className="kfpl-verify-field-value" style={{ fontWeight: 700, color: (modal.item.mode || '').includes('UPI') ? '#059669' : 'inherit' }}>
+                              <span className="kfpl-verify-field-value" style={{ fontWeight: 700, color: (modal.item.mode || '').includes('UPI') ? '#F5A800' : 'inherit' }}>
                                 {(modal.item.mode || '').includes('UPI') ? '⚡ UPI Transfer' : (modal.item.mode || 'Bank Transfer')}
                               </span>
                             </div>
@@ -918,7 +918,7 @@ export default function ApprovalsQueue() {
                                     <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'flex', gap: '6px', marginTop: '2px' }}>
                                       <span>{file.size}</span>
                                       <span>•</span>
-                                      <span style={{ textTransform: 'uppercase', fontWeight: 600, color: '#059669' }}>{hasFileUrl ? (isImage ? 'IMAGE' : (isPdf ? 'PDF' : 'DOC')) : 'SYSTEM SLIP'}</span>
+                                      <span style={{ textTransform: 'uppercase', fontWeight: 600, color: '#F5A800' }}>{hasFileUrl ? (isImage ? 'IMAGE' : (isPdf ? 'PDF' : 'DOC')) : 'SYSTEM SLIP'}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -936,12 +936,12 @@ export default function ApprovalsQueue() {
                                         padding: '6px 12px',
                                         fontSize: '0.78rem',
                                         fontWeight: 700,
-                                        background: '#10B981',
+                                        background: '#F5A800',
                                         color: '#ffffff',
                                         borderRadius: '6px',
                                         textDecoration: 'none',
                                         whiteSpace: 'nowrap',
-                                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
+                                        boxShadow: '0 2px 6px rgba(245, 168, 0, 0.25)',
                                         transition: 'all 0.2s ease'
                                       }}
                                       title="Open Document in New Window"
@@ -999,8 +999,8 @@ export default function ApprovalsQueue() {
                               ) : hasFileUrl ? (
                                 /* Generic File Link Card */
                                 <div style={{
-                                  background: '#F0FDF4',
-                                  border: '1.5px solid #10B981',
+                                  background: '#FFF8E7',
+                                  border: '1.5px solid #F5A800',
                                   borderRadius: '8px',
                                   padding: '24px',
                                   display: 'flex',
@@ -1010,11 +1010,11 @@ export default function ApprovalsQueue() {
                                   flexGrow: 1,
                                   textAlign: 'center'
                                 }}>
-                                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                  <h4 style={{ margin: '12px 0 6px 0', fontSize: '0.95rem', color: '#166534', fontWeight: 700 }}>
+                                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#F5A800" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                  <h4 style={{ margin: '12px 0 6px 0', fontSize: '0.95rem', color: '#123A78', fontWeight: 700 }}>
                                     Uploaded Payment Proof Attached
                                   </h4>
-                                  <p style={{ fontSize: '0.8rem', color: '#15803D', margin: '0 0 16px 0' }}>
+                                  <p style={{ fontSize: '0.8rem', color: '#B45309', margin: '0 0 16px 0' }}>
                                     Client submitted proof document for verification.
                                   </p>
                                   <a
@@ -1022,7 +1022,7 @@ export default function ApprovalsQueue() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     style={{
-                                      background: '#10B981',
+                                      background: '#F5A800',
                                       color: '#fff',
                                       padding: '10px 18px',
                                       borderRadius: '6px',
@@ -1050,7 +1050,7 @@ export default function ApprovalsQueue() {
                                   <div className="kfpl-receipt-mockup" style={{ width: '100%', fontFamily: 'monospace' }}>
                                     <div className="kfpl-receipt-mockup-header">
                                       <div className="kfpl-receipt-mockup-title">BANK TRANSACTION SLIP</div>
-                                      <div className="kfpl-receipt-mockup-bank">Kinetoscope Films Production Pvt Ltd.</div>
+                                      <div className="kfpl-receipt-mockup-bank">YieldIQ</div>
                                     </div>
                                     <div className="kfpl-receipt-mockup-row">
                                       <span className="kfpl-receipt-mockup-label">Sender:</span>
@@ -1130,20 +1130,20 @@ export default function ApprovalsQueue() {
                         {/* Highlighted UPI Payout Destination Card if UPI ID is present */}
                         {resolvedUpiId && (
                           <div style={{
-                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.16) 100%)',
-                            border: '1.5px solid rgba(16, 185, 129, 0.45)',
+                            background: 'linear-gradient(135deg, rgba(245, 168, 0, 0.12) 0%, rgba(245, 168, 0, 0.16) 100%)',
+                            border: '1.5px solid rgba(245, 168, 0, 0.45)',
                             borderRadius: '14px',
                             padding: '16px 18px',
                             display: 'flex',
                             flexDirection: 'column',
                             gap: '10px',
-                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.12)'
+                            boxShadow: '0 4px 14px rgba(245, 168, 0, 0.12)'
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#047857', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', color: '#D48F00', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 <span>⚡</span> Requested UPI ID / VPA
                               </span>
-                              <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: '12px' }}>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#FFF8E7', color: '#B45309', padding: '2px 8px', borderRadius: '12px' }}>
                                 DIRECT PAYOUT
                               </span>
                             </div>
@@ -1153,7 +1153,7 @@ export default function ApprovalsQueue() {
                                 fontFamily: 'monospace',
                                 fontSize: '1.15rem',
                                 fontWeight: 800,
-                                color: '#065F46',
+                                color: '#B45309',
                                 letterSpacing: '0.03em',
                                 wordBreak: 'break-all'
                               }}>
@@ -1167,10 +1167,10 @@ export default function ApprovalsQueue() {
                                   fontSize: '0.78rem',
                                   fontWeight: 700,
                                   flexShrink: 0,
-                                  background: '#059669',
+                                  background: '#F5A800',
                                   color: '#ffffff',
                                   borderRadius: '8px',
-                                  boxShadow: '0 2px 8px rgba(5, 150, 105, 0.3)'
+                                  boxShadow: '0 2px 8px rgba(245, 168, 0, 0.3)'
                                 }}
                                 onClick={() => {
                                   navigator.clipboard.writeText(resolvedUpiId);
@@ -1180,7 +1180,7 @@ export default function ApprovalsQueue() {
                                 Copy UPI ID
                               </button>
                             </div>
-                            <div style={{ fontSize: '0.74rem', color: '#047857', marginTop: '-2px' }}>
+                            <div style={{ fontSize: '0.74rem', color: '#D48F00', marginTop: '-2px' }}>
                               ✓ Approved payouts can be transferred directly to this UPI address.
                             </div>
                           </div>

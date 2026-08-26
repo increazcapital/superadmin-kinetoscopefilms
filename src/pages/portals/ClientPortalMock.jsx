@@ -49,16 +49,16 @@ export default function ClientPortalMock() {
             
             const formatClientID = (rawId) => {
               if (!rawId || rawId === '—') return '—';
-              if (rawId.startsWith('KFPL-CL-')) return rawId;
+              if ((rawId.startsWith('YIQ-CL-') || rawId.startsWith('KFPL-CL-'))) return rawId;
               const digits = rawId.match(/\d+/);
               if (digits) {
                 let val = parseInt(digits[0], 10);
                 if (val < 1000) {
                   val = 1000 + val;
                 }
-                return `KFPL-CL-${val}`;
+                return `YLDIQ-CL-${val}`;
               }
-              return 'KFPL-CL-1001';
+              return 'YLDIQ-CL-1001';
             };
 
             const cleanCode = user.clientCode || c.clientCode || header.clientCode || profile.clientCode || c.clientId || profile.clientId || user._id || c._id || fallbackCode;

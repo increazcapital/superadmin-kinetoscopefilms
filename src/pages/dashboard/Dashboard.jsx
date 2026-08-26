@@ -20,16 +20,15 @@ import { formatCurrency, formatNumber } from '../../utils/formatters';
 import { getAuthUser } from '../../utils/authStorage';
 
 const formatClientID = (rawId) => {
-  if (!rawId || rawId === '—') return '—';
+  if (!rawId || rawId === '—' || rawId === 'undefined' || rawId === 'null') return 'YLDIQ-CL-1001';
   const str = String(rawId).trim();
-  if (str.toUpperCase().startsWith('KFPL-CL-')) return str.toUpperCase();
-  const digitsMatch = str.match(/\d+/);
-  if (digitsMatch) {
-    let val = parseInt(digitsMatch[0], 10);
-    if (val < 1000) val = 1000 + val;
-    return `KFPL-CL-${val}`;
+  const m = str.match(/(?:CL[-_ ]*)+(\d+)/i) || str.match(/(\d+)/);
+  if (m && m[1]) {
+    let val = parseInt(m[1], 10);
+    if (val < 1000) val += 1000;
+    return `YLDIQ-CL-${val}`;
   }
-  return 'KFPL-CL-1001';
+  return 'YLDIQ-CL-1001';
 };
 
 // ── KPI Icons (SVG) ───────────────────────
@@ -53,7 +52,7 @@ const activityIcons = {
   danger: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
 };
 
-const SEGMENT_COLORS = ['#10B981', '#1565C0', '#2E7D32', '#E65100', '#7B1FA2', '#00838F'];
+const SEGMENT_COLORS = ['#F5A800', '#1565C0', '#2E7D32', '#E65100', '#7B1FA2', '#00838F'];
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -76,7 +75,7 @@ export default function Dashboard() {
     { label: 'Add Client', subtitle: 'Onboard new client', route: '/clients/add', color: '#0E7490', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg> },
     { label: 'Approvals', subtitle: `${stats.pendingApprovals} pending`, route: '/approvals', color: '#C62828', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> },
     { label: 'Add Agent', subtitle: 'Register agent', route: '/agents/add', color: '#1565C0', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> },
-    { label: 'Assign Investment', subtitle: 'Map to client', route: '/investments/assign', color: '#10B981', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> },
+    { label: 'Assign Investment', subtitle: 'Map to client', route: '/investments/assign', color: '#F5A800', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> },
     { label: 'Mark ROI Paid', subtitle: 'Process returns', route: '/roi', color: '#2E7D32', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
     { label: 'Post Update', subtitle: 'Status updates', route: '/investment-status', color: '#7B1FA2', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
   ];
@@ -235,7 +234,7 @@ export default function Dashboard() {
             const totalStatus = statusCounts.Active + statusCounts.Pending + statusCounts.Closed;
             if (totalStatus > 0) {
               computedInvestmentStatus = [
-                { status: 'Active', count: statusCounts.Active, percentage: Math.round((statusCounts.Active / totalStatus) * 100), color: '#10B981' },
+                { status: 'Active', count: statusCounts.Active, percentage: Math.round((statusCounts.Active / totalStatus) * 100), color: '#F5A800' },
                 { status: 'Pending', count: statusCounts.Pending, percentage: Math.round((statusCounts.Pending / totalStatus) * 100), color: '#F59E0B' },
                 { status: 'Closed', count: statusCounts.Closed, percentage: Math.round((statusCounts.Closed / totalStatus) * 100), color: '#EF4444' }
               ];
@@ -420,7 +419,7 @@ export default function Dashboard() {
           const cls = invStat.closed || invStat.closedInvestments || 0;
           const tot = act + pend + cls;
           setInvestmentStatus([
-            { status: 'Active', count: act, percentage: tot > 0 ? Math.round((act / tot) * 100) : 0, color: '#10B981' },
+            { status: 'Active', count: act, percentage: tot > 0 ? Math.round((act / tot) * 100) : 0, color: '#F5A800' },
             { status: 'Pending', count: pend, percentage: tot > 0 ? Math.round((pend / tot) * 100) : 0, color: '#F59E0B' },
             { status: 'Closed', count: cls, percentage: tot > 0 ? Math.round((cls / tot) * 100) : 0, color: '#EF4444' }
           ]);
@@ -803,7 +802,7 @@ export default function Dashboard() {
             <Badge status="gold">Active</Badge>
           </div>
           <div className="kfpl-chart-body" style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-            <LineChart data={roiTrend} height={220} color="#10B981" />
+            <LineChart data={roiTrend} height={220} color="#F5A800" />
           </div>
         </div>
 

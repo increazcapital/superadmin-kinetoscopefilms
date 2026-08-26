@@ -772,14 +772,14 @@ export default function Header({ isCollapsed, onMenuClick }) {
                     {/* Projects Section */}
                     {searchResults.projects && searchResults.projects.length > 0 && (
                       <div>
-                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#059669', letterSpacing: '0.5px' }}>Projects & Funds ({searchResults.projects.length})</div>
+                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#F5A800', letterSpacing: '0.5px' }}>Projects & Funds ({searchResults.projects.length})</div>
                         {searchResults.projects.map(p => (
                           <div 
                             key={'sp-' + (p._id || p.id)} 
                             className="kfpl-dropdown-list-item"
                             onClick={() => { navigate('/projects'); setShowSearchDropdown(false); }}
                           >
-                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669' }}></span>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F5A800' }}></span>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-navy)' }}>{p.name}</span>
                               <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Segment: {p.segment || 'Film Fund'}</span>
@@ -812,14 +812,14 @@ export default function Header({ isCollapsed, onMenuClick }) {
                     {/* Transactions & Amounts Section */}
                     {searchResults.transactions && searchResults.transactions.length > 0 && (
                       <div>
-                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#16a34a', letterSpacing: '0.5px' }}>Transactions & Amounts ({searchResults.transactions.length})</div>
+                        <div style={{ background: '#f8fafc', padding: '6px 14px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#D48F00', letterSpacing: '0.5px' }}>Transactions & Amounts ({searchResults.transactions.length})</div>
                         {searchResults.transactions.map((tx, idx) => (
                           <div 
                             key={'stx-' + (tx._id || tx.id || idx)} 
                             className="kfpl-dropdown-list-item"
                             onClick={() => { navigate('/approvals'); setShowSearchDropdown(false); }}
                           >
-                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a' }}></span>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#D48F00' }}></span>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-navy)' }}>₹{tx.amount?.toLocaleString('en-IN') || tx.amount} • {(tx.type || 'Transaction').toUpperCase()}</span>
                               <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Client: {tx.investorName || tx.clientName || tx.clientCode || 'Investor'} • Ref: {tx.referenceNumber || tx.paymentMethod || 'N/A'}</span>
@@ -921,7 +921,7 @@ export default function Header({ isCollapsed, onMenuClick }) {
                   {notifications.some(n => !n.isRead) && (
                     <button 
                       onClick={(e) => { e.stopPropagation(); markAllNotificationsAsRead(); }}
-                      style={{ background: 'none', border: 'none', color: '#10B981', fontSize: '0.725rem', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+                      style={{ background: 'none', border: 'none', color: '#F5A800', fontSize: '0.725rem', cursor: 'pointer', fontWeight: 600, padding: 0 }}
                     >
                       Mark all read
                     </button>
@@ -947,20 +947,20 @@ export default function Header({ isCollapsed, onMenuClick }) {
                 ) : (
                   notifications.map(n => {
                     const badgeBg = 
-                      n.type === 'deposit' ? '#dcfce7' :
+                      n.type === 'deposit' ? '#FFF8E7' :
                       n.type === 'withdrawal' ? '#fee2e2' :
                       n.type === 'service' ? '#fef3c7' :
                       n.type === 'client' ? '#e0f2fe' :
                       n.type === 'agent' ? '#f3e8ff' :
-                      n.type === 'project' ? '#ecfdf5' :
+                      n.type === 'project' ? '#FFF8E7' :
                       n.type === 'news' ? '#eff6ff' : '#fef2f2';
                     const badgeColor = 
-                      n.type === 'deposit' ? '#166534' :
+                      n.type === 'deposit' ? '#123A78' :
                       n.type === 'withdrawal' ? '#991b1b' :
                       n.type === 'service' ? '#b45309' :
                       n.type === 'client' ? '#0284c7' :
                       n.type === 'agent' ? '#6b21a8' :
-                      n.type === 'project' ? '#047857' :
+                      n.type === 'project' ? '#D48F00' :
                       n.type === 'news' ? '#1d4ed8' : '#b91c1c';
                     const badgeLetter = 
                       n.type === 'deposit' ? '₹' :

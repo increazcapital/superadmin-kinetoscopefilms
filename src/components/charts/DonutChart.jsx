@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 
-const SEGMENT_COLORS = ['#10B981', '#1565C0', '#2E7D32', '#E65100', '#7B1FA2', '#00838F'];
+const SEGMENT_COLORS = ['#F5A800', '#1565C0', '#2E7D32', '#E65100', '#7B1FA2', '#00838F'];
 
 export default function DonutChart({ data, size = 200, strokeWidth = 32 }) {
   if (!data || data.length === 0) {

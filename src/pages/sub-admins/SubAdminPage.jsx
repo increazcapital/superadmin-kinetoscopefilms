@@ -399,7 +399,7 @@ function StatusBadge({ isActive }) {
       borderRadius: 'var(--radius-full)', fontSize: '0.75rem', fontWeight: 700,
       background: isActive ? 'var(--color-success-bg)' : 'rgba(100,116,139,0.1)',
       color: isActive ? 'var(--color-success)' : 'var(--color-text-muted)',
-      border: `1px solid ${isActive ? 'rgba(16,185,129,0.25)' : 'var(--color-border)'}`,
+      border: `1px solid ${isActive ? 'rgba(245, 168, 0, 0.25)' : 'var(--color-border)'}`,
     }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
       {isActive ? 'Active' : 'Inactive'}
@@ -416,7 +416,7 @@ function PermissionSummary({ permissions }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
       background: 'var(--color-gold-glow)', color: 'var(--color-gold-dark)',
-      border: '1px solid rgba(16,185,129,0.2)', borderRadius: 'var(--radius-full)',
+      border: '1px solid rgba(245, 168, 0, 0.2)', borderRadius: 'var(--radius-full)',
       fontSize: '0.75rem', fontWeight: 600, padding: '2px 10px',
     }}>
       {granted.length} module{granted.length > 1 ? 's' : ''} granted

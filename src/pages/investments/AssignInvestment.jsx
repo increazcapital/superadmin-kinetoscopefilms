@@ -118,12 +118,12 @@ export default function AssignInvestment() {
           name: s.name || '',
           color: s.color || '#10B981'
         })) : [
-          { id: 'film-making', name: 'Film Making', color: '#10B981' },
-          { id: 'distribution', name: 'Distribution', color: '#10B981' },
-          { id: 'music', name: 'Music', color: '#10B981' },
-          { id: 'trading-&-syndication', name: 'Trading & Syndication', color: '#10B981' },
-          { id: 'content-ip-bank', name: 'Content IP Bank', color: '#10B981' },
-          { id: 'exhibition', name: 'Exhibition', color: '#10B981' },
+          { id: 'film-making', name: 'Film Making', color: '#F5A800' },
+          { id: 'distribution', name: 'Distribution', color: '#F5A800' },
+          { id: 'music', name: 'Music', color: '#F5A800' },
+          { id: 'trading-&-syndication', name: 'Trading & Syndication', color: '#F5A800' },
+          { id: 'content-ip-bank', name: 'Content IP Bank', color: '#F5A800' },
+          { id: 'exhibition', name: 'Exhibition', color: '#F5A800' },
         ];
         setSegments(mappedSegments);
 
@@ -656,7 +656,7 @@ export default function AssignInvestment() {
                 />
                 {selectedClientInfo && (
                   selectedClientInfo.depositAmount > 0 ? (
-                    <span style={{ color: '#10B981', fontSize: '0.78rem', fontWeight: 700, marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ color: '#F5A800', fontSize: '0.78rem', fontWeight: 700, marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                       Capital Deposited: ₹{Number(selectedClientInfo.depositAmount).toLocaleString('en-IN')}
                     </span>
@@ -718,7 +718,7 @@ export default function AssignInvestment() {
                         padding: '14px',
                         borderRadius: '8px',
                         border: isSelected ? '1px solid var(--color-emerald)' : '1px solid var(--color-border)',
-                        background: isSelected ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface)',
+                        background: isSelected ? 'rgba(245, 168, 0, 0.04)' : 'var(--color-surface)',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',

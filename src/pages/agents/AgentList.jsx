@@ -108,16 +108,14 @@ export default function AgentList() {
   const formatAgentID = (rawId) => {
     if (!rawId || rawId === '—') return '—';
     const str = String(rawId).trim();
-    if (str.toUpperCase().startsWith('KFPL-AG-') || str.toUpperCase().startsWith('KFPL-AGT-')) {
-      return str.toUpperCase().replace('KFPL-AGT-', 'KFPL-AG-');
-    }
+    // Normalize KFPL / YIQ to dynamic YLDIQ prefix
     const digits = str.match(/\d+/);
     if (digits) {
       let val = parseInt(digits[0], 10);
       if (val < 1000) {
         val = 1000 + val;
       }
-      return `KFPL-AG-${val}`;
+      return `YLDIQ-AG-${val}`;
     }
     return '—';
   };
@@ -287,8 +285,8 @@ export default function AgentList() {
                 navigate(`/agents/${row._id || row.id}/clients`);
               }}
               style={{
-                background: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
+                background: 'rgba(245, 168, 0, 0.12)',
+                border: '1px solid rgba(245, 168, 0, 0.3)',
                 padding: '4px 10px',
                 borderRadius: '6px',
                 color: 'var(--color-gold-dark)',
@@ -310,7 +308,7 @@ export default function AgentList() {
     },
     {
       header: 'Commission Paid',
-      render: (row) => <span style={{ fontWeight: 600, color: '#10b981' }}>{formatCurrency(row.commissionPaid || 0)}</span>,
+      render: (row) => <span style={{ fontWeight: 600, color: '#F5A800' }}>{formatCurrency(row.commissionPaid || 0)}</span>,
     },
     {
       header: 'Status',

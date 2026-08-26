@@ -200,6 +200,99 @@ export default function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileC
   const [unresolvedCount, setUnresolvedCount] = useState(0);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
 
+  // Dynamic Branding State with Instant Live Sync
+  const [branding, setBranding] = useState(() => {
+    try {
+      const cached = localStorage.getItem('yieldiq_branding');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return {
+          companyName: parsed.companyName || 'YIELDIQ',
+          tagline: parsed.tagline || '',
+          logoUrl: parsed.logoUrl || '/logokfpl.jpeg',
+        };
+      }
+    } catch (e) {}
+    return {
+      companyName: 'YIELDIQ',
+      tagline: '',
+      logoUrl: '/logokfpl.jpeg',
+    };
+  });
+
+  // Real-time live branding sync engine
+  useEffect(() => {
+    const applyBranding = (data) => {
+      if (!data) return;
+      setBranding({
+        companyName: data.companyName || 'YIELDIQ',
+        tagline: data.tagline || '',
+        logoUrl: data.logoUrl || '/logokfpl.jpeg',
+      });
+      if (data.faviconUrl) {
+        const link = document.querySelector("link[rel*='icon']");
+        if (link) link.href = data.faviconUrl;
+      }
+    };
+
+    const fetchBranding = async () => {
+      try {
+        const res = await fetch(getApiUrl('/api/system-settings/branding'));
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data) {
+            applyBranding(data.data);
+          }
+        }
+      } catch (err) {}
+    };
+
+    fetchBranding();
+
+    // 1. BroadcastChannel for cross-tab instant messaging
+    let bc = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      bc = new BroadcastChannel('yieldiq_branding_channel');
+      bc.onmessage = (event) => {
+        if (event.data?.type === 'BRANDING_UPDATED') {
+          applyBranding(event.data.data);
+        }
+      };
+    }
+
+    // 2. Local custom event
+    const handleCustomEvent = (e) => {
+      if (e.detail) applyBranding(e.detail);
+    };
+    window.addEventListener('yieldiq_branding_updated', handleCustomEvent);
+
+    // 3. Storage event for cross-tab sync
+    const handleStorage = (e) => {
+      if (e.key === 'yieldiq_branding_updated' || e.key === 'yieldiq_branding') {
+        try {
+          const stored = localStorage.getItem('yieldiq_branding');
+          if (stored) applyBranding(JSON.parse(stored));
+          else fetchBranding();
+        } catch (err) {
+          fetchBranding();
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 4. On tab focus & short background polling interval (3s)
+    window.addEventListener('focus', fetchBranding);
+    const pollInterval = setInterval(fetchBranding, 3000);
+
+    return () => {
+      if (bc) bc.close();
+      window.removeEventListener('yieldiq_branding_updated', handleCustomEvent);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', fetchBranding);
+      clearInterval(pollInterval);
+    };
+  }, []);
+
   // Read role & permissions from localStorage
   const { role, permissions } = useMemo(() => getAuthInfo(), []);
   const isSuperAdmin = role === 'super-admin';
@@ -334,6 +427,8 @@ export default function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileC
     window.location.href = '/login';
   };
 
+  const displayName = branding.companyName.toUpperCase();
+
   return (
     <>
       {/* Mobile overlay */}
@@ -346,16 +441,28 @@ export default function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileC
         {/* Logo */}
         <div className="kfpl-sidebar-logo">
           <div className="kfpl-sidebar-logo-icon" style={{ background: '#f8fafc', padding: '3px', width: '40px', height: '40px', minWidth: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0', flexShrink: 0 }}>
-            <img src="/logokfpl.jpeg" alt="KFPL Logo" style={{ width: '100%', height: '100%', borderRadius: '7px', objectFit: 'contain', display: 'block' }} />
+            <img src={branding.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', borderRadius: '7px', objectFit: 'contain', display: 'block' }} />
           </div>
           <div className="kfpl-sidebar-logo-text" style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
             <div className="kfpl-sidebar-marquee-wrapper">
               <div className="kfpl-sidebar-marquee-track">
-                <span>KINETOSCOPE FILMS PVT LTD &nbsp;&nbsp;&bull;&nbsp;&nbsp;&nbsp;</span>
-                <span>KINETOSCOPE FILMS PVT LTD &nbsp;&nbsp;&bull;&nbsp;&nbsp;&nbsp;</span>
+                <div className="kfpl-marquee-group">
+                  <span>{displayName}</span>
+                  <span className="kfpl-marquee-dot">&bull;</span>
+                  <span>{displayName}</span>
+                  <span className="kfpl-marquee-dot">&bull;</span>
+                </div>
+                <div className="kfpl-marquee-group" aria-hidden="true">
+                  <span>{displayName}</span>
+                  <span className="kfpl-marquee-dot">&bull;</span>
+                  <span>{displayName}</span>
+                  <span className="kfpl-marquee-dot">&bull;</span>
+                </div>
               </div>
             </div>
-            <span className="kfpl-sidebar-logo-tagline" style={{ fontSize: '9px', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.8px', marginTop: '1px', display: 'block', fontWeight: '700' }}>A Global Media Fund</span>
+            {branding.tagline ? (
+              <span className="kfpl-sidebar-logo-tagline" style={{ fontSize: '9.5px', color: '#F5A800', textTransform: 'uppercase', letterSpacing: '0.8px', marginTop: '1px', display: 'block', fontWeight: '700' }}>{branding.tagline}</span>
+            ) : null}
             <span className="kfpl-sidebar-logo-subtitle">{isSuperAdmin ? 'SUPER ADMIN PANEL' : 'SUB ADMIN PANEL'}</span>
           </div>
         </div>
@@ -416,14 +523,14 @@ export default function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileC
             left: tooltip.left,
             transform: 'translateY(-50%)',
             background: '#FFFFFF',
-            color: '#10B981',
+            color: '#F5A800',
             padding: '6px 14px',
             borderRadius: '8px',
             fontSize: '0.8125rem',
             fontWeight: 700,
             whiteSpace: 'nowrap',
             boxShadow: '0 4px 18px rgba(0, 0, 0, 0.15)',
-            border: '1px solid rgba(16, 185, 129, 0.18)',
+            border: '1px solid rgba(245, 168, 0, 0.18)',
             zIndex: 99999999,
             pointerEvents: 'none',
             letterSpacing: '0.3px',
@@ -438,3 +545,4 @@ export default function Sidebar({ isCollapsed, onToggle, isMobileOpen, onMobileC
 }
 
 /* ============ END: Sidebar.jsx ============ */
+

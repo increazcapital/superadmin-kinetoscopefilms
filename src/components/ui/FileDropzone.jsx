@@ -104,7 +104,7 @@ export default function FileDropzone({ onFilesChange, multiple = false, label = 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <div style={{ fontSize: '0.8125rem', fontWeight: '700', color: 'var(--color-navy)' }}>{label}</div>
         {existingFileUrl && files.length === 0 && (
-          <span style={{ fontSize: '0.7rem', color: '#16A34A', fontWeight: '700', background: '#DCFCE7', padding: '2px 8px', borderRadius: '12px', border: '1px solid #BBF7D0' }}>
+          <span style={{ fontSize: '0.7rem', color: '#D48F00', fontWeight: '700', background: '#FFF8E7', padding: '2px 8px', borderRadius: '12px', border: '1px solid #FFE7A3' }}>
             ✓ File Uploaded
           </span>
         )}
@@ -207,7 +207,7 @@ export default function FileDropzone({ onFilesChange, multiple = false, label = 
             const isImage = file.type.startsWith('image/');
             const previewBlobUrl = isImage ? URL.createObjectURL(file) : null;
             return (
-              <div key={`${file.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: '#FFFFFF', borderRadius: '6px', border: '1px solid #10B981' }}>
+              <div key={`${file.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: '#FFFFFF', borderRadius: '6px', border: '1px solid #F5A800' }}>
                 {isImage && previewBlobUrl ? (
                   <img src={previewBlobUrl} alt="Preview" style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px' }} />
                 ) : (

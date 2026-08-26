@@ -16,34 +16,27 @@ import Modal from '../../components/ui/Modal';
 import { getAuthToken } from '../../utils/authStorage';
 import SensitiveValueToggle from '../../components/common/SensitiveValueToggle';
 const formatAgentID = (rawId) => {
-  if (!rawId || rawId === '—') return '—';
+  if (!rawId || rawId === '—' || rawId === 'undefined' || rawId === 'null') return 'YLDIQ-AG-1001';
   const str = String(rawId).trim();
-  if (str.toUpperCase().startsWith('KFPL-AG-') || str.toUpperCase().startsWith('KFPL-AGT-')) {
-    return str.toUpperCase().replace('KFPL-AGT-', 'KFPL-AG-');
+  const m = str.match(/(?:AG|AGT)[-_ ]*(\d+)/i) || str.match(/(\d+)/);
+  if (m && m[1]) {
+    let val = parseInt(m[1], 10);
+    if (val < 1000) val += 1000;
+    return `YLDIQ-AG-${val}`;
   }
-  const digits = str.match(/\d+/);
-  if (digits) {
-    let val = parseInt(digits[0], 10);
-    if (val < 1000) {
-      val = 1000 + val;
-    }
-    return `KFPL-AG-${val}`;
-  }
-  return '—';
+  return 'YLDIQ-AG-1001';
 };
 
 const formatClientID = (rawId) => {
-  if (!rawId || rawId === '—') return '—';
-  if (rawId.startsWith('KFPL-CL-')) return rawId;
-  const digits = rawId.match(/\d+/);
-  if (digits) {
-    let val = parseInt(digits[0], 10);
-    if (val < 1000) {
-      val = 1000 + val;
-    }
-    return `KFPL-CL-${val}`;
+  if (!rawId || rawId === '—' || rawId === 'undefined' || rawId === 'null') return 'YLDIQ-CL-1001';
+  const str = String(rawId).trim();
+  const m = str.match(/(?:CL[-_ ]*)+(\d+)/i) || str.match(/(\d+)/);
+  if (m && m[1]) {
+    let val = parseInt(m[1], 10);
+    if (val < 1000) val += 1000;
+    return `YLDIQ-CL-${val}`;
   }
-  return 'KFPL-CL-1001';
+  return 'YLDIQ-CL-1001';
 };
 
 /* ── helpers ─────────────────────── */
@@ -141,15 +134,15 @@ function downloadStatementPDF(com, agentName, agentClients = []) {
     const isSpecial = comType === 'special' || comType === 'override' || comType === 'special override';
     return `
       <tr>
-        <td style="border: 1px solid #CFDDD5; padding: 10px; font-weight: 500;">${b.clientName}</td>
-        <td style="border: 1px solid #CFDDD5; padding: 10px; font-family: monospace;">${b.clientId}</td>
-        <td style="border: 1px solid #CFDDD5; padding: 10px; text-align: center;">${invDateStr}</td>
-        <td style="border: 1px solid #CFDDD5; padding: 10px; text-align: center;">
-          <span style="display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; ${isOneTime ? 'background: #DBEAFE; color: #1E40AF;' : isSpecial ? 'background: #FEF3C7; color: #92400E;' : 'background: #D1FAE5; color: #065F46;'}">${isOneTime ? 'One Time' : isSpecial ? 'Special' : 'Monthly'}</span>
+        <td style="border: 1px solid #D0D8E4; padding: 10px; font-weight: 500;">${b.clientName}</td>
+        <td style="border: 1px solid #D0D8E4; padding: 10px; font-family: monospace;">${b.clientId}</td>
+        <td style="border: 1px solid #D0D8E4; padding: 10px; text-align: center;">${invDateStr}</td>
+        <td style="border: 1px solid #D0D8E4; padding: 10px; text-align: center;">
+          <span style="display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; ${isOneTime ? 'background: #DBEAFE; color: #1E40AF;' : isSpecial ? 'background: #FEF3C7; color: #92400E;' : 'background: #FFF8E7; color: #B45309;'}">${isOneTime ? 'One Time' : isSpecial ? 'Special' : 'Monthly'}</span>
         </td>
-        <td style="border: 1px solid #CFDDD5; padding: 10px; text-align: right; font-weight: 600;">${formatCurrency(b.investment)}</td>
-        <td style="border: 1px solid #CFDDD5; padding: 10px; text-align: right;">${b.rate}%</td>
-        <td style="border: 1px solid #CFDDD5; padding: 10px; text-align: right; font-weight: bold; color: #059669;">${formatCurrency(b.amount)}</td>
+        <td style="border: 1px solid #D0D8E4; padding: 10px; text-align: right; font-weight: 600;">${formatCurrency(b.investment)}</td>
+        <td style="border: 1px solid #D0D8E4; padding: 10px; text-align: right;">${b.rate}%</td>
+        <td style="border: 1px solid #D0D8E4; padding: 10px; text-align: right; font-weight: bold; color: #F5A800;">${formatCurrency(b.amount)}</td>
       </tr>
     `;
   }).join('');
@@ -161,20 +154,20 @@ function downloadStatementPDF(com, agentName, agentClients = []) {
       <title>Commission Statement - ${com.month} - ${agentName}</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #11221A; background-color: #FFFFFF; padding: 40px; margin: 0; }
-        .header { margin-bottom: 30px; border-bottom: 3px solid #10B981; padding-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .title { font-size: 28px; font-weight: 800; color: #061D13; margin: 0; text-transform: uppercase; letter-spacing: -0.5px; }
-        .meta-info { margin-bottom: 30px; background-color: #F3F7F5; border: 1px solid #CFDDD5; border-radius: 12px; padding: 20px; }
+        body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #0B1F4D; background-color: #FFFFFF; padding: 40px; margin: 0; }
+        .header { margin-bottom: 30px; border-bottom: 3px solid #F5A800; padding-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .title { font-size: 28px; font-weight: 800; color: #0B1F4D; margin: 0; text-transform: uppercase; letter-spacing: -0.5px; }
+        .meta-info { margin-bottom: 30px; background-color: #F7F8FA; border: 1px solid #D0D8E4; border-radius: 12px; padding: 20px; }
         .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-        .meta-item { display: flex; justify-content: space-between; border-bottom: 1px solid #E2ECE7; padding-bottom: 6px; font-size: 14px; }
-        .meta-label { font-weight: 600; color: #6D7E75; }
-        .meta-val { font-weight: 700; color: #11221A; }
-        .section-title { font-size: 18px; font-weight: 700; color: #061D13; margin-top: 40px; margin-bottom: 14px; border-bottom: 1.5px solid #CFDDD5; padding-bottom: 6px; }
+        .meta-item { display: flex; justify-content: space-between; border-bottom: 1px solid #E4E9F1; padding-bottom: 6px; font-size: 14px; }
+        .meta-label { font-weight: 600; color: #7A8BA0; }
+        .meta-val { font-weight: 700; color: #0B1F4D; }
+        .section-title { font-size: 18px; font-weight: 700; color: #0B1F4D; margin-top: 40px; margin-bottom: 14px; border-bottom: 1.5px solid #D0D8E4; padding-bottom: 6px; }
         .table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-        .table th { background-color: #E5ECE8; border: 1px solid #CFDDD5; padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; font-weight: 800; color: #2E3E36; letter-spacing: 0.5px; }
-        .table td { border: 1px solid #CFDDD5; padding: 10px 12px; color: #11221A; }
-        .total-row { background-color: #F3F7F5; font-weight: bold; }
-        .success { color: #059669; }
+        .table th { background-color: #EEF0F4; border: 1px solid #D0D8E4; padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; font-weight: 800; color: #1E3A5F; letter-spacing: 0.5px; }
+        .table td { border: 1px solid #D0D8E4; padding: 10px 12px; color: #0B1F4D; }
+        .total-row { background-color: #F7F8FA; font-weight: bold; }
+        .success { color: #F5A800; }
         @media print {
           body { padding: 0; }
           .print-btn-bar { display: none !important; }
@@ -183,18 +176,18 @@ function downloadStatementPDF(com, agentName, agentClients = []) {
     </head>
     <body>
       <div class="print-btn-bar" style="display: flex; justify-content: flex-end; margin-bottom: 20px; gap: 10px;">
-        <button onclick="window.print();" style="background: #059669; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);">Print / Save PDF</button>
-        <button onclick="window.close();" style="background: #e2ece7; color: #2e3e36; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px;">Close Window</button>
+        <button onclick="window.print();" style="background: #F5A800; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px; box-shadow: 0 4px 12px rgba(245, 168, 0, 0.2);">Print / Save PDF</button>
+        <button onclick="window.close();" style="background: #E4E9F1; color: #1E3A5F; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px;">Close Window</button>
       </div>
 
       <div class="header">
         <div>
           <div class="title">Commission Statement</div>
-          <div style="font-size: 12px; color: #6D7E75; margin-top: 4px; font-weight: 500;">KINETOSCOPE CAPITAL PARTNERS LTD</div>
+          <div style="font-size: 12px; color: #7A8BA0; margin-top: 4px; font-weight: 500;">YIELDIQ</div>
         </div>
         <div style="text-align: right;">
-          <div style="font-size: 13px; font-weight: 600; color: #2E3E36;">Date Generated:</div>
-          <div style="font-size: 14px; font-weight: 700; color: #11221A;">${new Date().toLocaleDateString('en-GB')}</div>
+          <div style="font-size: 13px; font-weight: 600; color: #1E3A5F;">Date Generated:</div>
+          <div style="font-size: 14px; font-weight: 700; color: #0B1F4D;">${new Date().toLocaleDateString('en-GB')}</div>
         </div>
       </div>
       
@@ -214,11 +207,11 @@ function downloadStatementPDF(com, agentName, agentClients = []) {
           </div>
           <div class="meta-item">
             <span class="meta-label">Status:</span>
-            <span class="meta-val" style="color: #059669;">${com.status.toUpperCase()}</span>
+            <span class="meta-val" style="color: #F5A800;">${com.status.toUpperCase()}</span>
           </div>
-          <div class="meta-item" style="grid-column: span 2; border-bottom: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #CFDDD5;">
-            <span class="meta-label" style="font-size: 16px; color: #061D13;">Total Commission Payout:</span>
-            <span class="meta-val" style="font-size: 20px; color: #059669;">${formatCurrency(filteredTotal)}</span>
+          <div class="meta-item" style="grid-column: span 2; border-bottom: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #D0D8E4;">
+            <span class="meta-label" style="font-size: 16px; color: #0B1F4D;">Total Commission Payout:</span>
+            <span class="meta-val" style="font-size: 20px; color: #F5A800;">${formatCurrency(filteredTotal)}</span>
           </div>
         </div>
       </div>
@@ -240,7 +233,7 @@ function downloadStatementPDF(com, agentName, agentClients = []) {
           ${rowsHtml}
           <tr class="total-row">
             <td colspan="6" style="text-align: right; font-weight: 800; font-size: 14px; padding: 12px;">Total Payout</td>
-            <td style="text-align: right; font-weight: 800; color: #059669; font-size: 14px; padding: 12px;">${formatCurrency(filteredTotal)}</td>
+            <td style="text-align: right; font-weight: 800; color: #F5A800; font-size: 14px; padding: 12px;">${formatCurrency(filteredTotal)}</td>
           </tr>
         </tbody>
       </table>
@@ -1114,7 +1107,7 @@ export default function AgentDetail() {
             </button>
           )}
           {canEdit('manageAgents') && (
-            <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" style={{ background: '#10B981', color: 'var(--color-white)', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }} onClick={() => navigate(`/agents/${id}/edit`)}>
+            <button className="kfpl-btn kfpl-btn--primary kfpl-btn--sm" style={{ background: '#F5A800', color: 'var(--color-white)', boxShadow: '0 4px 12px rgba(245, 168, 0, 0.3)' }} onClick={() => navigate(`/agents/${id}/edit`)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width="16" height="16">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
@@ -1154,7 +1147,7 @@ export default function AgentDetail() {
                     padding: '4px 8px', 
                     fontSize: '0.85rem', 
                     borderRadius: '6px', 
-                    border: '1px solid #10B981', 
+                    border: '1px solid #F5A800', 
                     background: '#FEF3C7',
                     color: '#92400E',
                     fontWeight: 600,
@@ -1274,7 +1267,7 @@ export default function AgentDetail() {
                       padding: '4px 8px', 
                       fontSize: '0.8rem', 
                       borderRadius: '6px', 
-                      border: '1px solid #10B981', 
+                      border: '1px solid #F5A800', 
                       background: '#FEF3C7',
                       color: '#92400E',
                       fontWeight: 600,
@@ -1509,7 +1502,7 @@ export default function AgentDetail() {
                     <tr key={com._id || com.id || `com-${idx}`} style={{ cursor: 'pointer' }} onClick={() => setSelectedCommission(com)}>
                       <td>
                         <div className="kfpl-table-cell-primary">{com.clientName || agentClients[0]?.name || 'Milind Ratan Saugat'}</div>
-                        <div className="kfpl-table-cell-secondary">{com.clientCode || agentClients[0]?.clientId || 'KFPL-CL-1001'}</div>
+                        <div className="kfpl-table-cell-secondary">{com.clientCode || agentClients[0]?.clientId || 'YLDIQ-CL-1001'}</div>
                       </td>
                       <td>
                         <span 
@@ -1520,22 +1513,22 @@ export default function AgentDetail() {
                             padding: '4px 12px', 
                             fontSize: '0.75rem',
                             letterSpacing: '0.5px',
-                            background: isOneTime ? '#EEF2FF' : (isSpecial ? '#FEF3C7' : '#D1FAE5'),
-                            color: isOneTime ? '#4F46E5' : (isSpecial ? '#D97706' : '#065F46'),
-                            border: isOneTime ? '1px solid #C7D2FE' : (isSpecial ? '1px solid #FDE68A' : '1px solid #A7F3D0')
+                            background: isOneTime ? '#EEF2FF' : (isSpecial ? '#FEF3C7' : '#FFF8E7'),
+                            color: isOneTime ? '#4F46E5' : (isSpecial ? '#D97706' : '#B45309'),
+                            border: isOneTime ? '1px solid #C7D2FE' : (isSpecial ? '1px solid #FDE68A' : '1px solid #FFE7A3')
                           }}
                         >
                           {isOneTime ? 'ONE TIME' : isSpecial ? 'SPECIAL' : 'MONTHLY'}
                         </span>
                       </td>
                       <td>
-                        <span style={{ fontWeight: 600, color: 'var(--color-emerald-dark, #065F46)' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--color-emerald-dark, #B45309)' }}>
                           {com.period || com.month || ((com.date) ? new Date(com.date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement')}
                         </span>
                       </td>
                       <td>{isPaid ? formatDateDMY(com.paidAt || com.payoutDate || com.updatedAt || com.date) : '—'}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-emerald, #059669)' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-emerald, #F5A800)' }}>
                           {formatCurrency(com.amount)}
                         </span>
                       </td>
@@ -1553,10 +1546,10 @@ export default function AgentDetail() {
                             padding: '5px 14px',
                             fontSize: '0.78rem',
                             fontWeight: 600,
-                            background: 'linear-gradient(135deg, #059669, #047857)',
+                            background: 'linear-gradient(135deg, #F5A800, #D48F00)',
                             color: '#ffffff',
                             border: 'none',
-                            boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)',
+                            boxShadow: '0 2px 6px rgba(245, 168, 0, 0.25)',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease-in-out'
                           }}
@@ -1598,7 +1591,7 @@ export default function AgentDetail() {
 
               <div className="kfpl-modal-body">
                 <p style={{ margin: '0 0 16px', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-                  {selectedCommission.month || ((selectedCommission.date || selectedCommission.paidAt || selectedCommission.payoutDate) ? new Date(selectedCommission.date || selectedCommission.paidAt || selectedCommission.payoutDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement')} — {selectedCommission.clientName || agentClients[0]?.name || 'Milind Ratan Saugat'} ({selectedCommission.clientCode || agentClients[0]?.clientId || 'KFPL-CL-1001'})
+                  {selectedCommission.month || ((selectedCommission.date || selectedCommission.paidAt || selectedCommission.payoutDate) ? new Date(selectedCommission.date || selectedCommission.paidAt || selectedCommission.payoutDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Statement')} — {selectedCommission.clientName || agentClients[0]?.name || 'Milind Ratan Saugat'} ({selectedCommission.clientCode || agentClients[0]?.clientId || 'YLDIQ-CL-1001'})
                 </p>
 
                 <div style={{
@@ -1825,7 +1818,7 @@ export default function AgentDetail() {
               {/* File Preview Area */}
               {previewLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', color: '#64748b', minHeight: '260px' }}>
-                  <div style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#0f766e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <div style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#123A78', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                   <span style={{ fontSize: '0.8rem', marginTop: '12px', fontWeight: 500 }}>Loading secure document preview...</span>
                 </div>
               ) : previewUrl ? (
@@ -1875,11 +1868,11 @@ export default function AgentDetail() {
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
                     padding: '3px 10px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 700,
-                    background: verifiedDocs[viewingDoc.label] ? '#dcfce7' : '#fef3c7',
-                    color: verifiedDocs[viewingDoc.label] ? '#16a34a' : '#d97706',
-                    border: `1px solid ${verifiedDocs[viewingDoc.label] ? '#bbf7d0' : '#fde68a'}`
+                    background: verifiedDocs[viewingDoc.label] ? '#FFF8E7' : '#fef3c7',
+                    color: verifiedDocs[viewingDoc.label] ? '#D48F00' : '#d97706',
+                    border: `1px solid ${verifiedDocs[viewingDoc.label] ? '#FFE7A3' : '#fde68a'}`
                   }}>
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: verifiedDocs[viewingDoc.label] ? '#16a34a' : '#d97706' }} />
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: verifiedDocs[viewingDoc.label] ? '#D48F00' : '#d97706' }} />
                     {verifiedDocs[viewingDoc.label] ? 'Verified' : 'Pending Verification'}
                   </span>
                 </div>
@@ -1897,7 +1890,7 @@ export default function AgentDetail() {
               {!verifiedDocs[viewingDoc.label] && (
                 <button
                   className="kfpl-btn kfpl-btn--sm"
-                  style={{ background: 'linear-gradient(135deg, #10B981, #059669)', color: '#ffffff', border: 'none', fontWeight: 600, padding: '6px 16px', borderRadius: '8px', fontSize: '0.8rem' }}
+                  style={{ background: 'linear-gradient(135deg, #0B1F4D, #F5A800)', color: '#ffffff', border: 'none', fontWeight: 600, padding: '6px 16px', borderRadius: '8px', fontSize: '0.8rem' }}
                   onClick={() => {
                     handleVerifyDocument(viewingDoc.label);
                     setViewingDoc(null);

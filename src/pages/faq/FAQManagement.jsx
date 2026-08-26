@@ -230,7 +230,7 @@ export default function FAQManagement() {
     const colors = {
       client: { bg: '#e0f2fe', color: '#0369a1', label: 'Client' },
       agent: { bg: '#fef3c7', color: '#d97706', label: 'Agent' },
-      both: { bg: '#d1fae5', color: '#059669', label: 'Both' },
+      both: { bg: '#FFF8E7', color: '#F5A800', label: 'Both' },
     };
     const c = colors[target] || colors.both;
     return (
@@ -365,7 +365,7 @@ export default function FAQManagement() {
                   borderRadius: '14px',
                   overflow: 'hidden',
                   transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: isExpanded ? '0 10px 30px rgba(16, 185, 129, 0.06)' : '0 2px 8px rgba(0, 0, 0, 0.01)'
+                  boxShadow: isExpanded ? '0 10px 30px rgba(245, 168, 0, 0.06)' : '0 2px 8px rgba(0, 0, 0, 0.01)'
                 }}
               >
                 {/* Accordion Trigger Row */}
@@ -380,7 +380,7 @@ export default function FAQManagement() {
                 >
                   <span style={{
                     width: '30px', height: '30px', borderRadius: '10px',
-                    background: isExpanded ? 'linear-gradient(135deg, var(--color-emerald) 0%, var(--color-emerald-dark) 100%)' : 'rgba(16, 185, 129, 0.08)',
+                    background: isExpanded ? 'linear-gradient(135deg, var(--color-emerald) 0%, var(--color-emerald-dark) 100%)' : 'rgba(245, 168, 0, 0.08)',
                     color: isExpanded ? '#fff' : 'var(--color-emerald)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontWeight: 800, fontSize: '0.8rem', flexShrink: 0,

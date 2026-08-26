@@ -47,7 +47,7 @@ const kpiIcons = {
 
 /* Dynamic HSL color for any segment string */
 function getSegmentStyle(seg) {
-  if (!seg) return { color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' };
+  if (!seg) return { color: '#F5A800', bg: 'rgba(245, 168, 0, 0.12)' };
   let h = 0;
   for (let i = 0; i < seg.length; i++) h = seg.charCodeAt(i) + ((h << 5) - h);
   h = Math.abs(h) % 360;
@@ -642,7 +642,7 @@ export default function InvestmentStatus() {
                                 {s.segmentName} ({s.allocationPercentage}%)
                               </span>
                               {s.projectName && s.projectName !== 'Unallocated' ? (
-                                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#047857', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '1px 5px', borderRadius: '4px' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#D48F00', background: '#FFF8E7', border: '1px solid #FFE7A3', padding: '1px 5px', borderRadius: '4px' }}>
                                   🎬 {s.projectName}
                                 </span>
                               ) : (
@@ -738,10 +738,10 @@ export default function InvestmentStatus() {
                           padding: '12px 14px',
                         }}
                       >
-                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(6,29,19,0.85) 100%)' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(11, 31, 77,0.85) 100%)' }} />
                         <div style={{ position: 'relative', zIndex: 2, color: '#fff', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                           <div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#A7F3D0', display: 'inline-block', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#FFE7A3', display: 'inline-block', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                               {p.segment} ({p.allocationPercentage}%)
                             </span>
                             <h3 style={{ color: '#ffffff', fontSize: '1.05rem', fontWeight: 700, margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
@@ -765,7 +765,7 @@ export default function InvestmentStatus() {
                           </div>
                           <div>
                             <span className="text-xs text-muted" style={{ display: 'block' }}>Linked Project</span>
-                            <strong style={{ fontWeight: 600, color: isUnallocated ? 'var(--color-text-muted)' : '#047857', fontSize: '0.8rem' }}>
+                            <strong style={{ fontWeight: 600, color: isUnallocated ? 'var(--color-text-muted)' : '#D48F00', fontSize: '0.8rem' }}>
                               {isUnallocated ? 'Unassigned' : p.projectName}
                             </strong>
                           </div>
@@ -823,10 +823,10 @@ export default function InvestmentStatus() {
                   overflow: 'hidden',
                 }}
               >
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(6,29,19,0.85) 100%)' }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(11, 31, 77,0.85) 100%)' }} />
                 <div style={{ position: 'relative', zIndex: 2, color: '#ffffff', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                   <div>
-                    <span style={{ color: '#E5ECE8', fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                    <span style={{ color: '#EEF0F4', fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
                       Segment: {detailItem.segment}
                     </span>
                     <h2 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: 700, margin: 0, textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
@@ -994,14 +994,14 @@ export default function InvestmentStatus() {
                   <button
                     type="button"
                     className="kfpl-btn"
-                    style={{ background: '#10B981', color: '#ffffff', fontWeight: 700, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    style={{ background: '#F5A800', color: '#ffffff', fontWeight: 700, padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                     onClick={() => openApproveModal(detailItem)}
                   >
                     ✓ Approve Investment & Notify Client
                   </button>
                 ) : (
-                  <span style={{ background: '#ECFDF5', color: '#065F46', border: '1.5px solid #10B981', padding: '8px 16px', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style={{ background: '#FFF8E7', color: '#B45309', border: '1.5px solid #F5A800', padding: '8px 16px', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5A800" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Investment Approved & Active
                   </span>
                 )}
@@ -1025,11 +1025,11 @@ export default function InvestmentStatus() {
       {showApproveModal && targetInvestment && (
         <Modal isOpen onClose={() => setShowApproveModal(false)} title={`Approve Investment — ${targetInvestment.projectName || 'Project'}`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px' }}>
-            <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderLeft: '4px solid #10B981', padding: '14px 16px', borderRadius: '8px' }}>
-              <div style={{ fontWeight: 700, color: '#166534', fontSize: '0.95rem', marginBottom: '4px' }}>
+            <div style={{ background: '#FFF8E7', border: '1px solid #FFF8E7', borderLeft: '4px solid #F5A800', padding: '14px 16px', borderRadius: '8px' }}>
+              <div style={{ fontWeight: 700, color: '#123A78', fontSize: '0.95rem', marginBottom: '4px' }}>
                 Confirm Investment Approval & Client Notification
               </div>
-              <p style={{ fontSize: '0.85rem', color: '#15803D', margin: 0, lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.85rem', color: '#B45309', margin: 0, lineHeight: 1.5 }}>
                 Approving this selection will activate the investment contract for <strong>{targetInvestment.clientName}</strong> ({targetInvestment.clientCode}), send an official confirmation email to <strong>{targetInvestment.clientEmail || 'registered email'}</strong>, and trigger an alert on their Client Dashboard bell icon.
               </p>
             </div>
@@ -1065,7 +1065,7 @@ export default function InvestmentStatus() {
               <button
                 type="button"
                 className="kfpl-btn"
-                style={{ background: '#10B981', color: '#ffffff', fontWeight: 700, padding: '10px 22px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+                style={{ background: '#F5A800', color: '#ffffff', fontWeight: 700, padding: '10px 22px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
                 onClick={handleConfirmApproval}
                 disabled={approving}
               >

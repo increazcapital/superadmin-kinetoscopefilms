@@ -93,11 +93,11 @@ export default function NewsMediaList() {
   return (
     <div className="kfpl-page">
       {sentNotification && (
-        <div className="kfpl-alert kfpl-alert--success" style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="kfpl-alert kfpl-alert--success" style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', background: '#FFF8E7', border: '1px solid #F5A800', color: '#B45309', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           <div>
             <strong style={{ fontSize: '0.875rem' }}>Simulated Email Notifications Dispatched!</strong>
-            <p style={{ margin: '4px 0 0 0', fontSize: '0.8125rem', color: '#047857', lineHeight: '1.4' }}>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.8125rem', color: '#D48F00', lineHeight: '1.4' }}>
               Successfully sent email notification alerts to <strong>{sentNotification.count}</strong> subscriber(s) for the new article: <em>"{sentNotification.title}"</em>.
             </p>
           </div>

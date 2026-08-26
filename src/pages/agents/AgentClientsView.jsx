@@ -20,16 +20,16 @@ export default function AgentClientsView() {
   const [loading, setLoading] = useState(true);
 
   const formatClientID = (rawId) => {
-    if (!rawId || rawId === '—') return 'KFPL-CL-1001';
+    if (!rawId || rawId === '—') return 'YLDIQ-CL-1001';
     const str = String(rawId).trim();
-    if (str.toUpperCase().startsWith('KFPL-CL-')) return str.toUpperCase();
+    // Normalize KFPL / YIQ to dynamic YLDIQ prefix
     const digits = str.match(/\d+/);
     if (digits) {
       let val = parseInt(digits[0], 10);
       if (val < 1000) val += 1000;
-      return `KFPL-CL-${val}`;
+      return `YLDIQ-CL-${val}`;
     }
-    return 'KFPL-CL-1001';
+    return 'YLDIQ-CL-1001';
   };
 
   useEffect(() => {
@@ -134,7 +134,7 @@ export default function AgentClientsView() {
       header: 'ROI % Allocated',
       render: (row) => {
         const roiPct = row.monthlyRoi || 0;
-        return <span style={{ fontWeight: 700, color: '#10b981' }}>{roiPct}%</span>;
+        return <span style={{ fontWeight: 700, color: '#F5A800' }}>{roiPct}%</span>;
       },
     },
     {
@@ -156,8 +156,8 @@ export default function AgentClientsView() {
             borderRadius: '20px',
             fontSize: '0.75rem',
             fontWeight: 700,
-            background: '#D1FAE5',
-            color: '#065F46'
+            background: '#FFF8E7',
+            color: '#B45309'
           }}>{comm}</span>
         );
       }

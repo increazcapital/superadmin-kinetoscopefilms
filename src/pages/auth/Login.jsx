@@ -3,12 +3,41 @@
    Description: Admin login page with glassmorphism card and conditional 2FA OTP flow
    ============================================================ */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getApiUrl } from '../../config/apiUrl';
 import { setAuthData } from '../../utils/authStorage';
 
 export default function Login() {
+  const [branding, setBranding] = useState(() => {
+    try {
+      const c = localStorage.getItem('yieldiq_branding');
+      if (c) return JSON.parse(c);
+    } catch(e) {}
+    return { companyName: 'YieldIQ', tagline: '', logoUrl: '/logokfpl.jpeg' };
+  });
+  useEffect(() => {
+    fetch(getApiUrl('/api/system-settings/branding'))
+      .then(r => r.json())
+      .then(d => {
+        if (d?.data) {
+          setBranding(d.data);
+          try {
+            localStorage.setItem('yieldiq_branding', JSON.stringify(d.data));
+          } catch(e) {}
+          if (d.data.faviconUrl) {
+            let link = document.querySelector("link[rel*='icon']");
+            if (!link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.head.appendChild(link);
+            }
+            link.href = d.data.faviconUrl;
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
   const navigate = useNavigate();
   
   // Stacking steps: 'credentials' or 'otp'
@@ -142,10 +171,10 @@ export default function Login() {
       <div className="kfpl-login-wallpaper">
         <div className="kfpl-login-brand">
           <div style={{ background: '#ffffff', padding: '6px', width: '68px', height: '68px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', marginBottom: '16px' }}>
-            <img src="/logokfpl.jpeg" alt="KFPL Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px', display: 'block' }} />
+            <img src={branding.logoUrl || "/logokfpl.jpeg"} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px', display: 'block' }} />
           </div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', margin: 0, lineHeight: 1.15 }}>Kinetoscope Films Pvt Ltd</h1>
-          <p style={{ fontSize: '12px', color: 'rgba(240, 253, 244, 0.9)', letterSpacing: '1.5px', textTransform: 'uppercase', marginTop: '6px', marginBottom: '12px', fontWeight: '700' }}>A Global Media Fund</p>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', margin: 0, lineHeight: 1.15 }}>{branding.companyName || 'YieldIQ'}</h1>
+          {branding?.tagline ? <p style={{ fontSize: '12px', color: 'rgba(255, 248, 231, 0.9)', letterSpacing: '1.5px', textTransform: 'uppercase', marginTop: '6px', marginBottom: '12px', fontWeight: '700' }}>{branding.tagline}</p> : null}
           <p>Super Admin control center. Manage agents, investors, commissions, and project portfolios in real-time.</p>
         </div>
       </div>
@@ -155,8 +184,8 @@ export default function Login() {
         <div className="kfpl-login-card animate-scale-in">
           {/* Logo and Titles */}
           <div className="kfpl-login-logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
-            <div style={{ background: '#ffffff', padding: '6px', width: '56px', height: '56px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(16, 185, 129, 0.18)', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
-              <img src="/logokfpl.jpeg" alt="KFPL Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px', display: 'block' }} />
+            <div style={{ background: '#ffffff', padding: '6px', width: '56px', height: '56px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(245, 168, 0, 0.18)', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
+              <img src={branding.logoUrl || "/logokfpl.jpeg"} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px', display: 'block' }} />
             </div>
             <h1 className="kfpl-login-title">Super Admin Portal</h1>
             <p className="kfpl-login-subtitle">Sign in to manage the production network</p>
@@ -296,7 +325,7 @@ export default function Login() {
           )}
 
           <div className="kfpl-login-footer">
-            © 2026 Kinetoscope Films Pvt Ltd. All rights reserved.
+            © 2026 YieldIQ. All rights reserved.
           </div>
         </div>
       </div>

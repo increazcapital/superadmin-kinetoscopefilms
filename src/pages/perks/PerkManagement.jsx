@@ -106,7 +106,7 @@ const renderFormattedDescription = (desc) => {
         const cleanText = line.replace(/^[•\-\*\d+\.]+\s*/, '');
         return (
           <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginTop: '3px', paddingLeft: '4px' }}>
-            <span style={{ color: '#10B981', fontWeight: 'bold', fontSize: '0.8rem', lineHeight: '1.3' }}>✓</span>
+            <span style={{ color: '#F5A800', fontWeight: 'bold', fontSize: '0.8rem', lineHeight: '1.3' }}>✓</span>
             <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.8rem', lineHeight: 1.35 }}>{cleanText}</span>
           </div>
         );
@@ -251,7 +251,7 @@ export default function PerkManagement() {
         const name = profile.fullName || user.name || user.fullName || c.fullName || c.name || 'Client';
 
         const id = c._id || c.id || user._id || profile.userId || `client-idx-${index}`;
-        const clientId = c.clientId || profile.clientId || `KFPL-CL-${1000 + index}`;
+        const clientId = c.clientId || profile.clientId || `YLDIQ-CL-${1000 + index}`;
         return {
           id: String(id),
           name,

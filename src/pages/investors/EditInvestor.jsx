@@ -22,19 +22,15 @@ const COMMISSION_PRESETS = [
 ];
 
 const formatAgentID = (rawId) => {
-  if (!rawId || rawId === '—') return '—';
-  if (rawId.startsWith('KFPL-AG-') || rawId.startsWith('KFPL-AGT-')) {
-    return rawId.replace('KFPL-AGT-', 'KFPL-AG-');
+  if (!rawId || rawId === '—' || rawId === 'undefined' || rawId === 'null') return 'YLDIQ-AG-1001';
+  const str = String(rawId).trim();
+  const m = str.match(/(?:AG|AGT)[-_ ]*(\d+)/i) || str.match(/(\d+)/);
+  if (m && m[1]) {
+    let val = parseInt(m[1], 10);
+    if (val < 1000) val += 1000;
+    return `YLDIQ-AG-${val}`;
   }
-  const digits = rawId.match(/\d+/);
-  if (digits) {
-    let val = parseInt(digits[0], 10);
-    if (val < 1000) {
-      val = 1000 + val;
-    }
-    return `KFPL-AG-${val}`;
-  }
-  return 'KFPL-AG-1001';
+  return 'YLDIQ-AG-1001';
 };
 
 const formatDateToInputVal = (dateStr) => {

@@ -6,7 +6,7 @@
 export { formatCurrency, formatNumber, getCategoryFromAmount } from '../utils/formatters';
 
 export const INVESTMENT_SEGMENTS = [
-  { id: 'film-making', name: 'Film Making', color: '#10B981' },
+  { id: 'film-making', name: 'Film Making', color: '#F5A800' },
   { id: 'distribution', name: 'Distribution', color: '#1565C0' },
   { id: 'music', name: 'Music', color: '#2E7D32' },
   { id: 'trading', name: 'Trading & Syndication', color: '#E65100' },
@@ -16,7 +16,7 @@ export const INVESTMENT_SEGMENTS = [
 
 export const RECOGNITION_TIERS = [
   { id: 'silver', name: 'Silver', minAmount: 0, color: '#C0C0C0' },
-  { id: 'gold', name: 'Gold', minAmount: 2500000, color: '#10B981' },
+  { id: 'gold', name: 'Gold', minAmount: 2500000, color: '#F5A800' },
   { id: 'diamond', name: 'Diamond', minAmount: 10000000, color: '#80DEEA' },
   { id: 'platinum', name: 'Platinum', minAmount: 30000000, color: '#B8C5D1' },
 ];

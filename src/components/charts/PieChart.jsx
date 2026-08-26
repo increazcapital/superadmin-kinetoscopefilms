@@ -125,7 +125,7 @@ export default function PieChart({ data, size = 200, strokeWidth = 28, isCurrenc
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: segments[tooltip.index].color }} />
             <span style={{ fontWeight: 600 }}>{segments[tooltip.index].status}</span>
           </div>
-          <div style={{ color: '#10B981', fontWeight: 700, fontSize: '13px', paddingLeft: '12px' }}>
+          <div style={{ color: '#F5A800', fontWeight: 700, fontSize: '13px', paddingLeft: '12px' }}>
             {isCurrency ? formatCurrency(segments[tooltip.index].count) : segments[tooltip.index].count}
           </div>
           <div style={{ color: '#94A3B8', fontSize: '10px', paddingLeft: '12px' }}>

@@ -55,7 +55,7 @@ export class ErrorBoundary extends React.Component {
             <button
               onClick={this.handleReset}
               style={{
-                background: 'linear-gradient(135deg, #10B981, #059669)',
+                background: 'linear-gradient(135deg, #0B1F4D, #F5A800)',
                 color: '#fff',
                 border: 'none',
                 padding: '12px 28px',
@@ -63,7 +63,7 @@ export class ErrorBoundary extends React.Component {
                 fontWeight: '600',
                 cursor: 'pointer',
                 fontSize: '0.95rem',
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                boxShadow: '0 4px 12px rgba(245, 168, 0, 0.3)'
               }}
             >
               Reset Session & Go to Login

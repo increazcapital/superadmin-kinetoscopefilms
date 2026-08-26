@@ -52,18 +52,16 @@ export default function AgentPortalMock() {
               
               const formatAgentID = (rawId) => {
                 if (!rawId || rawId === '—') return '—';
-                if (rawId.startsWith('KFPL-AG-') || rawId.startsWith('KFPL-AGT-')) {
-                  return rawId.replace('KFPL-AGT-', 'KFPL-AG-');
-                }
+                // Normalize KFPL / YIQ to dynamic YLDIQ prefix
                 const digits = rawId.match(/\d+/);
                 if (digits) {
                   let val = parseInt(digits[0], 10);
                   if (val < 1000) {
                     val = 1000 + val;
                   }
-                  return `KFPL-AG-${val}`;
+                  return `YLDIQ-AG-${val}`;
                 }
-                return 'KFPL-AG-1001';
+                return 'YLDIQ-AG-1001';
               };
 
               const cleanCode = user.clientCode || profile.agentId || a.agentId || user._id || a._id || fallbackCode;

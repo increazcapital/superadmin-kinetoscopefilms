@@ -13,33 +13,27 @@ import { usePermissions } from '../../utils/usePermissions';
 import { apiRequest } from '../../config/apiHelper';
 
 const formatAgentID = (rawId) => {
-  if (!rawId || rawId === '—') return '—';
-  if (rawId.startsWith('KFPL-AG-') || rawId.startsWith('KFPL-AGT-')) {
-    return rawId.replace('KFPL-AGT-', 'KFPL-AG-');
+  if (!rawId || rawId === '—' || rawId === 'undefined' || rawId === 'null') return 'YLDIQ-AG-1001';
+  const str = String(rawId).trim();
+  const m = str.match(/(?:AG|AGT)[-_ ]*(\d+)/i) || str.match(/(\d+)/);
+  if (m && m[1]) {
+    let val = parseInt(m[1], 10);
+    if (val < 1000) val += 1000;
+    return `YLDIQ-AG-${val}`;
   }
-  const digits = rawId.match(/\d+/);
-  if (digits) {
-    let val = parseInt(digits[0], 10);
-    if (val < 1000) {
-      val = 1000 + val;
-    }
-    return `KFPL-AG-${val}`;
-  }
-  return 'KFPL-AG-1001';
+  return 'YLDIQ-AG-1001';
 };
 
 const formatClientID = (rawId) => {
-  if (!rawId || rawId === '—') return '—';
-  if (rawId.startsWith('KFPL-CL-')) return rawId;
-  const digits = rawId.match(/\d+/);
-  if (digits) {
-    let val = parseInt(digits[0], 10);
-    if (val < 1000) {
-      val = 1000 + val;
-    }
-    return `KFPL-CL-${val}`;
+  if (!rawId || rawId === '—' || rawId === 'undefined' || rawId === 'null') return 'YLDIQ-CL-1001';
+  const str = String(rawId).trim();
+  const m = str.match(/(?:CL[-_ ]*)+(\d+)/i) || str.match(/(\d+)/);
+  if (m && m[1]) {
+    let val = parseInt(m[1], 10);
+    if (val < 1000) val += 1000;
+    return `YLDIQ-CL-${val}`;
   }
-  return 'KFPL-CL-1001';
+  return 'YLDIQ-CL-1001';
 };
 
 const getSlabRate = (slabs, typeNorm, amount) => {
@@ -1056,7 +1050,7 @@ export default function ROIList() {
                       const isDivWithdrawal = rec.isWithdrawal && (/dividend/i.test(rec.payoutDetail || rec.type || ''));
                       if (isDivCredit) {
                         return (
-                          <span style={{ fontWeight: 700, borderRadius: '20px', padding: '3px 10px', fontSize: '0.72rem', background: '#DCFCE7', color: '#15803D', border: '1px solid #86EFAC' }}>
+                          <span style={{ fontWeight: 700, borderRadius: '20px', padding: '3px 10px', fontSize: '0.72rem', background: '#FFF8E7', color: '#B45309', border: '1px solid #FFE7A3' }}>
                             DIVIDEND BONUS
                           </span>
                         );
@@ -1397,8 +1391,8 @@ export default function ROIList() {
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ backgroundColor: 'rgba(15, 118, 110, 0.05)', border: '1px solid rgba(15, 118, 110, 0.2)', padding: '12px 16px', borderRadius: '8px' }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F766E', marginBottom: '6px' }}>CSV File Template Format</h4>
+          <div style={{ backgroundColor: 'rgba(15, 118, 110, 0.05)', border: '1px solid rgba(18, 58, 120, 0.2)', padding: '12px 16px', borderRadius: '8px' }}>
+            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#123A78', marginBottom: '6px' }}>CSV File Template Format</h4>
             <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', lineHeight: '1.4' }}>
               Your file must contain a header row. Use the exact columns or aliases below:
             </p>
@@ -1421,7 +1415,7 @@ export default function ROIList() {
               onChange={handleFileUpload}
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
             />
-            <svg viewBox="0 0 24 24" fill="none" stroke="#0F766E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '40px', height: '40px', margin: '0 auto 12px', opacity: 0.8 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#123A78" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '40px', height: '40px', margin: '0 auto 12px', opacity: 0.8 }}>
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
@@ -1435,7 +1429,7 @@ export default function ROIList() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text)' }}>Parsing Preview</h4>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <span style={{ backgroundColor: '#D1FAE5', color: '#065F46', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                  <span style={{ backgroundColor: '#FFF8E7', color: '#B45309', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
                     {uploadFeedback.validCount} Valid
                   </span>
                   {uploadFeedback.invalidCount > 0 && (
@@ -1462,7 +1456,7 @@ export default function ROIList() {
                       <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>
                         Row #{idx + 1}: {record.type ? record.type.toUpperCase() : 'Unknown type'} ({record.recipientId || 'No ID'})
                       </span>
-                      <span style={{ fontWeight: 600, color: record.isValid ? '#0F766E' : '#EF4444' }}>
+                      <span style={{ fontWeight: 600, color: record.isValid ? '#123A78' : '#EF4444' }}>
                         {record.isValid ? 'Valid' : 'Invalid'}
                       </span>
                     </div>
@@ -1638,7 +1632,7 @@ export default function ROIList() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payout Amount</span>
-                <strong style={{ fontSize: '1rem', color: '#0F766E' }}>{formatCurrency(parseFloat(amountPaid || 0))}</strong>
+                <strong style={{ fontSize: '1rem', color: '#123A78' }}>{formatCurrency(parseFloat(amountPaid || 0))}</strong>
               </div>
 
               <div>

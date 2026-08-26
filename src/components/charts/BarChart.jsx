@@ -40,34 +40,34 @@ export default function BarChart({ data, height = 280 }) {
     switch (index) {
       case 0:
         return {
-          bg: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+          bg: 'linear-gradient(135deg, #F5A800 0%, #D48F00 100%)',
           color: '#FFFFFF',
-          shadow: '0 2px 8px rgba(245, 158, 11, 0.4)',
+          shadow: '0 2px 8px rgba(245, 168, 0, 0.35)',
           border: 'none',
           label: <><TrophyIcon />#1</>
         };
       case 1:
         return {
-          bg: 'linear-gradient(135deg, #9CA3AF 0%, #4B5563 100%)',
+          bg: 'linear-gradient(135deg, #123A78 0%, #0B1F4D 100%)',
           color: '#FFFFFF',
-          shadow: '0 2px 6px rgba(156, 163, 175, 0.3)',
+          shadow: '0 2px 8px rgba(11, 31, 77, 0.25)',
           border: 'none',
           label: '#2'
         };
       case 2:
         return {
-          bg: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
-          color: '#FFFFFF',
-          shadow: '0 2px 6px rgba(217, 119, 6, 0.3)',
+          bg: 'linear-gradient(135deg, #FFC83D 0%, #F5A800 100%)',
+          color: '#0B1F4D',
+          shadow: '0 2px 6px rgba(245, 168, 0, 0.25)',
           border: 'none',
           label: '#3'
         };
       default:
         return {
-          bg: 'var(--color-surface, #F1F5F9)',
-          color: 'var(--color-text-secondary, #475569)',
+          bg: 'var(--color-surface, #F7F8FA)',
+          color: 'var(--color-text-secondary, #1E3A5F)',
           shadow: 'none',
-          border: '1px solid var(--color-border-light, #E2E8F0)',
+          border: '1px solid var(--color-border-light, #E4E9F1)',
           label: `#${index + 1}`
         };
     }
@@ -81,7 +81,7 @@ export default function BarChart({ data, height = 280 }) {
         maxHeight: `${height}px`,
         overflowY: 'auto',
         overflowX: 'hidden',
-        padding: '6px 8px',
+        padding: '4px 2px',
         boxSizing: 'border-box'
       }}
     >
@@ -90,7 +90,16 @@ export default function BarChart({ data, height = 280 }) {
           const isHovered = hoveredIndex === i;
           const percentage = Math.min(100, Math.max(8, (item.amount / maxVal) * 100));
           const badgeStyle = getRankBadgeStyle(i);
-          const nameInitials = (item.name || 'Agent').split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+          // Clean initials calculation (strips symbols so "Direct / Admin" -> "DA")
+          const cleanName = (item.name || 'Agent').replace(/[^a-zA-Z0-9\s]/g, ' ').trim();
+          const nameInitials = cleanName
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2) || 'AG';
 
           return (
             <div
@@ -103,9 +112,9 @@ export default function BarChart({ data, height = 280 }) {
                 gap: '14px',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                background: isHovered ? 'var(--color-surface-hover, #F8FAFC)' : 'var(--color-white, #FFFFFF)',
-                border: isHovered ? '1.5px solid #10B981' : '1px solid var(--color-border-light, #E2E8F0)',
-                boxShadow: isHovered ? '0 4px 12px rgba(16, 185, 129, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.02)',
+                background: isHovered ? '#FFFFFF' : 'var(--color-white, #FFFFFF)',
+                border: isHovered ? '1.5px solid #F5A800' : '1px solid var(--color-border-light, #E4E9F1)',
+                boxShadow: isHovered ? '0 6px 20px rgba(11, 31, 77, 0.08)' : '0 1px 3px rgba(11, 31, 77, 0.03)',
                 transition: 'all 0.2s ease',
                 cursor: 'pointer',
                 position: 'relative',
@@ -142,15 +151,20 @@ export default function BarChart({ data, height = 280 }) {
                   width: '38px',
                   height: '38px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-                  color: '#FFFFFF',
-                  fontWeight: 700,
+                  background: i === 0 
+                    ? 'linear-gradient(135deg, #F5A800 0%, #D48F00 100%)' 
+                    : i === 1 
+                    ? 'linear-gradient(135deg, #123A78 0%, #0B1F4D 100%)' 
+                    : 'linear-gradient(135deg, #FFC83D 0%, #F5A800 100%)',
+                  color: (i === 2) ? '#0B1F4D' : '#FFFFFF',
+                  fontWeight: 800,
                   fontSize: '0.85rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
-                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)'
+                  boxShadow: '0 2px 8px rgba(11, 31, 77, 0.12)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.4)'
                 }}
               >
                 {nameInitials}
@@ -160,35 +174,35 @@ export default function BarChart({ data, height = 280 }) {
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '5px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text-primary, #0F172A)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text-primary, #0B1F4D)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {item.name}
                     </span>
                     {item.code && (
-                      <span style={{ fontSize: '0.725rem', fontWeight: 600, color: 'var(--color-text-muted, #64748B)', background: 'var(--color-surface, #F1F5F9)', padding: '1px 6px', borderRadius: '4px' }}>
+                      <span style={{ fontSize: '0.725rem', fontWeight: 600, color: 'var(--color-text-muted, #7A8BA0)', background: 'var(--color-surface, #F7F8FA)', border: '1px solid var(--color-border-light, #E4E9F1)', padding: '1px 6px', borderRadius: '4px' }}>
                         {item.code}
                       </span>
                     )}
                   </div>
-                  <span style={{ fontWeight: 800, fontSize: '0.925rem', color: '#059669', flexShrink: 0, marginLeft: '12px' }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#F5A800', flexShrink: 0, marginLeft: '12px' }}>
                     {formatCurrency(item.amount)}
                   </span>
                 </div>
 
                 {/* Progress Track & Fill */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ flex: 1, height: '8px', background: 'var(--color-surface, #F1F5F9)', borderRadius: '9999px', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ flex: 1, height: '8px', background: '#EEF0F4', borderRadius: '9999px', overflow: 'hidden', position: 'relative' }}>
                     <div
                       style={{
                         width: `${percentage}%`,
                         height: '100%',
-                        background: isHovered ? 'linear-gradient(90deg, #34D399 0%, #10B981 100%)' : 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
+                        background: 'linear-gradient(90deg, #F5A800 0%, #FFC83D 100%)',
                         borderRadius: '9999px',
                         transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
-                        boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
+                        boxShadow: '0 2px 6px rgba(245, 168, 0, 0.35)'
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: '0.725rem', fontWeight: 600, color: 'var(--color-text-muted, #64748B)', flexShrink: 0 }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted, #7A8BA0)', flexShrink: 0 }}>
                     {item.clients || 1} {item.clients === 1 ? 'client' : 'clients'}
                   </span>
                 </div>

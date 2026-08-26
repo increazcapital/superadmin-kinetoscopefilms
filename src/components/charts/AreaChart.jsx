@@ -68,8 +68,8 @@ export default function AreaChart({ data, height = 260 }) {
       >
         <defs>
           <linearGradient id="areaGradInvest" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#10B981" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#10B981" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="#F5A800" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#F5A800" stopOpacity="0.02" />
           </linearGradient>
           <linearGradient id="areaGradWithdraw" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#0E7490" stopOpacity="0.25" />
@@ -110,7 +110,7 @@ export default function AreaChart({ data, height = 260 }) {
         <path
           d={investLine}
           fill="none"
-          stroke="#10B981"
+          stroke="#F5A800"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -124,7 +124,7 @@ export default function AreaChart({ data, height = 260 }) {
               y1={padding.top}
               x2={getX(hoveredIndex)}
               y2={baseY}
-              stroke="rgba(16, 185, 129, 0.3)"
+              stroke="rgba(245, 168, 0, 0.3)"
               strokeWidth="1"
               strokeDasharray="4 4"
             />
@@ -133,7 +133,7 @@ export default function AreaChart({ data, height = 260 }) {
               cx={getX(hoveredIndex)}
               cy={getY(data[hoveredIndex].investments)}
               r="5"
-              fill="#10B981"
+              fill="#F5A800"
               stroke="#fff"
               strokeWidth="2"
             />
@@ -181,7 +181,7 @@ export default function AreaChart({ data, height = 260 }) {
       {/* Legend */}
       <div className="kfpl-area-chart-legend">
         <span className="kfpl-area-legend-item">
-          <span className="kfpl-area-legend-dot" style={{ background: '#10B981' }} />
+          <span className="kfpl-area-legend-dot" style={{ background: '#F5A800' }} />
           Investments
         </span>
         <span className="kfpl-area-legend-item">
@@ -202,7 +202,7 @@ export default function AreaChart({ data, height = 260 }) {
         >
           <strong>{data[hoveredIndex].month}</strong>
           <br />
-          <span style={{ color: '#10B981' }}>▲</span> {formatCurrency(data[hoveredIndex].investments)}
+          <span style={{ color: '#F5A800' }}>▲</span> {formatCurrency(data[hoveredIndex].investments)}
           <br />
           <span style={{ color: '#0E7490' }}>▼</span> {formatCurrency(data[hoveredIndex].withdrawals)}
         </div>

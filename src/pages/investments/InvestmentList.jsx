@@ -308,7 +308,7 @@ export default function InvestmentList() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <span
               className="font-medium"
-              style={{ cursor: 'pointer', color: rawProj ? '#065F46' : 'var(--color-navy)', fontWeight: 700 }}
+              style={{ cursor: 'pointer', color: rawProj ? '#B45309' : 'var(--color-navy)', fontWeight: 700 }}
               onClick={() => navigate('/portfolio')}
             >
               {rawProj ? `🎬 ${rawProj}` : displayText}
@@ -347,9 +347,9 @@ export default function InvestmentList() {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            color: '#047857',
-                            background: '#F0FDF4',
-                            border: '1px solid #BBF7D0',
+                            color: '#D48F00',
+                            background: '#FFF8E7',
+                            border: '1px solid #FFE7A3',
                             padding: '1px 5px',
                             borderRadius: '4px',
                             fontSize: '0.72rem',
@@ -367,11 +367,11 @@ export default function InvestmentList() {
                     <span style={{
                       fontSize: '0.7rem',
                       fontWeight: 700,
-                      color: 'var(--color-gold-dark, #059669)',
-                      background: 'rgba(16, 185, 129, 0.1)',
+                      color: 'var(--color-gold-dark, #F5A800)',
+                      background: 'rgba(245, 168, 0, 0.12)',
                       padding: '2px 6px',
                       borderRadius: '4px',
-                      border: '1px solid rgba(16, 185, 129, 0.25)',
+                      border: '1px solid rgba(245, 168, 0, 0.25)',
                       whiteSpace: 'nowrap'
                     }}>
                       {s.allocationPercentage}%
@@ -396,9 +396,9 @@ export default function InvestmentList() {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
-                  color: '#047857',
-                  background: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
+                  color: '#D48F00',
+                  background: '#FFF8E7',
+                  border: '1px solid #FFE7A3',
                   padding: '2px 8px',
                   borderRadius: '4px',
                   fontSize: '0.78rem',
@@ -458,9 +458,9 @@ export default function InvestmentList() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '5px',
-              background: '#ECFDF5',
-              border: '1px solid #10B981',
-              color: '#047857',
+              background: '#FFF8E7',
+              border: '1px solid #F5A800',
+              color: '#D48F00',
               fontWeight: 600,
               borderRadius: '6px',
               cursor: 'pointer'
@@ -471,7 +471,7 @@ export default function InvestmentList() {
             }}
             title="Edit Investment & Segment Allocation"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="#047857" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#D48F00" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
@@ -747,8 +747,8 @@ export default function InvestmentList() {
         }
         .kfpl-project-ticker:hover {
           max-width: 240px !important;
-          background-color: #DCFCE7 !important;
-          color: #065F46 !important;
+          background-color: #FFF8E7 !important;
+          color: #B45309 !important;
           box-shadow: 0 2px 6px rgba(0,0,0,0.08);
           position: relative;
           z-index: 5;

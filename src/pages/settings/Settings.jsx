@@ -126,6 +126,17 @@ export default function Settings() {
   });
   const [savingSupport, setSavingSupport] = useState(false);
 
+  // Branding & Identity State
+  const [brandingConfig, setBrandingConfig] = useState({
+    companyName: 'YieldIQ',
+    tagline: '',
+  });
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [faviconPreview, setFaviconPreview] = useState(null);
+  const [logoFile, setLogoFile] = useState(null);
+  const [faviconFile, setFaviconFile] = useState(null);
+  const [savingBranding, setSavingBranding] = useState(false);
+
   useEffect(() => {
     const fetchSupportSettings = async () => {
       try {
@@ -153,6 +164,31 @@ export default function Settings() {
       }
     };
     fetchSupportSettings();
+
+    // Fetch branding settings
+    const fetchBrandingSettings = async () => {
+      try {
+        const token = getToken();
+        if (!token) return;
+        const res = await fetch(getApiUrl('/api/super-admin/settings/branding'), {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data) {
+            setBrandingConfig({
+              companyName: data.data.companyName || 'YieldIQ',
+              tagline: data.data.tagline || '',
+            });
+            if (data.data.logoUrl) setLogoPreview(data.data.logoUrl);
+            if (data.data.faviconUrl) setFaviconPreview(data.data.faviconUrl);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch branding settings:', err);
+      }
+    };
+    fetchBrandingSettings();
   }, []);
 
   const handleSaveSupportConfig = async (e) => {
@@ -687,6 +723,112 @@ export default function Settings() {
           <h2 className="kfpl-page-title">Settings</h2>
           <p className="kfpl-page-subtitle">Configure admin credentials and login security preferences</p>
         </div>
+      </div>
+
+      {/* ─── Branding & Identity Card ─────────────────────── */}
+      <div className="kfpl-detail-info-card" style={{ marginBottom: '24px' }}>
+        <div className="kfpl-detail-info-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-gold)" strokeWidth="2" style={{ width: 18, height: 18 }}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Branding & Identity
+        </div>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginBottom: '20px' }}>Changes here will propagate to all 3 dashboards — sidebars, login screens, and email templates.</p>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const token = getToken();
+          if (!token) { addToast('Auth token not found.', 'error', 'Error'); return; }
+          setSavingBranding(true);
+          try {
+            const formData = new FormData();
+            formData.append('companyName', brandingConfig.companyName);
+            formData.append('tagline', brandingConfig.tagline);
+            if (logoFile) formData.append('logo', logoFile);
+            if (faviconFile) formData.append('favicon', faviconFile);
+            const res = await fetch(getApiUrl('/api/super-admin/settings/branding'), {
+              method: 'PUT',
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const updatedBranding = data.data;
+              addToast('Branding updated live across all dashboards!', 'success', 'Branding Saved');
+              if (updatedBranding?.logoUrl) setLogoPreview(updatedBranding.logoUrl);
+              if (updatedBranding?.faviconUrl) {
+                setFaviconPreview(updatedBranding.faviconUrl);
+                const link = document.querySelector("link[rel*='icon']");
+                if (link) link.href = updatedBranding.faviconUrl;
+              }
+              setLogoFile(null);
+              setFaviconFile(null);
+
+              // ── Instant Live Sync across all portals & open tabs ──
+              try {
+                localStorage.setItem('yieldiq_branding', JSON.stringify(updatedBranding));
+                localStorage.setItem('yieldiq_branding_updated', Date.now().toString());
+                window.dispatchEvent(new CustomEvent('yieldiq_branding_updated', { detail: updatedBranding }));
+                if (typeof BroadcastChannel !== 'undefined') {
+                  const bc = new BroadcastChannel('yieldiq_branding_channel');
+                  bc.postMessage({ type: 'BRANDING_UPDATED', data: updatedBranding });
+                  bc.close();
+                }
+              } catch (e) {
+                console.error('Broadcast failed:', e);
+              }
+            } else {
+              const data = await res.json();
+              addToast(data.message || 'Failed to update branding.', 'error', 'Error');
+            }
+          } catch { addToast('Unable to connect to server.', 'error', 'Error'); }
+          finally { setSavingBranding(false); }
+        }} className="kfpl-form" style={{ gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Company / Brand Name</label>
+              <input className="kfpl-input" value={brandingConfig.companyName} onChange={(e) => setBrandingConfig(prev => ({ ...prev, companyName: e.target.value }))} placeholder="YieldIQ" />
+            </div>
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Tagline</label>
+              <input className="kfpl-input" value={brandingConfig.tagline} onChange={(e) => setBrandingConfig(prev => ({ ...prev, tagline: e.target.value }))} placeholder="Enter tagline (optional)" />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            {/* Logo Upload */}
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Logo</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {logoPreview && <img src={logoPreview} alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'contain', border: '1px solid var(--color-border)', background: '#fff' }} />}
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', border: '1px dashed var(--color-border)', cursor: 'pointer', fontSize: '0.8125rem', color: 'var(--color-text-secondary)', background: 'var(--color-surface)', transition: 'all 0.2s' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  {logoFile ? logoFile.name : 'Upload Logo'}
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) { setLogoFile(file); setLogoPreview(URL.createObjectURL(file)); }
+                  }} />
+                </label>
+              </div>
+            </div>
+            {/* Favicon Upload */}
+            <div className="kfpl-input-group">
+              <label className="kfpl-input-label">Favicon</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {faviconPreview && <img src={faviconPreview} alt="Favicon" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'contain', border: '1px solid var(--color-border)', background: '#fff' }} />}
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', border: '1px dashed var(--color-border)', cursor: 'pointer', fontSize: '0.8125rem', color: 'var(--color-text-secondary)', background: 'var(--color-surface)', transition: 'all 0.2s' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  {faviconFile ? faviconFile.name : 'Upload Favicon'}
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) { setFaviconFile(file); setFaviconPreview(URL.createObjectURL(file)); }
+                  }} />
+                </label>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+            <button type="submit" className="kfpl-btn kfpl-btn--primary" disabled={savingBranding}>
+              {savingBranding ? 'Saving...' : 'Save Branding'}
+            </button>
+          </div>
+        </form>
       </div>
 
       <div className="kfpl-grid-2col">

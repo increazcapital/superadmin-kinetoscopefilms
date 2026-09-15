@@ -12,6 +12,7 @@ import { useToast } from '../../components/ui/Toast';
 import Badge from '../../components/ui/Badge';
 import FileDropzone from '../../components/ui/FileDropzone';
 import { apiRequest } from '../../config/apiHelper';
+import { invalidateSWRCache } from '../../utils/swrHelper';
 
 const COMMISSION_PRESETS = [
   { id: 'slab-1', name: 'Slab 1 (Basic): 1.0% One-Time / 0.50% Monthly', oneTime: 1.0, monthly: 0.50 },
@@ -67,7 +68,7 @@ export default function EditInvestor() {
 
   const [form, setForm] = useState({
     fullName: '', email: '', phone: '', dob: '', address: '',
-    pan: '', bankName: '', accountNo: '', ifsc: '',
+    pan: '', aadhaarNumber: '', bankName: '', accountNo: '', ifsc: '',
     category: '', status: '',
     nomineeName: '', nomineeRelation: '', nomineeContact: '', nomineeEmail: '',
     riskProfile: 'Conservative',
@@ -77,6 +78,7 @@ export default function EditInvestor() {
     commissionOneTime: '1.5',
     commissionMonthly: '0.75',
     roiPercentage: '0',
+    totalInvestment: '0',
     contractStartDate: '',
     contractEndDate: '',
     extendContractDate: '',
@@ -125,6 +127,11 @@ export default function EditInvestor() {
           dob: profile.dob ? new Date(profile.dob).toISOString().split('T')[0] : '',
           address: profile.address || '',
           pan: profile.panNumber || profile.pan || '',
+          aadhaarNumber: (profile.aadhaarNumber || profile.aadhaar) ? (
+            profile.residencyStatus === 'International'
+              ? (profile.aadhaarNumber || profile.aadhaar)
+              : String(profile.aadhaarNumber || profile.aadhaar).replace(/\D/g, '').slice(0, 12).replace(/(\d{4})(?=\d)/g, '$1 ')
+          ) : '',
           bankName: profile.bankName || '',
           accountNo: profile.accountNumber || profile.accountNo || '',
           ifsc: profile.ifscCode || profile.ifsc || '',
@@ -141,6 +148,7 @@ export default function EditInvestor() {
           commissionOneTime: String(profile.commissionOneTime || '1.5'),
           commissionMonthly: String(profile.commissionMonthly || '0.75'),
           roiPercentage: String(summary.monthlyRoi ?? profile.monthlyRoi ?? 0),
+          totalInvestment: String(summary.totalInvestment ?? profile.totalPortfolioValue ?? profile.totalInvestment ?? 0),
           contractStartDate: formatDateToInputVal(profile.contractStartDate || profile.joinDate || profile.createdAt),
           contractEndDate: formatDateToInputVal(profile.contractEndDate),
           extendContractDate: formatDateToInputVal(profile.extendContractDate || profile.contractExtendedDate),
@@ -199,6 +207,9 @@ export default function EditInvestor() {
       if (form.dob) formData.append('dob', form.dob);
       if (form.address) formData.append('address', form.address);
       formData.append('panNumber', form.pan);
+      if (form.aadhaarNumber !== undefined && form.aadhaarNumber !== null) {
+        formData.append('aadhaarNumber', form.citizenship === 'International' ? form.aadhaarNumber.trim() : form.aadhaarNumber.replace(/\s/g, ''));
+      }
       formData.append('bankName', form.bankName);
       formData.append('accountNumber', form.accountNo);
       formData.append('confirmAccountNumber', form.accountNo);
@@ -208,6 +219,7 @@ export default function EditInvestor() {
       formData.append('riskProfile', form.riskProfile);
       formData.append('residencyStatus', form.citizenship);
       formData.append('monthlyRoi', String(parseFloat(form.roiPercentage) || 0));
+      formData.append('totalInvestment', String(parseFloat(form.totalInvestment) || 0));
       formData.append('assignedAgent', selectedAgentId || 'Direct Client (No Agent)');
       formData.append('contractStartDate', form.contractStartDate || '');
       formData.append('contractEndDate', form.contractEndDate || '');
@@ -237,6 +249,17 @@ export default function EditInvestor() {
         method: 'PATCH',
         body: formData,
       });
+
+      try {
+        invalidateSWRCache(`sa_client_detail_${id}`);
+        invalidateSWRCache('sa_clients');
+        invalidateSWRCache('sa_dashboard');
+        invalidateSWRCache('sa_investments');
+        invalidateSWRCache('sa_roi');
+        window.dispatchEvent(new CustomEvent('superAdminDataUpdated', {
+          detail: { type: 'CLIENT_INVESTMENT_UPDATED', clientId: id, timestamp: Date.now() }
+        }));
+      } catch (_) {}
 
       addToast(`Client "${form.fullName}" updated successfully!`, 'success', 'Client Updated');
       setTimeout(() => navigate(`/investors/${id}`), 500);
@@ -376,6 +399,20 @@ export default function EditInvestor() {
 
             <div className="kfpl-form-row" style={{ marginTop: '16px' }}>
               <div className="kfpl-input-group" style={{ flex: 1 }}>
+                <label className="kfpl-input-label">Total Investment Amount (₹) <span className="required">*</span></label>
+                <input 
+                  type="number" 
+                  step="1" 
+                  min="0"
+                  className="kfpl-input" 
+                  name="totalInvestment" 
+                  value={form.totalInvestment} 
+                  onChange={handleChange} 
+                  placeholder="e.g. 500000"
+                  required 
+                />
+              </div>
+              <div className="kfpl-input-group" style={{ flex: 1 }}>
                 <label className="kfpl-input-label">Monthly ROI % <span className="required">*</span></label>
                 <input 
                   type="number" 
@@ -387,7 +424,6 @@ export default function EditInvestor() {
                   required 
                 />
               </div>
-              <div style={{ flex: 1 }}></div>
             </div>
 
             <div className="kfpl-form-row" style={{ marginTop: '16px' }}>
@@ -438,19 +474,42 @@ export default function EditInvestor() {
                 <input className="kfpl-input" name="pan" value={form.pan} onChange={handleChange} placeholder="PAN Card or SWIFT code" required />
               </div>
               <div className="kfpl-input-group">
-                <label className="kfpl-input-label">Bank Name <span className="required">*</span></label>
-                <input className="kfpl-input" name="bankName" value={form.bankName} onChange={handleChange} placeholder="HDFC, SBI, etc." required />
+                <label className="kfpl-input-label">{form.citizenship === 'International' ? 'Passport / National ID Number' : 'Aadhaar Number'}</label>
+                <input 
+                  className="kfpl-input" 
+                  name="aadhaarNumber" 
+                  value={form.aadhaarNumber} 
+                  onChange={(e) => {
+                    if (form.citizenship !== 'International') {
+                      const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 12);
+                      const formatted = raw.replace(/(\d{4})(?=\d)/g, '$1 ');
+                      setForm(prev => ({ ...prev, aadhaarNumber: formatted }));
+                    } else {
+                      setForm(prev => ({ ...prev, aadhaarNumber: e.target.value }));
+                    }
+                  }} 
+                  placeholder={form.citizenship === 'International' ? 'Enter passport or ID number' : 'Enter 12-digit Aadhaar number'} 
+                  maxLength={form.citizenship === 'International' ? 30 : 14}
+                  style={{ letterSpacing: form.citizenship === 'International' ? 'normal' : '1.5px' }}
+                />
               </div>
             </div>
             <div className="kfpl-form-row">
               <div className="kfpl-input-group">
+                <label className="kfpl-input-label">Bank Name <span className="required">*</span></label>
+                <input className="kfpl-input" name="bankName" value={form.bankName} onChange={handleChange} placeholder="HDFC, SBI, etc." required />
+              </div>
+              <div className="kfpl-input-group">
                 <label className="kfpl-input-label">Account Number <span className="required">*</span></label>
                 <input className="kfpl-input" name="accountNo" value={form.accountNo} onChange={handleChange} placeholder="Bank account number" required />
               </div>
+            </div>
+            <div className="kfpl-form-row">
               <div className="kfpl-input-group">
                 <label className="kfpl-input-label">IFSC / Routing Code <span className="required">*</span></label>
                 <input className="kfpl-input" name="ifsc" value={form.ifsc} onChange={handleChange} placeholder="IFSC code" required />
               </div>
+              <div></div>
             </div>
           </div>
 

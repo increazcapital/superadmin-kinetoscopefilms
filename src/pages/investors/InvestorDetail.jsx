@@ -749,7 +749,7 @@ export default function InvestorDetail() {
             const rawRate = r.roiRate || r.roiPercentage || r.rate;
             const cleanRate = rawRate ? String(rawRate).replace('%', '').replace(/ROI\s*\(?\s*/i, '').replace(/\)?\s*$/, '').trim() : '';
             const isPaid = String(r.status || '').toUpperCase() === 'PAID' || String(r.status || '').toUpperCase() === 'APPROVED';
-            const totalClientInv = inv?.totalInvestment || (summary?.totalInvestment) || (profile?.totalPortfolioValue) || (investor?.totalInvestment) || (investor?.summaryCards?.totalInvestment) || 0;
+            const totalClientInv = inv?.totalInvestment || (investor?.totalInvestment) || (investor?.summaryCards?.totalInvestment) || 0;
             let displayRate;
             if (cleanRate && cleanRate !== '0') {
               displayRate = `${cleanRate}%`;
@@ -821,7 +821,21 @@ export default function InvestorDetail() {
       }
     };
     fetchAllClientData();
-  }, [id]);
+
+    const handleRealtimeUpdate = (e) => {
+      const payload = e?.detail;
+      if (!payload || !payload.clientId || payload.clientId === id || payload.clientId === clientProfileId) {
+        fetchAllClientData();
+      }
+    };
+    window.addEventListener('yieldiq_data_updated', handleRealtimeUpdate);
+    window.addEventListener('superAdminDataUpdated', handleRealtimeUpdate);
+
+    return () => {
+      window.removeEventListener('yieldiq_data_updated', handleRealtimeUpdate);
+      window.removeEventListener('superAdminDataUpdated', handleRealtimeUpdate);
+    };
+  }, [id, clientProfileId]);
 
   // Keep fetch wrappers simple if any tab actions trigger manual re-fetches
   const fetchInvestments = async () => {
@@ -859,7 +873,7 @@ export default function InvestorDetail() {
         const rawRate = r.roiRate || r.roiPercentage || r.rate;
         const cleanRate = rawRate ? String(rawRate).replace('%', '').replace(/ROI\s*\(?\s*/i, '').replace(/\)?\s*$/, '').trim() : '';
         const isPaid = String(r.status || '').toUpperCase() === 'PAID' || String(r.status || '').toUpperCase() === 'APPROVED';
-        const totalClientInv = investor?.totalInvestment || (investor?.summaryCards && investor?.summaryCards?.totalInvestment) || (summaryData?.totalInvestment) || 0;
+        const totalClientInv = investor?.totalInvestment || (investor?.summaryCards && investor?.summaryCards?.totalInvestment) || 0;
         let displayRate;
         if (cleanRate && cleanRate !== '0') {
           displayRate = `${cleanRate}%`;

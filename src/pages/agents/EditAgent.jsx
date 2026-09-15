@@ -23,7 +23,7 @@ export default function EditAgent() {
   const [apiSlabs, setApiSlabs] = useState([]);
 
   const [form, setForm] = useState({
-    name: '', email: '', phone: '', phoneCountryCode: '+91', address: '', pan: '',
+    name: '', email: '', phone: '', phoneCountryCode: '+91', address: '', pan: '', aadhaarNumber: '',
     bankName: '', accountNo: '', ifsc: '',
     commissionOneTime: '', commissionMonthly: '', commissionSpecial: '',
     status: '',
@@ -108,6 +108,7 @@ export default function EditAgent() {
           phone: profile.phone || '',
           address: profile.address || ag.address || '',
           pan: profile.panNumber || '',
+          aadhaarNumber: profile.aadhaarNumber || '',
           status: ag.status || profile.status || 'Active',
           agentId: ag.header?.agentCode || user.clientCode || profile.agentId || '',
           citizenship: profile.residencyStatus || 'National',
@@ -131,6 +132,11 @@ export default function EditAgent() {
           phone: normalizedAg.phone,
           address: normalizedAg.address,
           pan: normalizedAg.pan,
+          aadhaarNumber: normalizedAg.aadhaarNumber ? (
+            normalizedAg.citizenship === 'International'
+              ? normalizedAg.aadhaarNumber
+              : String(normalizedAg.aadhaarNumber).replace(/\D/g, '').slice(0, 12).replace(/(\d{4})(?=\d)/g, '$1 ')
+          ) : '',
           bankName: normalizedAg.bankName,
           accountNo: normalizedAg.accountNo,
           ifsc: normalizedAg.ifsc,
@@ -203,6 +209,9 @@ export default function EditAgent() {
       formData.append('address', form.address || '');
       formData.append('residencyStatus', form.citizenship === 'International' ? 'International' : 'National (Domestic)');
       formData.append('panNumber', form.pan);
+      if (form.aadhaarNumber !== undefined && form.aadhaarNumber !== null) {
+        formData.append('aadhaarNumber', form.citizenship === 'International' ? form.aadhaarNumber.trim() : form.aadhaarNumber.replace(/\s/g, ''));
+      }
       formData.append('bankName', form.bankName);
       formData.append('accountNumber', form.accountNo);
       formData.append('confirmAccountNumber', form.accountNo);
@@ -314,7 +323,26 @@ export default function EditAgent() {
                 <label className="kfpl-input-label">{form.citizenship === 'International' ? 'Tax ID / SSN Number' : 'PAN Number'}</label>
                 <input className="kfpl-input" name="pan" value={form.pan} onChange={handleChange} placeholder={form.citizenship === 'International' ? 'Tax ID or SSN' : 'ABCVP1234T'} />
               </div>
-              <div></div>
+              <div className="kfpl-input-group">
+                <label className="kfpl-input-label">{form.citizenship === 'International' ? 'Passport / National ID Number' : 'Aadhaar Number'}</label>
+                <input 
+                  className="kfpl-input" 
+                  name="aadhaarNumber" 
+                  value={form.aadhaarNumber} 
+                  onChange={(e) => {
+                    if (form.citizenship !== 'International') {
+                      const raw = e.target.value.replace(/[^0-9]/g, '').slice(0, 12);
+                      const formatted = raw.replace(/(\d{4})(?=\d)/g, '$1 ');
+                      setForm(prev => ({ ...prev, aadhaarNumber: formatted }));
+                    } else {
+                      setForm(prev => ({ ...prev, aadhaarNumber: e.target.value }));
+                    }
+                  }} 
+                  placeholder={form.citizenship === 'International' ? 'Enter passport or ID number' : 'Enter 12-digit Aadhaar number'} 
+                  maxLength={form.citizenship === 'International' ? 30 : 14}
+                  style={{ letterSpacing: form.citizenship === 'International' ? 'normal' : '1.5px' }}
+                />
+              </div>
             </div>
           </div>
 

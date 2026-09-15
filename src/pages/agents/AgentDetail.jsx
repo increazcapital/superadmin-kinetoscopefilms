@@ -515,6 +515,7 @@ export default function AgentDetail() {
           email: profile.email || user.email || '—',
           phone: profile.phone || '—',
           pan: profile.panNumber || '—',
+          aadhaar: profile.aadhaarNumber || '—',
           agentId: formatAgentID(ag.header?.agentCode || user.clientCode || profile.agentId || '—'),
           joinDate: formatDateDMY(profile.joinDate || user.createdAt || profile.createdAt || ''),
           totalClients: ag.summaryCards?.clientsCount ?? ag.clientsCount ?? ag.totalClients ?? 0,
@@ -1225,6 +1226,17 @@ export default function AgentDetail() {
                   {agent.residencyStatus === 'International' ? 'Tax ID / SSN' : 'PAN Number'}
                 </span>
                 <span className="kfpl-detail-info-item-value">{agent.pan}</span>
+              </div>
+            </div>
+            <div className="kfpl-detail-info-row-item">
+              <div className="kfpl-detail-info-item-icon">{infoIcons.fileText}</div>
+              <div className="kfpl-detail-info-item-content">
+                <span className="kfpl-detail-info-item-label">
+                  {agent.residencyStatus === 'International' ? 'Passport / National ID' : 'Aadhaar Number'}
+                </span>
+                <span className="kfpl-detail-info-item-value">
+                  <SensitiveValueToggle value={agent.aadhaar} maskLength={4} />
+                </span>
               </div>
             </div>
             <div className="kfpl-detail-info-row-item">

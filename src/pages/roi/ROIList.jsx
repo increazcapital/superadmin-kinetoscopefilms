@@ -375,7 +375,7 @@ export default function ROIList() {
         month: r.month || r.period || '—',
         amount: Number(r.amount || 0),
         status: (r.status || 'pending').toLowerCase(),
-        paidAt: r.paidAt || r.date || null,
+        paidAt: (r.paidAt && r.paidAt !== '—') ? r.paidAt : (r.payoutDate && r.payoutDate !== '—' ? r.payoutDate : (r.date && r.date !== '—' ? r.date : null)),
         paymentMode: r.paymentMode || null,
         transactionRef: r.transactionRef || r.transactionRefId || null
       })).filter(r => r.id !== '6a54a1b54381f4b86bbb54bf'));
@@ -390,7 +390,7 @@ export default function ROIList() {
         month: r.month || r.period || '—',
         amount: Number(r.amount || 0),
         status: (r.status || 'pending').toLowerCase(),
-        paidAt: r.paidAt || r.date || null,
+        paidAt: (r.paidAt && r.paidAt !== '—') ? r.paidAt : (r.payoutDate && r.payoutDate !== '—' ? r.payoutDate : (r.date && r.date !== '—' ? r.date : null)),
         paymentMode: r.paymentMode || null,
         transactionRef: r.transactionRef || r.transactionRefId || null,
         remarks: r.remarks || ''
@@ -1073,12 +1073,14 @@ export default function ROIList() {
                   <td>{rec.payoutDetail}</td>
                   <td className="font-semibold" style={{ textAlign: 'right' }}>{formatCurrency(rec.amount)}</td>
                   <td>
-                    {rec.paymentMode ? (
+                    {rec.paymentMode && rec.paymentMode !== '—' ? (
                       <div>
                         <div style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{rec.paymentMode}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{rec.transactionRef || '—'}</div>
                       </div>
-                    ) : '—'}
+                    ) : (
+                      <span style={{ color: 'var(--color-text-muted)' }}>—</span>
+                    )}
                   </td>
                   <td><Badge status={rec.status}>{rec.status}</Badge></td>
                   <td>{rec.paidAt || '—'}</td>
@@ -1346,14 +1348,13 @@ export default function ROIList() {
               </select>
             </div>
             <div className="kfpl-input-group">
-              <label className="kfpl-input-label">Transaction Reference ID <span className="required">*</span></label>
+              <label className="kfpl-input-label">Transaction Reference ID <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>(Optional)</span></label>
               <input
                 type="text"
                 className="kfpl-input"
                 value={transactionRef}
                 onChange={(e) => setTransactionRef(e.target.value)}
                 placeholder="e.g. TXN10293847"
-                required
               />
             </div>
           </div>

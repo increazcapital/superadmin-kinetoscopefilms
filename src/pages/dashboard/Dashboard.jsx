@@ -474,7 +474,19 @@ export default function Dashboard() {
               return !recipientName || !MOCK_NAMES.includes(recipientName.trim());
             });
 
-            const paidPayouts = cleanPayouts.filter(p => (p.status || '').toLowerCase() === 'paid');
+            const seenClientMonthSet = new Set();
+            const paidPayouts = cleanPayouts.filter(p => {
+              const isPaid = (p.status || '').toLowerCase() === 'paid';
+              const isRoi = (p.recipientType === 'CLIENT' || String(p.type || '').includes('ROI')) && !p.isWithdrawal && !String(p.type || '').toLowerCase().includes('withdrawal');
+              if (!isPaid || !isRoi) return false;
+
+              const recipient = p.recipientCode || p.recipientId || p.recipientName || '';
+              const period = String(p.period || p.payoutDate || '').replace(/\bSept\b/i, 'Sep').trim();
+              const dedupeKey = `${recipient}_${period}`;
+              if (seenClientMonthSet.has(dedupeKey)) return false;
+              seenClientMonthSet.add(dedupeKey);
+              return true;
+            });
             realTotalRoiPaid = paidPayouts.reduce((sum, p) => sum + (p.amount || p.payoutAmount || 0), 0);
             
             const monthlyRoiSums = {};

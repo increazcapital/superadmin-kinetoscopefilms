@@ -370,8 +370,9 @@ export default function ROIList() {
         investorId: r.recipientId || r.investorId || r.idInternal || '',
         roiPercentage: (r.roiPercentage !== undefined && r.roiPercentage !== null) ? r.roiPercentage : null,
         type: r.type || r.commissionType,
+        category: r.category || (r.isWithdrawal ? 'WITHDRAWAL' : ''),
         payoutDetail: r.payoutDetail,
-        isWithdrawal: r.isWithdrawal || /withdrawal/i.test(r.type || r.commissionType || ''),
+        isWithdrawal: r.isWithdrawal || /withdrawal/i.test(r.type || r.commissionType || r.category || ''),
         month: r.month || r.period || '—',
         amount: Number(r.amount || 0),
         status: (r.status || 'pending').toLowerCase(),
@@ -386,7 +387,9 @@ export default function ROIList() {
         agentId: r.recipientCode || r.agentId || r.subText || r.recipientId || '—',
         idInternal: r.recipientId || r.idInternal || '',
         type: r.type || r.commissionType || 'monthly',
-        isWithdrawal: r.isWithdrawal || /withdrawal/i.test(r.type || r.commissionType || ''),
+        category: r.category || (r.isWithdrawal ? 'WITHDRAWAL' : ''),
+        payoutDetail: r.payoutDetail,
+        isWithdrawal: r.isWithdrawal || /withdrawal/i.test(r.type || r.commissionType || r.category || ''),
         month: r.month || r.period || '—',
         amount: Number(r.amount || 0),
         status: (r.status || 'pending').toLowerCase(),
@@ -599,13 +602,13 @@ export default function ROIList() {
 
   const handleRecipientTypeChange = (type) => {
     setRecipientType(type);
-    setIsAmountEditable(false);
     setSelectedClientId('');
     setSelectedAgentId('');
     setCommissionType('One-Time');
     setRelatedClientId('');
     setAmountPaid('');
     setTransactionRef('');
+    setIsAmountEditable(false);
   };
 
   const handleClientChange = (id) => {
@@ -728,6 +731,8 @@ export default function ROIList() {
   const confirmRecordPayout = async () => {
     const amt = parseFloat(amountPaid);
 
+    const isClientRec = recipientType === 'client';
+
     const selectedClientObj = dbClients.find(c => {
       const id = c.user?._id || c.profile?.userId || c._id || c.id;
       return String(id) === String(selectedClientId);
@@ -744,18 +749,18 @@ export default function ROIList() {
     });
 
     const payload = {
-      recipientType: recipientType === 'client' ? 'Client Return (ROI)' : 'Agent Commission',
-      recipientId: recipientType === 'client'
+      recipientType: isClientRec ? 'Client Return (ROI)' : 'Agent Commission',
+      recipientId: isClientRec
         ? (selectedClientObj?.profile?._id || selectedClientObj?._id || selectedClientId)
         : (selectedAgentObj?.profile?._id || selectedAgentObj?._id || selectedAgentId),
-      recipientName: recipientType === 'client'
+      recipientName: isClientRec
         ? (selectedClientObj?.profile?.fullName || selectedClientObj?.name || selectedClientObj?.fullName || 'Unknown Client')
         : (selectedAgentObj?.profile?.fullName || selectedAgentObj?.name || selectedAgentObj?.fullName || 'Unknown Agent'),
-      recipientCode: recipientType === 'client'
+      recipientCode: isClientRec
         ? (selectedClientObj?.profile?.clientCode || selectedClientObj?.clientId || selectedClientObj?.clientCode || '')
         : (selectedAgentObj?.profile?.agentCode || selectedAgentObj?.agentId || selectedAgentObj?.profile?.agentId || selectedAgentObj?.code || ''),
       commissionType: recipientType === 'agent' ? commissionType : undefined,
-      clientId: recipientType === 'client'
+      clientId: isClientRec
         ? (selectedClientObj?.profile?._id || selectedClientObj?._id || selectedClientId)
         : (recipientType === 'agent' && relatedClientId
           ? (relatedClientObj?.profile?._id || relatedClientObj?._id || relatedClientId)
@@ -1597,7 +1602,7 @@ export default function ROIList() {
               <div>
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recipient Type</span>
                 <strong style={{ fontSize: '0.875rem', color: 'var(--color-text)' }}>
-                  {recipientType === 'client' ? 'Client (ROI Payout)' : 'Agent (Commission)'}
+                  {recipientType === 'client' ? 'Client Return (ROI)' : 'Agent Commission'}
                 </strong>
               </div>
 

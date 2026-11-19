@@ -1908,8 +1908,8 @@ export default function InvestorDetail() {
                             const statusStr = String(roi.status || 'PENDING').toUpperCase();
                             const isPaid = statusStr === 'PAID' || statusStr === 'APPROVED';
                             return (
-                              <Badge status={isPaid ? 'approved' : 'pending'}>
-                                {isPaid ? 'APPROVED' : 'PENDING'}
+                              <Badge status={isPaid ? ( (!roi.paymentMode || roi.paymentMode === '—') && (!roi.transactionRefId || roi.transactionRefId === '—') && !roi.isWithdrawal ? 'active' : 'approved' ) : 'pending'}>
+                                {isPaid ? ( (!roi.paymentMode || roi.paymentMode === '—') && (!roi.transactionRefId || roi.transactionRefId === '—') && !roi.isWithdrawal ? 'RECEIVED IN WALLET' : 'PAID' ) : 'PENDING'}
                               </Badge>
                             );
                           })()}

@@ -299,7 +299,7 @@ export default function ROIList() {
       r.amount,
       r.paymentMode || '—',
       r.transactionRef || '—',
-      r.status.toUpperCase(),
+      (!r.isWithdrawal && (!r.paymentMode || r.paymentMode === '—') && (!r.transactionRef || r.transactionRef === '—') && ['paid', 'approved', 'active', 'completed'].includes(String(r.status).toLowerCase())) ? 'RECEIVED IN WALLET' : String(r.status || 'PENDING').toUpperCase(),
       r.paidAt || '—'
     ]);
 
@@ -1087,7 +1087,96 @@ export default function ROIList() {
                       <span style={{ color: 'var(--color-text-muted)' }}>—</span>
                     )}
                   </td>
-                  <td><Badge status={rec.status}>{rec.status}</Badge></td>
+                  <td>
+                    {(() => {
+                      const isWalletCredit = !rec.isWithdrawal &&
+                        (!rec.paymentMode || rec.paymentMode === '—') &&
+                        (!rec.transactionRef || rec.transactionRef === '—') &&
+                        ['paid', 'approved', 'active', 'completed'].includes(String(rec.status).toLowerCase());
+
+                      if (isWalletCredit) {
+                        return (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            background: '#ECFDF5',
+                            color: '#047857',
+                            border: '1px solid #A7F3D0'
+                          }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#059669' }}></span>
+                            RECEIVED IN WALLET
+                          </span>
+                        );
+                      }
+
+                      const stLower = String(rec.status || 'pending').toLowerCase();
+                      const isPaid = ['paid', 'approved', 'completed'].includes(stLower);
+                      const isPending = ['pending', 'processing', 'in_review'].includes(stLower);
+
+                      if (isPaid) {
+                        return (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            background: '#FFF8E7',
+                            color: '#B45309',
+                            border: '1px solid #FFE7A3'
+                          }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#D48F00' }}></span>
+                            PAID
+                          </span>
+                        );
+                      }
+
+                      if (isPending) {
+                        return (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            background: '#FEF3C7',
+                            color: '#B45309',
+                            border: '1px solid #FDE68A'
+                          }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#D97706' }}></span>
+                            PENDING
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '4px 10px',
+                          borderRadius: '20px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          background: '#FEE2E2',
+                          color: '#B91C1C',
+                          border: '1px solid #FCA5A5'
+                        }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#DC2626' }}></span>
+                          {stLower.toUpperCase()}
+                        </span>
+                      );
+                    })()}
+                  </td>
                   <td>{rec.paidAt || '—'}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start', alignItems: 'center' }}>

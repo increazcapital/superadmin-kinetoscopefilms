@@ -1905,6 +1905,9 @@ export default function InvestorDetail() {
                         <td className="font-semibold">{formatCurrency(roi.amount || 0)}</td>
                         <td>
                           {(() => {
+                            if (roi.isWithdrawal || roi.category === 'WITHDRAWAL' || /withdrawal/i.test(roi.type || roi.commissionType || '')) {
+                              return <Badge status="withdrawal">WITHDRAWAL</Badge>;
+                            }
                             const statusStr = String(roi.status || 'PENDING').toUpperCase();
                             const isPaid = statusStr === 'PAID' || statusStr === 'APPROVED';
                             return (

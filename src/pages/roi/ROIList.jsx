@@ -299,7 +299,7 @@ export default function ROIList() {
       r.amount,
       r.paymentMode || '—',
       r.transactionRef || '—',
-      (!r.isWithdrawal && (!r.paymentMode || r.paymentMode === '—') && (!r.transactionRef || r.transactionRef === '—') && ['paid', 'approved', 'active', 'completed'].includes(String(r.status).toLowerCase())) ? 'RECEIVED IN WALLET' : String(r.status || 'PENDING').toUpperCase(),
+      r.isWithdrawal ? 'WITHDRAWAL' : ((!r.paymentMode || r.paymentMode === '—') && (!r.transactionRef || r.transactionRef === '—') && ['paid', 'approved', 'active', 'completed'].includes(String(r.status).toLowerCase()) ? 'RECEIVED IN WALLET' : String(r.status || 'PENDING').toUpperCase()),
       r.paidAt || '—'
     ]);
 
@@ -967,7 +967,7 @@ export default function ROIList() {
 
       {/* Filter Chips */}
       <div className="kfpl-filter-chips" style={{ marginBottom: '20px' }}>
-        {['all', 'paid', 'pending'].map(f => (
+        {['all', 'paid', 'pending', 'withdrawal'].map(f => (
           <span
             key={f}
             className={`kfpl-filter-chip ${filter === f ? 'active' : ''}`}
@@ -1089,6 +1089,26 @@ export default function ROIList() {
                   </td>
                   <td>
                     {(() => {
+                      if (rec.isWithdrawal || rec.category === 'WITHDRAWAL' || /withdrawal/i.test(rec.type || rec.payoutDetail || '')) {
+                        return (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            background: '#FFF8E7',
+                            color: '#B45309',
+                            border: '1px solid #FFE7A3'
+                          }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F5A800' }}></span>
+                            WITHDRAWAL
+                          </span>
+                        );
+                      }
+
                       const isWalletCredit = !rec.isWithdrawal &&
                         (!rec.paymentMode || rec.paymentMode === '—') &&
                         (!rec.transactionRef || rec.transactionRef === '—') &&

@@ -723,7 +723,7 @@ export default function Dashboard() {
         <KpiCard
           title="Total Withdrawals"
           value={formatCurrency(stats.totalWithdrawals || stats.totalWithdrawalAmount || 0)}
-          trend="Approved capital withdrawals"
+          trend="Approved client withdrawals"
           trendDirection="down"
           icon={kpiIcons.pending}
           iconColor="danger"
